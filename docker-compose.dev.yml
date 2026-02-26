@@ -1,0 +1,137 @@
+# For local development: Wizard runs on host
+# docker compose -f docker-compose.dev.yml up -d
+# cd wizard && npm run dev
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  ghost:
+    image: ghost:5
+    container_name: openant-ghost
+    restart: unless-stopped
+    logging: *default-logging
+    ports:
+      - "2368:2368"
+    volumes:
+      - ghost_content:/var/lib/ghost/content
+    environment:
+      - url=http://localhost:2368
+      - database__client=mysql
+      - database__connection__host=ghost-db
+      - database__connection__port=3306
+      - database__connection__user=ghost
+      - database__connection__password=ghost_dev_password
+      - database__connection__database=ghost
+      - NODE_ENV=development
+    depends_on:
+      ghost-db:
+        condition: service_healthy
+    networks:
+      - openant_net
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:2368/ghost/api/admin/site/').then(r=>{process.exit(r.ok?0:1)}).catch(()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  ghost-db:
+    image: mysql:8.0
+    container_name: openant-ghost-db
+    restart: unless-stopped
+    logging: *default-logging
+    volumes:
+      - ghost_db_data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=ghost_root_dev
+      - MYSQL_DATABASE=ghost
+      - MYSQL_USER=ghost
+      - MYSQL_PASSWORD=ghost_dev_password
+    networks:
+      - openant_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nocodb:
+    image: nocodb/nocodb:0.260.0
+    container_name: openant-nocodb
+    restart: unless-stopped
+    logging: *default-logging
+    ports:
+      - "8080:8080"
+    volumes:
+      - nocodb_data:/usr/app/data
+    environment:
+      - NC_DB=pg://db:5432?u=openant&p=openant_dev_password&d=openant
+      - NC_AUTH_JWT_SECRET=dev-jwt-secret-change-me
+      - NC_PUBLIC_URL=http://localhost:8080
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - openant_net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/api/v1/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  db:
+    image: postgres:16-alpine
+    container_name: openant-db
+    restart: unless-stopped
+    logging: *default-logging
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=openant
+      - POSTGRES_USER=openant
+      - POSTGRES_PASSWORD=openant_dev_password
+    networks:
+      - openant_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U openant"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  n8n:
+    image: n8nio/n8n:2.9.2
+    container_name: openant-n8n
+    restart: unless-stopped
+    logging: *default-logging
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678
+    networks:
+      - openant_net
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:5678/healthz').then(r=>{process.exit(r.ok?0:1)}).catch(()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  ghost_content:
+  ghost_db_data:
+  nocodb_data:
+  postgres_data:
+  n8n_data:
+
+networks:
+  openant_net:
+    driver: bridge

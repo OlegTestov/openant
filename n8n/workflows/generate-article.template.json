@@ -1,0 +1,198 @@
+{
+  "name": "Generate & Publish Article",
+  "nodes": [
+    {
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300],
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "minutes", "minutesInterval": 300 }]
+        }
+      }
+    },
+    {
+      "name": "Get Next Queued",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [450, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "(Status,blank)" },
+            { "name": "sort", "value": "CreatedAt" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "", "name": "NocoDB" }
+      }
+    },
+    {
+      "name": "Has Records?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.list.length }}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Update Status: generating",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [850, 250],
+      "parameters": {
+        "method": "PATCH",
+        "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "Title",
+              "value": "={{ $json.list[0].Title }}"
+            },
+            {
+              "name": "Status",
+              "value": "generating"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "", "name": "NocoDB" }
+      }
+    },
+    {
+      "name": "Generate Article",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.4,
+      "position": [1050, 250],
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": { "__rl": true, "mode": "id", "value": "gpt-4o-mini" },
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "=Write a detailed SEO article in {{BLOG_LANGUAGE}} language with {{BLOG_TONE}} tone.\n\nTopic: {{ $('Get Next Queued').item.json.list[0].Title }}\nDescription: {{ $('Get Next Queued').item.json.list[0].Description || '' }}\nInclude this link naturally: {{ $('Get Next Queued').item.json.list[0].Link || '' }}\n\nReturn only HTML content (no <html>, <head>, <body> tags — just article content with <h2>, <p>, <ul>, <a> tags)."
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "openAiApi": { "id": "", "name": "LLM API" }
+      }
+    },
+    {
+      "name": "Update Status: publishing",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1250, 250],
+      "parameters": {
+        "method": "PATCH",
+        "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "Title",
+              "value": "={{ $('Get Next Queued').item.json.list[0].Title }}"
+            },
+            {
+              "name": "Status",
+              "value": "publishing"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "", "name": "NocoDB" }
+      }
+    },
+    {
+      "name": "Publish to Ghost",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 250],
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst http = require('http');\nconst key = '{{GHOST_ADMIN_API_KEY}}';\nconst [id, secret] = key.split(':');\nconst header = Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT',kid:id})).toString('base64url');\nconst now = Math.floor(Date.now()/1000);\nconst payload = Buffer.from(JSON.stringify({iat:now,exp:now+300,aud:'/admin/'})).toString('base64url');\nconst hmac = crypto.createHmac('sha256', Buffer.from(secret, 'hex'));\nhmac.update(`${header}.${payload}`);\nconst sig = hmac.digest('base64url');\nconst jwt = `${header}.${payload}.${sig}`;\nconst articleTitle = $('Get Next Queued').first().json.list[0].Title;\nlet articleHtml = $('Generate Article').first().json.message.content;\narticleHtml = articleHtml.replace(/^```html?\\n?/i, '').replace(/\\n?```\\s*$/, '').trim();\nconst mobiledoc = JSON.stringify({ version: '0.3.1', atoms: [], cards: [['html', { html: articleHtml }]], markups: [], sections: [[10, 0]] });\nconst body = JSON.stringify({ posts: [{ title: articleTitle, mobiledoc, status: 'published' }] });\nconst result = await new Promise((resolve, reject) => {\n  const req = http.request({ hostname: 'ghost', port: 2368, path: '/ghost/api/admin/posts/', method: 'POST', headers: { 'Authorization': 'Ghost ' + jwt, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) } }, (res) => {\n    let data = '';\n    res.on('data', chunk => data += chunk);\n    res.on('end', () => {\n      if (res.statusCode >= 400) reject(new Error('Ghost ' + res.statusCode + ': ' + data));\n      else resolve(JSON.parse(data));\n    });\n  });\n  req.on('error', reject);\n  req.write(body);\n  req.end();\n});\nreturn [{ json: result }];"
+      }
+    },
+    {
+      "name": "Update Status: published",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1850, 250],
+      "parameters": {
+        "method": "PATCH",
+        "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "Title",
+              "value": "={{ $('Get Next Queued').item.json.list[0].Title }}"
+            },
+            {
+              "name": "Status",
+              "value": "published"
+            },
+            {
+              "name": "GhostURL",
+              "value": "={{ $json.posts[0].url }}"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "", "name": "NocoDB" }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [[{ "node": "Get Next Queued", "type": "main", "index": 0 }]]
+    },
+    "Get Next Queued": {
+      "main": [[{ "node": "Has Records?", "type": "main", "index": 0 }]]
+    },
+    "Has Records?": {
+      "main": [[{ "node": "Update Status: generating", "type": "main", "index": 0 }]]
+    },
+    "Update Status: generating": {
+      "main": [[{ "node": "Generate Article", "type": "main", "index": 0 }]]
+    },
+    "Generate Article": {
+      "main": [[{ "node": "Update Status: publishing", "type": "main", "index": 0 }]]
+    },
+    "Update Status: publishing": {
+      "main": [[{ "node": "Publish to Ghost", "type": "main", "index": 0 }]]
+    },
+    "Publish to Ghost": {
+      "main": [[{ "node": "Update Status: published", "type": "main", "index": 0 }]]
+    }
+  }
+}

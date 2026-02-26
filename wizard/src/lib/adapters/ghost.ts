@@ -1,0 +1,317 @@
+import crypto from 'crypto';
+import type { BlogAdapter, BlogConfig, PostData, PublishedPost, BlogSetupResult } from './types';
+import { AdapterError } from '@/lib/errors';
+
+function getGhostUrl(): string {
+  return process.env.GHOST_INTERNAL_URL || 'http://ghost:2368';
+}
+
+function getAdminPassword(): string {
+  const token = process.env.SETUP_TOKEN || 'openant-default';
+  return crypto.createHash('sha256').update(`ghost-admin-${token}`).digest('hex').slice(0, 32);
+}
+
+async function signIn(ghostUrl: string, email: string, password: string): Promise<string | null> {
+  const res = await fetch(`${ghostUrl}/ghost/api/admin/session/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: email, password }),
+  });
+  // Ghost may return 500 (EmailError) even on successful auth — check cookie first
+  const raw = res.headers.get('set-cookie');
+  if (raw) return raw.split(';')[0];
+  if (!res.ok) return null;
+  return null;
+}
+
+async function getOrCreateIntegration(
+  ghostUrl: string,
+  sessionCookie: string,
+): Promise<BlogSetupResult> {
+  const headers = { 'Content-Type': 'application/json', Cookie: sessionCookie };
+
+  // Check for existing integration first
+  const listRes = await fetch(`${ghostUrl}/ghost/api/admin/integrations/?include=api_keys`, {
+    headers,
+  });
+  if (listRes.ok) {
+    const listData = (await listRes.json()) as {
+      integrations: Array<{
+        name: string;
+        api_keys: Array<{ secret: string; type: string }>;
+      }>;
+    };
+    const existing = listData.integrations.find((i) => i.name === 'openant');
+    if (existing) {
+      const adminKey = existing.api_keys.find((k) => k.type === 'admin');
+      const contentKey = existing.api_keys.find((k) => k.type === 'content');
+      if (adminKey && contentKey) {
+        return { adminApiKey: adminKey.secret, contentApiKey: contentKey.secret };
+      }
+    }
+  }
+
+  // Create new integration
+  const createRes = await fetch(`${ghostUrl}/ghost/api/admin/integrations/`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ integrations: [{ name: 'openant' }] }),
+  });
+  if (!createRes.ok) {
+    const error = await createRes.text();
+    throw new AdapterError(
+      'ghost',
+      'setup',
+      `Failed to create integration: ${createRes.status} ${error}`,
+    );
+  }
+
+  const data = (await createRes.json()) as {
+    integrations: Array<{
+      api_keys: Array<{ secret: string; type: string }>;
+    }>;
+  };
+  const integration = data.integrations[0];
+  const adminKey = integration.api_keys.find((k) => k.type === 'admin');
+  const contentKey = integration.api_keys.find((k) => k.type === 'content');
+  if (!adminKey || !contentKey) {
+    throw new AdapterError('ghost', 'setup', 'Missing admin or content API key');
+  }
+  return { adminApiKey: adminKey.secret, contentApiKey: contentKey.secret };
+}
+
+export function createGhostJwt(adminApiKey: string): string {
+  const [id, secret] = adminApiKey.split(':');
+
+  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT', kid: id })).toString(
+    'base64url',
+  );
+  const now = Math.floor(Date.now() / 1000);
+  const payload = Buffer.from(
+    JSON.stringify({
+      iat: now,
+      exp: now + 300,
+      aud: '/admin/',
+    }),
+  ).toString('base64url');
+
+  const hmac = crypto.createHmac('sha256', Buffer.from(secret, 'hex'));
+  hmac.update(`${header}.${payload}`);
+  const signature = hmac.digest('base64url');
+
+  return `${header}.${payload}.${signature}`;
+}
+
+async function updateSettingsWithJwt(
+  ghostUrl: string,
+  jwt: string,
+  config: BlogConfig,
+): Promise<void> {
+  const res = await fetch(`${ghostUrl}/ghost/api/admin/settings/`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Ghost ${jwt}`,
+    },
+    body: JSON.stringify({
+      settings: [
+        { key: 'title', value: config.title },
+        { key: 'description', value: config.description },
+        { key: 'locale', value: config.language },
+      ],
+    }),
+  });
+  if (!res.ok) {
+    const error = await res.text();
+    throw new AdapterError('ghost', 'setup', `Failed to update settings: ${res.status} ${error}`);
+  }
+}
+
+async function ghostNeedsSetup(ghostUrl: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${ghostUrl}/ghost/api/admin/authentication/setup/`);
+    if (res.ok) {
+      const data = (await res.json()) as { setup: Array<{ status: boolean }> };
+      return data.setup?.[0]?.status === false;
+    }
+  } catch {
+    // Can't determine — assume needs setup to be safe
+  }
+  return true;
+}
+
+export function createGhostAdapter(): BlogAdapter {
+  return {
+    async healthCheck() {
+      try {
+        const res = await fetch(`${getGhostUrl()}/ghost/api/admin/site/`);
+        return res.ok;
+      } catch {
+        return false;
+      }
+    },
+
+    async setup(config: BlogConfig): Promise<BlogSetupResult> {
+      const ghostUrl = getGhostUrl();
+
+      // Fast path: if Ghost is already set up and we have valid API keys, use JWT auth
+      const existingAdminKey = process.env.GHOST_ADMIN_API_KEY;
+      const existingContentKey = process.env.GHOST_CONTENT_API_KEY;
+      if (existingAdminKey && existingContentKey && !(await ghostNeedsSetup(ghostUrl))) {
+        try {
+          const jwt = createGhostJwt(existingAdminKey);
+          const testRes = await fetch(`${ghostUrl}/ghost/api/admin/site/`, {
+            headers: { Authorization: `Ghost ${jwt}` },
+          });
+          if (testRes.ok) {
+            // Keys are valid — try to update settings (may fail with 501 for JWT auth)
+            try {
+              await updateSettingsWithJwt(ghostUrl, jwt, config);
+            } catch {
+              // Ghost doesn't support settings update via integration JWT — skip silently
+            }
+            return { adminApiKey: existingAdminKey, contentApiKey: existingContentKey };
+          }
+        } catch {
+          // Keys invalid or Ghost unreachable — fall through to full setup
+        }
+      }
+
+      // Full setup path: fresh Ghost instance
+      const password = getAdminPassword();
+
+      // Step 1: Create admin account
+      const setupRes = await fetch(`${ghostUrl}/ghost/api/admin/authentication/setup/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          setup: [
+            {
+              name: 'Admin',
+              email: config.adminEmail,
+              password,
+              blogTitle: config.title,
+            },
+          ],
+        }),
+      });
+
+      // Get session cookie from setup response (Ghost sets it on 201)
+      let sessionCookie = setupRes.headers.get('set-cookie')?.split(';')[0] ?? null;
+
+      if (setupRes.ok) {
+        // Fresh setup succeeded — cookie should be in the response
+        if (!sessionCookie) {
+          // Fallback: sign in explicitly
+          sessionCookie = await signIn(ghostUrl, config.adminEmail, password);
+        }
+        if (!sessionCookie) {
+          throw new AdapterError('ghost', 'setup', 'Failed to get session after setup');
+        }
+      } else if (setupRes.status === 403) {
+        // Already set up — try to sign in with deterministic password
+        sessionCookie = await signIn(ghostUrl, config.adminEmail, password);
+        if (!sessionCookie) {
+          throw new AdapterError(
+            'ghost',
+            'setup',
+            'Ghost is already configured but login failed. This usually means email sending is not configured. Reset Ghost data and retry: docker compose down ghost ghost-db && docker volume rm the ghost volumes, then retry.',
+          );
+        }
+      } else {
+        const error = await setupRes.text();
+        throw new AdapterError('ghost', 'setup', `Ghost setup failed: ${setupRes.status} ${error}`);
+      }
+
+      // Step 2: Get or create integration API keys
+      const keys = await getOrCreateIntegration(ghostUrl, sessionCookie);
+
+      // Step 3: Update site settings
+      const settingsRes = await fetch(`${ghostUrl}/ghost/api/admin/settings/`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: sessionCookie,
+        },
+        body: JSON.stringify({
+          settings: [
+            { key: 'title', value: config.title },
+            { key: 'description', value: config.description },
+            { key: 'locale', value: config.language },
+          ],
+        }),
+      });
+
+      if (!settingsRes.ok) {
+        const error = await settingsRes.text();
+        throw new AdapterError(
+          'ghost',
+          'setup',
+          `Failed to update settings: ${settingsRes.status} ${error}`,
+        );
+      }
+
+      return keys;
+    },
+
+    async publishPost(post: PostData): Promise<PublishedPost> {
+      const adminApiKey = process.env.GHOST_ADMIN_API_KEY;
+      if (!adminApiKey) {
+        throw new AdapterError('ghost', 'publishPost', 'GHOST_ADMIN_API_KEY not set');
+      }
+
+      const jwt = createGhostJwt(adminApiKey);
+
+      const res = await fetch(`${getGhostUrl()}/ghost/api/admin/posts/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Ghost ${jwt}`,
+        },
+        body: JSON.stringify({
+          posts: [
+            {
+              title: post.title,
+              html: post.html,
+              status: 'published',
+              tags: post.tags?.map((name) => ({ name })),
+              meta_title: post.metaTitle,
+              meta_description: post.metaDescription,
+              feature_image: post.featureImage,
+            },
+          ],
+        }),
+      });
+
+      if (!res.ok) {
+        const error = await res.text();
+        throw new AdapterError('ghost', 'publishPost', `Ghost API error: ${res.status} ${error}`);
+      }
+
+      const data = (await res.json()) as {
+        posts: Array<{ id: string; url: string; slug: string }>;
+      };
+      const published = data.posts[0];
+
+      return { id: published.id, url: published.url, slug: published.slug };
+    },
+
+    async getPostUrl(postId: string) {
+      const contentApiKey = process.env.GHOST_CONTENT_API_KEY;
+      if (!contentApiKey) {
+        throw new AdapterError('ghost', 'getPostUrl', 'GHOST_CONTENT_API_KEY not set');
+      }
+
+      const res = await fetch(
+        `${getGhostUrl()}/ghost/api/content/posts/${postId}/?key=${contentApiKey}`,
+      );
+
+      if (!res.ok) {
+        throw new AdapterError('ghost', 'getPostUrl', `Failed to get post: ${res.status}`);
+      }
+
+      const data = (await res.json()) as { posts: Array<{ url: string }> };
+      return data.posts[0].url;
+    },
+  };
+}

@@ -1,0 +1,133 @@
+'use client';
+
+import { useState, useEffect, useMemo } from 'react';
+import { STEPS } from '@/lib/steps';
+import { Stepper } from '@/components/Stepper';
+
+import Welcome from './steps/Welcome';
+import Domain from './steps/Domain';
+import LLM from './steps/LLM';
+import Blog from './steps/Blog';
+import Social from './steps/Social';
+import Review from './steps/Review';
+import Deploy from './steps/Deploy';
+
+const STEP_COMPONENTS = [Welcome, Domain, LLM, Blog, Social, Review, Deploy];
+
+export default function SetupPage() {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
+  const [savedConfig, setSavedConfig] = useState<Record<string, Record<string, unknown>>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [saasMode, setSaasMode] = useState(false);
+
+  const filteredSteps = useMemo(
+    () => (saasMode ? STEPS.filter((s) => s.id !== 'domain') : STEPS),
+    [saasMode],
+  );
+
+  const filteredComponents = useMemo(
+    () => (saasMode ? STEP_COMPONENTS.filter((_, i) => STEPS[i].id !== 'domain') : STEP_COMPONENTS),
+    [saasMode],
+  );
+
+  useEffect(() => {
+    async function restorePosition() {
+      try {
+        const token =
+          new URLSearchParams(window.location.search).get('token') ||
+          localStorage.getItem('setup_token');
+        if (token) localStorage.setItem('setup_token', token);
+
+        const res = await fetch('/api/setup/status', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          const isSaas = data.data.saas_mode ?? false;
+          setSaasMode(isSaas);
+
+          const completed = new Set<string>();
+          for (const [id, info] of Object.entries(data.data.steps)) {
+            if ((info as { completed: boolean }).completed) completed.add(id);
+          }
+          setCompletedSteps(completed);
+
+          setSavedConfig({
+            ...(data.data.welcome && { welcome: data.data.welcome }),
+            ...(data.data.domain && { domain: data.data.domain }),
+            ...(data.data.llm && { llm: data.data.llm }),
+            ...(data.data.blog && { blog: data.data.blog }),
+            ...(data.data.social && { social: data.data.social }),
+          });
+
+          const activeSteps = isSaas ? STEPS.filter((s) => s.id !== 'domain') : STEPS;
+          const stepIndex = activeSteps.findIndex((s) => s.id === data.data.currentStep);
+          if (stepIndex >= 0) setCurrentStep(stepIndex);
+        }
+      } catch {
+        // If restore fails — start from the first step
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    restorePosition();
+  }, []);
+
+  function handleNext() {
+    if (currentStep < filteredSteps.length - 1) {
+      setCurrentStep((prev) => prev + 1);
+    }
+  }
+
+  function handleBack() {
+    if (currentStep > 0) {
+      setCurrentStep((prev) => prev - 1);
+    }
+  }
+
+  function handleStepComplete(stepId: string, data?: Record<string, unknown>) {
+    setCompletedSteps((prev) => new Set([...prev, stepId]));
+    if (data) {
+      setSavedConfig((prev) => ({ ...prev, [stepId]: data }));
+    }
+
+    // Last step (deploy) completed → redirect to dashboard
+    if (currentStep >= filteredSteps.length - 1) {
+      window.location.href = '/dashboard';
+      return;
+    }
+
+    handleNext();
+  }
+
+  function handleGoToStep(stepIndex: number) {
+    setCurrentStep(stepIndex);
+  }
+
+  if (isLoading) {
+    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+  }
+
+  const StepComponent = filteredComponents[currentStep];
+
+  return (
+    <div className="bg-background min-h-screen">
+      <div className="mx-auto max-w-4xl px-4 py-8">
+        <Stepper steps={filteredSteps} currentStep={currentStep} completedSteps={completedSteps} />
+
+        <div className="mt-8">
+          <StepComponent
+            onComplete={(data?: Record<string, unknown>) =>
+              handleStepComplete(filteredSteps[currentStep].id, data)
+            }
+            onBack={currentStep > 0 ? handleBack : undefined}
+            onGoToStep={handleGoToStep}
+            initialData={savedConfig[filteredSteps[currentStep].id]}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}

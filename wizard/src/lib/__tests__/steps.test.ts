@@ -1,0 +1,30 @@
+import { describe, it, expect } from 'vitest';
+import { STEPS } from '../steps';
+
+describe('STEPS registry', () => {
+  it('contains 7 steps', () => {
+    expect(STEPS).toHaveLength(7);
+  });
+
+  it('first step is welcome', () => {
+    expect(STEPS[0].id).toBe('welcome');
+  });
+
+  it('last step is deploy', () => {
+    expect(STEPS[STEPS.length - 1].id).toBe('deploy');
+  });
+
+  it('social is the only optional step', () => {
+    const optional = STEPS.filter((s) => !s.required);
+    expect(optional).toHaveLength(1);
+    expect(optional[0].id).toBe('social');
+  });
+
+  it('every step has id, label, and required', () => {
+    for (const step of STEPS) {
+      expect(step.id).toBeTypeOf('string');
+      expect(step.label).toBeTypeOf('string');
+      expect(step.required).toBeTypeOf('boolean');
+    }
+  });
+});

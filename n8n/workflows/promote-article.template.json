@@ -1,0 +1,142 @@
+{
+  "name": "Promote Article",
+  "nodes": [
+    {
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300],
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "minutes", "minutesInterval": 300 }]
+        }
+      }
+    },
+    {
+      "name": "Get Published Articles",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [450, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "(Status,eq,published)" },
+            { "name": "sort", "value": "CreatedAt" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "", "name": "NocoDB" }
+      }
+    },
+    {
+      "name": "Has Records?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.list.length }}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Update Status: promoting",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [850, 250],
+      "parameters": {
+        "method": "PATCH",
+        "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "Title",
+              "value": "={{ $json.list[0].Title }}"
+            },
+            {
+              "name": "Status",
+              "value": "promoting"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "", "name": "NocoDB" }
+      }
+    },
+    {
+      "name": "Send to Make Webhook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1050, 250],
+      "parameters": {
+        "method": "POST",
+        "url": "",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ title: $('Get Published Articles').item.json.list[0].Title, description: $('Get Published Articles').item.json.list[0].Description || '', url: $('Get Published Articles').item.json.list[0].GhostURL || '' }) }}"
+      }
+    },
+    {
+      "name": "Update Status: completed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1250, 250],
+      "parameters": {
+        "method": "PATCH",
+        "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "Title",
+              "value": "={{ $('Get Published Articles').item.json.list[0].Title }}"
+            },
+            {
+              "name": "Status",
+              "value": "completed"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "", "name": "NocoDB" }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [[{ "node": "Get Published Articles", "type": "main", "index": 0 }]]
+    },
+    "Get Published Articles": {
+      "main": [[{ "node": "Has Records?", "type": "main", "index": 0 }]]
+    },
+    "Has Records?": {
+      "main": [[{ "node": "Update Status: promoting", "type": "main", "index": 0 }]]
+    },
+    "Update Status: promoting": {
+      "main": [[{ "node": "Send to Make Webhook", "type": "main", "index": 0 }]]
+    },
+    "Send to Make Webhook": {
+      "main": [[{ "node": "Update Status: completed", "type": "main", "index": 0 }]]
+    }
+  }
+}

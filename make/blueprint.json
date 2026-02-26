@@ -1,0 +1,34 @@
+{
+  "name": "openant Social Distribution",
+  "flow": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebHook",
+      "version": 1,
+      "parameters": {
+        "hook": "webhook-url-placeholder"
+      },
+      "mapper": {
+        "title": "{{1.title}}",
+        "description": "{{1.description}}",
+        "url": "{{1.url}}",
+        "imageUrl": "{{1.imageUrl}}"
+      }
+    },
+    {
+      "id": 2,
+      "module": "pinterest:createPin",
+      "version": 1,
+      "parameters": {
+        "board": "auto-content",
+        "title": "{{1.title}}",
+        "description": "{{1.description}}",
+        "link": "{{1.url}}",
+        "media_source": {
+          "source_type": "image_url",
+          "url": "{{1.imageUrl}}"
+        }
+      }
+    }
+  ]
+}

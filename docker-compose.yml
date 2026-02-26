@@ -1,0 +1,189 @@
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  wizard:
+    build:
+      context: ./wizard
+      args:
+        DOCKER_GID: ${DOCKER_GID:-999}
+    container_name: openant-wizard
+    restart: unless-stopped
+    logging: *default-logging
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data/wizard:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./.env:/app/.env
+      - ./caddy/Caddyfile:/app/Caddyfile
+      - ./n8n/workflows:/app/n8n/workflows:ro
+    environment:
+      - SETUP_TOKEN=${SETUP_TOKEN}
+      - NODE_ENV=production
+      - SERVER_IP=${SERVER_IP}
+      - GHOST_INTERNAL_URL=http://ghost:2368
+      - NOCODB_INTERNAL_URL=http://nocodb:8080
+      - N8N_INTERNAL_URL=http://n8n:5678
+    networks:
+      - openant_net
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000/api/health').then(r=>{process.exit(r.ok?0:1)}).catch(()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  ghost:
+    image: ghost:5
+    container_name: openant-ghost
+    restart: unless-stopped
+    logging: *default-logging
+    volumes:
+      - ghost_content:/var/lib/ghost/content
+      - ./ghost/fake-sendmail.sh:/usr/local/bin/fake-sendmail:ro
+    environment:
+      - url=${GHOST_URL:-http://localhost}
+      - database__client=mysql
+      - database__connection__host=ghost-db
+      - database__connection__port=3306
+      - database__connection__user=ghost
+      - database__connection__password=${GHOST_DB_PASSWORD}
+      - database__connection__database=ghost
+      - mail__transport=sendmail
+      - mail__options__path=/usr/local/bin/fake-sendmail
+      - security__staffDeviceVerification=false
+      - NODE_ENV=production
+    depends_on:
+      ghost-db:
+        condition: service_healthy
+    networks:
+      - openant_net
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:2368/ghost/api/admin/site/').then(r=>{process.exit(r.ok?0:1)}).catch(()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  ghost-db:
+    image: mysql:8.0
+    container_name: openant-ghost-db
+    restart: unless-stopped
+    logging: *default-logging
+    volumes:
+      - ghost_db_data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${GHOST_DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=ghost
+      - MYSQL_USER=ghost
+      - MYSQL_PASSWORD=${GHOST_DB_PASSWORD}
+    networks:
+      - openant_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nocodb:
+    image: nocodb/nocodb:0.260.0
+    container_name: openant-nocodb
+    restart: unless-stopped
+    logging: *default-logging
+    ports:
+      - "${NOCODB_PORT:-8080}:8080"
+    volumes:
+      - nocodb_data:/usr/app/data
+    environment:
+      - NC_DB=pg://db:5432?u=openant&p=${DB_PASSWORD}&d=openant
+      - NC_AUTH_JWT_SECRET=${NOCODB_JWT_SECRET}
+      - NC_PUBLIC_URL=${NOCODB_PUBLIC_URL:-http://localhost:8080}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - openant_net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/api/v1/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  db:
+    image: postgres:16-alpine
+    container_name: openant-db
+    restart: unless-stopped
+    logging: *default-logging
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=openant
+      - POSTGRES_USER=openant
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    networks:
+      - openant_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U openant"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  n8n:
+    image: n8nio/n8n:2.9.2
+    container_name: openant-n8n
+    restart: unless-stopped
+    logging: *default-logging
+    ports:
+      - "${N8N_PORT:-5678}:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    environment:
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - WEBHOOK_URL=${N8N_WEBHOOK_URL:-http://localhost:5678}
+      - N8N_API_KEY=${N8N_API_KEY}
+      - NODE_FUNCTION_ALLOW_BUILTIN=crypto,http
+    networks:
+      - openant_net
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:5678/healthz').then(r=>{process.exit(r.ok?0:1)}).catch(()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: openant-caddy
+    restart: unless-stopped
+    logging: *default-logging
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - openant_net
+    depends_on:
+      - ghost
+      - nocodb
+      - n8n
+
+volumes:
+  ghost_content:
+  ghost_db_data:
+  nocodb_data:
+  postgres_data:
+  n8n_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  openant_net:
+    driver: bridge
