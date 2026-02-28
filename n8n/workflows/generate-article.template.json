@@ -131,12 +131,32 @@
       }
     },
     {
-      "name": "Publish to Ghost",
+      "name": "Build Ghost JWT",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [1450, 250],
       "parameters": {
-        "jsCode": "const crypto = require('crypto');\nconst http = require('http');\nconst key = '{{GHOST_ADMIN_API_KEY}}';\nconst [id, secret] = key.split(':');\nconst header = Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT',kid:id})).toString('base64url');\nconst now = Math.floor(Date.now()/1000);\nconst payload = Buffer.from(JSON.stringify({iat:now,exp:now+300,aud:'/admin/'})).toString('base64url');\nconst hmac = crypto.createHmac('sha256', Buffer.from(secret, 'hex'));\nhmac.update(`${header}.${payload}`);\nconst sig = hmac.digest('base64url');\nconst jwt = `${header}.${payload}.${sig}`;\nconst articleTitle = $('Get Next Queued').first().json.list[0].Title;\nlet articleHtml = $('Generate Article').first().json.message.content;\narticleHtml = articleHtml.replace(/^```html?\\n?/i, '').replace(/\\n?```\\s*$/, '').trim();\nconst mobiledoc = JSON.stringify({ version: '0.3.1', atoms: [], cards: [['html', { html: articleHtml }]], markups: [], sections: [[10, 0]] });\nconst body = JSON.stringify({ posts: [{ title: articleTitle, mobiledoc, status: 'published' }] });\nconst result = await new Promise((resolve, reject) => {\n  const req = http.request({ hostname: 'ghost', port: 2368, path: '/ghost/api/admin/posts/', method: 'POST', headers: { 'Authorization': 'Ghost ' + jwt, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) } }, (res) => {\n    let data = '';\n    res.on('data', chunk => data += chunk);\n    res.on('end', () => {\n      if (res.statusCode >= 400) reject(new Error('Ghost ' + res.statusCode + ': ' + data));\n      else resolve(JSON.parse(data));\n    });\n  });\n  req.on('error', reject);\n  req.write(body);\n  req.end();\n});\nreturn [{ json: result }];"
+        "jsCode": "const crypto = require('crypto');\nconst key = '{{GHOST_ADMIN_API_KEY}}';\nconst [id, secret] = key.split(':');\nconst header = Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT',kid:id})).toString('base64url');\nconst now = Math.floor(Date.now()/1000);\nconst payload = Buffer.from(JSON.stringify({iat:now,exp:now+300,aud:'/admin/'})).toString('base64url');\nconst hmac = crypto.createHmac('sha256', Buffer.from(secret, 'hex'));\nhmac.update(`${header}.${payload}`);\nconst sig = hmac.digest('base64url');\nconst jwt = `${header}.${payload}.${sig}`;\nconst articleTitle = $('Get Next Queued').first().json.list[0].Title;\nlet articleHtml = $('Generate Article').first().json.message.content;\narticleHtml = articleHtml.replace(/^```html?\\n?/i, '').replace(/\\n?```\\s*$/, '').trim();\nconst mobiledoc = JSON.stringify({ version: '0.3.1', atoms: [], cards: [['html', { html: articleHtml }]], markups: [], sections: [[10, 0]] });\nreturn [{ json: { jwt, articleTitle, mobiledoc } }];"
+      }
+    },
+    {
+      "name": "POST to Ghost",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1650, 250],
+      "parameters": {
+        "method": "POST",
+        "url": "{{GHOST_URL}}/ghost/api/admin/posts/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Ghost {{ $json.jwt }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ posts: [{ title: $json.articleTitle, mobiledoc: $json.mobiledoc, status: 'published' }] }) }}"
       }
     },
     {
@@ -189,9 +209,12 @@
       "main": [[{ "node": "Update Status: publishing", "type": "main", "index": 0 }]]
     },
     "Update Status: publishing": {
-      "main": [[{ "node": "Publish to Ghost", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Build Ghost JWT", "type": "main", "index": 0 }]]
     },
-    "Publish to Ghost": {
+    "Build Ghost JWT": {
+      "main": [[{ "node": "POST to Ghost", "type": "main", "index": 0 }]]
+    },
+    "POST to Ghost": {
       "main": [[{ "node": "Update Status: published", "type": "main", "index": 0 }]]
     }
   }

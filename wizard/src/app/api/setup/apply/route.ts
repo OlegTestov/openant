@@ -241,6 +241,7 @@ async function executeDeployStep(
         nocodbBaseId: ctx.nocoKeys?.projectId,
         nocodbTableId: ctx.nocoKeys?.tableId,
         ghostAdminApiKey: ctx.ghostKeys?.adminApiKey,
+        ghostUrl: buildEnvVars(state).GHOST_URL,
       };
 
       const genId = await adapters.automation.importWorkflow(generateTemplate, workflowParams);

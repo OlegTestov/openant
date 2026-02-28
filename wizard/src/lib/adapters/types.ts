@@ -108,6 +108,7 @@ export interface WorkflowParams {
   nocodbBaseId?: string;
   nocodbTableId?: string;
   ghostAdminApiKey?: string;
+  ghostUrl?: string;
 }
 
 // ── Distribution ──────────────────────────────────

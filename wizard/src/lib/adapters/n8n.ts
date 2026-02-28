@@ -262,7 +262,8 @@ export function createN8nAdapter(): AutomationAdapter {
         .replace(/\{\{BLOG_TONE\}\}/g, params.blogTone)
         .replace(/\{\{NOCODB_BASE_ID\}\}/g, params.nocodbBaseId ?? '')
         .replace(/\{\{NOCODB_TABLE_ID\}\}/g, params.nocodbTableId ?? '')
-        .replace(/\{\{GHOST_ADMIN_API_KEY\}\}/g, params.ghostAdminApiKey ?? '');
+        .replace(/\{\{GHOST_ADMIN_API_KEY\}\}/g, params.ghostAdminApiKey ?? '')
+        .replace(/\{\{GHOST_URL\}\}/g, params.ghostUrl ?? '');
       const finalWorkflow = JSON.parse(serialized) as N8nWorkflow;
 
       // Ensure required fields are present for n8n API
