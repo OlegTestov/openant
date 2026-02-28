@@ -134,6 +134,17 @@ describe('createGhostAdapter', () => {
       delete process.env.GHOST_CONTENT_API_KEY;
     });
 
+    const themeSettingsResponse = mockResponse({
+      custom_theme_settings: [
+        { id: 'ts-1', key: 'navigation_layout', value: 'Logo in the middle' },
+        { id: 'ts-2', key: 'header_style', value: 'Landing' },
+        { id: 'ts-3', key: 'background_image', value: true },
+        { id: 'ts-4', key: 'show_author', value: true },
+        { id: 'ts-5', key: 'show_post_metadata', value: true },
+        { id: 'ts-6', key: 'show_related_articles', value: true },
+      ],
+    });
+
     function mockSetupSequence() {
       // Step 1: Setup (create admin) — succeeds (no cookie in response)
       mockFetch.mockResolvedValueOnce(mockResponse({ users: [{ id: 'user-1' }] }));
@@ -150,6 +161,12 @@ describe('createGhostAdapter', () => {
 
       // Step 4: Update settings
       mockFetch.mockResolvedValueOnce(mockResponse({ settings: [] }));
+
+      // Step 5: GET custom theme settings
+      mockFetch.mockResolvedValueOnce(themeSettingsResponse);
+
+      // Step 6: PUT custom theme settings
+      mockFetch.mockResolvedValueOnce(mockResponse({ custom_theme_settings: [] }));
     }
 
     it('creates admin account via setup endpoint', async () => {
@@ -194,7 +211,7 @@ describe('createGhostAdapter', () => {
       expect(url).toBe('http://ghost:2368/ghost/api/admin/integrations/?include=api_keys');
     });
 
-    it('updates site settings (title, description, locale)', async () => {
+    it('updates site settings (title, description, locale, navigation, members)', async () => {
       mockSetupSequence();
       const adapter = createGhostAdapter();
 
@@ -209,7 +226,37 @@ describe('createGhostAdapter', () => {
         { key: 'title', value: 'My Blog' },
         { key: 'description', value: 'A test blog' },
         { key: 'locale', value: 'en' },
+        { key: 'navigation', value: '[]' },
+        { key: 'secondary_navigation', value: '[]' },
+        { key: 'members_signup_access', value: 'none' },
       ]);
+    });
+
+    it('configures custom theme settings during setup', async () => {
+      mockSetupSequence();
+      const adapter = createGhostAdapter();
+
+      await adapter.setup(config);
+
+      // GET custom theme settings
+      const [getUrl] = mockFetch.mock.calls[4];
+      expect(getUrl).toBe('http://ghost:2368/ghost/api/admin/custom_theme_settings/');
+
+      // PUT custom theme settings with updated values
+      const [putUrl, putOpts] = mockFetch.mock.calls[5];
+      expect(putUrl).toBe('http://ghost:2368/ghost/api/admin/custom_theme_settings/');
+      expect(putOpts.method).toBe('PUT');
+      const body = JSON.parse(putOpts.body as string);
+      const byKey = Object.fromEntries(
+        body.custom_theme_settings.map((s: { key: string; value: unknown }) => [s.key, s.value]),
+      );
+      expect(byKey.navigation_layout).toBe('Logo on the left');
+      expect(byKey.header_style).toBe('Search');
+      expect(byKey.background_image).toBe(false);
+      expect(byKey.show_author).toBe(false);
+      expect(byKey.show_post_metadata).toBe(false);
+      // Unchanged settings keep their original values
+      expect(byKey.show_related_articles).toBe(true);
     });
 
     it('returns adminApiKey and contentApiKey', async () => {
@@ -238,6 +285,9 @@ describe('createGhostAdapter', () => {
       mockFetch.mockResolvedValueOnce(integrationResponse);
       // Step 4: Update settings
       mockFetch.mockResolvedValueOnce(mockResponse({ settings: [] }));
+      // Step 5-6: Custom theme settings
+      mockFetch.mockResolvedValueOnce(themeSettingsResponse);
+      mockFetch.mockResolvedValueOnce(mockResponse({ custom_theme_settings: [] }));
 
       const adapter = createGhostAdapter();
       const result = await adapter.setup(config);
@@ -261,6 +311,9 @@ describe('createGhostAdapter', () => {
       mockFetch.mockResolvedValueOnce(integrationResponse);
       // Update settings
       mockFetch.mockResolvedValueOnce(mockResponse({ settings: [] }));
+      // Custom theme settings
+      mockFetch.mockResolvedValueOnce(themeSettingsResponse);
+      mockFetch.mockResolvedValueOnce(mockResponse({ custom_theme_settings: [] }));
 
       const adapter = createGhostAdapter();
       const result = await adapter.setup(config);
@@ -330,8 +383,8 @@ describe('createGhostAdapter', () => {
       const result = await adapter.setup(config);
 
       expect(result.adminApiKey).toBe(`admin-key-id:${'ab'.repeat(32)}`);
-      // 6 calls: setup status + site verify (failed) + setup + signIn + list integrations + settings
-      expect(mockFetch).toHaveBeenCalledTimes(6);
+      // 8 calls: setup status + site verify (failed) + setup + signIn + list integrations + settings + GET/PUT theme settings
+      expect(mockFetch).toHaveBeenCalledTimes(8);
     });
 
     it('skips fast path when Ghost needs setup despite keys in env', async () => {
@@ -347,8 +400,8 @@ describe('createGhostAdapter', () => {
       const result = await adapter.setup(config);
 
       expect(result.adminApiKey).toBe(`admin-key-id:${'ab'.repeat(32)}`);
-      // 5 calls: setup status + setup + signIn + list integrations + settings
-      expect(mockFetch).toHaveBeenCalledTimes(5);
+      // 7 calls: setup status + setup + signIn + list integrations + settings + GET/PUT theme settings
+      expect(mockFetch).toHaveBeenCalledTimes(7);
       // Second call should be POST to create admin (not site verification)
       expect(mockFetch.mock.calls[1][0]).toBe(
         'http://ghost:2368/ghost/api/admin/authentication/setup/',
@@ -370,12 +423,15 @@ describe('createGhostAdapter', () => {
       mockFetch.mockResolvedValueOnce(integrationResponse);
       // Update settings
       mockFetch.mockResolvedValueOnce(mockResponse({ settings: [] }));
+      // Custom theme settings
+      mockFetch.mockResolvedValueOnce(themeSettingsResponse);
+      mockFetch.mockResolvedValueOnce(mockResponse({ custom_theme_settings: [] }));
 
       const adapter = createGhostAdapter();
       await adapter.setup(config);
 
-      // No signIn call — only 3 calls: setup + list integrations + settings
-      expect(mockFetch).toHaveBeenCalledTimes(3);
+      // No signIn call — 5 calls: setup + list integrations + settings + GET/PUT theme settings
+      expect(mockFetch).toHaveBeenCalledTimes(5);
       // Settings call uses cookie from setup response
       expect(mockFetch.mock.calls[2][1].headers.Cookie).toBe('ghost-admin-api-session=from-setup');
     });

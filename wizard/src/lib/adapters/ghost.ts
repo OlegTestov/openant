@@ -110,6 +110,20 @@ export function createGhostJwt(adminApiKey: string): string {
   return `${header}.${payload}.${signature}`;
 }
 
+const GHOST_SETTINGS = [
+  { key: 'navigation', value: '[]' },
+  { key: 'secondary_navigation', value: '[]' },
+  { key: 'members_signup_access', value: 'none' },
+];
+
+const THEME_SETTINGS: Record<string, string | boolean> = {
+  navigation_layout: 'Logo on the left',
+  header_style: 'Search',
+  background_image: false,
+  show_author: false,
+  show_post_metadata: false,
+};
+
 async function updateSettingsWithJwt(
   ghostUrl: string,
   jwt: string,
@@ -126,6 +140,7 @@ async function updateSettingsWithJwt(
         { key: 'title', value: config.title },
         { key: 'description', value: config.description },
         { key: 'locale', value: config.language },
+        ...GHOST_SETTINGS,
       ],
     }),
   });
@@ -133,6 +148,28 @@ async function updateSettingsWithJwt(
     const error = await res.text();
     throw new AdapterError('ghost', 'setup', `Failed to update settings: ${res.status} ${error}`);
   }
+}
+
+async function updateCustomThemeSettings(
+  ghostUrl: string,
+  headers: Record<string, string>,
+): Promise<void> {
+  const getRes = await fetch(`${ghostUrl}/ghost/api/admin/custom_theme_settings/`, { headers });
+  if (!getRes.ok) return; // Skip silently if endpoint unavailable
+
+  const data = (await getRes.json()) as {
+    custom_theme_settings: Array<{ id: string; key: string; value: unknown }>;
+  };
+
+  const updated = data.custom_theme_settings.map((s) =>
+    s.key in THEME_SETTINGS ? { ...s, value: THEME_SETTINGS[s.key] } : s,
+  );
+
+  await fetch(`${ghostUrl}/ghost/api/admin/custom_theme_settings/`, {
+    method: 'PUT',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ custom_theme_settings: updated }),
+  });
 }
 
 async function ghostNeedsSetup(ghostUrl: string): Promise<boolean> {
@@ -250,6 +287,7 @@ export function createGhostAdapter(): BlogAdapter {
             { key: 'title', value: config.title },
             { key: 'description', value: config.description },
             { key: 'locale', value: config.language },
+            ...GHOST_SETTINGS,
           ],
         }),
       });
@@ -262,6 +300,12 @@ export function createGhostAdapter(): BlogAdapter {
           `Failed to update settings: ${settingsRes.status} ${error}`,
         );
       }
+
+      // Step 4: Configure custom theme settings (session cookie only, not available via JWT)
+      await updateCustomThemeSettings(authUrl, {
+        Cookie: sessionCookie,
+        Origin: authUrl,
+      });
 
       return keys;
     },
