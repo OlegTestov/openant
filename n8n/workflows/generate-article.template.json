@@ -23,7 +23,7 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "(Status,blank)" },
+            { "name": "where", "value": "(Status,blank)~or(Status,eq,publishing)" },
             { "name": "sort", "value": "CreatedAt" },
             { "name": "limit", "value": "1" }
           ]
