@@ -8,7 +8,7 @@ import type { StepProps } from '@/types/step-props';
 
 interface ReviewConfig {
   domain?: { use_domain: boolean; domain?: string };
-  llm?: { provider: string; api_url: string; api_key: string; model: string };
+  llm?: { provider: string; api_url: string; api_key: string; model: string; image_model?: string };
   blog?: {
     title: string;
     description?: string;
@@ -110,6 +110,7 @@ export default function Review({ onComplete, onBack, onGoToStep }: StepProps) {
             {config?.llm ? (
               <p className="text-muted-foreground text-sm">
                 {config.llm.provider} / {config.llm.model}
+                {config.llm.image_model ? ` / ${config.llm.image_model}` : ''}
               </p>
             ) : (
               <p className="text-muted-foreground text-sm">{t.steps.review.notConfigured}</p>

@@ -73,6 +73,7 @@ function buildEnvVars(state: SetupState): Record<string, string> {
     LLM_API_URL: state.llm?.api_url ?? '',
     LLM_API_KEY: state.llm?.api_key ?? '',
     LLM_MODEL: state.llm?.model ?? '',
+    LLM_IMAGE_MODEL: state.llm?.image_model ?? '',
 
     BLOG_TITLE: state.blog?.title ?? '',
     BLOG_DESCRIPTION: state.blog?.description ?? '',

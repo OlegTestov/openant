@@ -8,6 +8,7 @@ export const llmSchema = z.object({
   api_url: z.string().url(),
   api_key: z.string().min(1, 'API key is required'),
   model: z.string().min(1, 'Model is required'),
+  image_model: z.string().optional(),
 });
 
 interface TestResult {

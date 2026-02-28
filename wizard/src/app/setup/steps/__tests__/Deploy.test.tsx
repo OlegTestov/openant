@@ -68,10 +68,28 @@ beforeEach(() => {
 });
 
 describe('Deploy', () => {
-  it('renders Apply Configuration button initially', () => {
+  it('auto-starts deployment on mount', async () => {
+    const events = [
+      ...createStepEvents(2),
+      {
+        event: 'complete' as const,
+        data: {
+          success: true,
+          urls: { blog: 'https://example.com', table: 'https://table.example.com' },
+          credentials: mockCredentials,
+        },
+      },
+    ];
+    mockFetch.mockResolvedValueOnce(createMockSSEResponse(events));
+
     render(<Deploy onComplete={vi.fn()} />);
 
-    expect(screen.getByRole('button', { name: 'Apply Configuration' })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/setup/apply?startFrom=1',
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
   });
 
   it('shows progress bar during deployment', async () => {
@@ -88,10 +106,7 @@ describe('Deploy', () => {
     ];
     mockFetch.mockResolvedValueOnce(createMockSSEResponse(events));
 
-    const user = userEvent.setup();
     render(<Deploy onComplete={vi.fn()} />);
-
-    await user.click(screen.getByRole('button', { name: 'Apply Configuration' }));
 
     await waitFor(() => {
       expect(screen.getByRole('progressbar')).toBeInTheDocument();
@@ -116,10 +131,7 @@ describe('Deploy', () => {
     ];
     mockFetch.mockResolvedValueOnce(createMockSSEResponse(events));
 
-    const user = userEvent.setup();
     render(<Deploy onComplete={vi.fn()} />);
-
-    await user.click(screen.getByRole('button', { name: 'Apply Configuration' }));
 
     await waitFor(() => {
       expect(screen.getByText('Setup complete!')).toBeInTheDocument();
@@ -149,10 +161,7 @@ describe('Deploy', () => {
     ];
     mockFetch.mockResolvedValueOnce(createMockSSEResponse(events));
 
-    const user = userEvent.setup();
     render(<Deploy onComplete={vi.fn()} />);
-
-    await user.click(screen.getByRole('button', { name: 'Apply Configuration' }));
 
     await waitFor(() => {
       expect(screen.getByText(/Error at step 4: Ghost API unavailable/)).toBeInTheDocument();
@@ -176,8 +185,6 @@ describe('Deploy', () => {
 
     const user = userEvent.setup();
     render(<Deploy onComplete={vi.fn()} />);
-
-    await user.click(screen.getByRole('button', { name: 'Apply Configuration' }));
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Retry from this step' })).toBeInTheDocument();
@@ -229,10 +236,7 @@ describe('Deploy', () => {
     ];
     mockFetch.mockResolvedValueOnce(createMockSSEResponse(events));
 
-    const user = userEvent.setup();
     render(<Deploy onComplete={vi.fn()} />);
-
-    await user.click(screen.getByRole('button', { name: 'Apply Configuration' }));
 
     await waitFor(() => {
       expect(screen.getByText('Setup complete!')).toBeInTheDocument();
@@ -259,8 +263,6 @@ describe('Deploy', () => {
     const user = userEvent.setup();
     const onComplete = vi.fn();
     render(<Deploy onComplete={onComplete} />);
-
-    await user.click(screen.getByRole('button', { name: 'Apply Configuration' }));
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Go to Dashboard' })).toBeInTheDocument();

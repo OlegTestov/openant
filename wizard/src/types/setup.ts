@@ -14,6 +14,7 @@ export interface SetupState {
     api_url: string;
     api_key: string;
     model: string;
+    image_model?: string;
   };
   blog?: {
     title: string;

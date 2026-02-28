@@ -133,10 +133,10 @@ describe('SetupPage', () => {
       expect(screen.getByRole('heading', { name: 'Review Configuration' })).toBeInTheDocument();
     });
 
-    // Review → Apply Configuration
+    // Review → Apply Configuration (transitions to Deploy step which auto-starts)
     await user.click(screen.getByRole('button', { name: 'Apply Configuration' }));
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Apply Configuration' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Apply Configuration' })).toBeInTheDocument();
     });
   });
 

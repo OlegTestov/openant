@@ -26,12 +26,13 @@ interface TestResult {
 
 export default function LLM({ onComplete, onBack, initialData }: StepProps) {
   const initial = initialData as
-    | { provider?: string; api_url?: string; api_key?: string; model?: string }
+    | { provider?: string; api_url?: string; api_key?: string; model?: string; image_model?: string }
     | undefined;
-  const [provider, setProvider] = useState(initial?.provider ?? 'openai');
+  const [provider, setProvider] = useState(initial?.provider ?? 'openrouter');
   const [apiUrl, setApiUrl] = useState(initial?.api_url ?? LLM_PRESETS[0].apiUrl);
   const [apiKey, setApiKey] = useState(initial?.api_key ?? '');
   const [model, setModel] = useState(initial?.model ?? LLM_PRESETS[0].defaultModel);
+  const [imageModel, setImageModel] = useState(initial?.image_model ?? LLM_PRESETS[0].defaultImageModel);
   const [isLoading, setIsLoading] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
@@ -44,6 +45,7 @@ export default function LLM({ onComplete, onBack, initialData }: StepProps) {
     if (preset) {
       setApiUrl(preset.apiUrl);
       setModel(preset.defaultModel);
+      setImageModel(preset.defaultImageModel);
     }
   }
 
@@ -55,7 +57,7 @@ export default function LLM({ onComplete, onBack, initialData }: StepProps) {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ provider, api_url: apiUrl, api_key: apiKey, model }),
+      body: JSON.stringify({ provider, api_url: apiUrl, api_key: apiKey, model, image_model: imageModel }),
     });
     return res.json();
   }
@@ -99,7 +101,7 @@ export default function LLM({ onComplete, onBack, initialData }: StepProps) {
         setTestResult(data.data.test_result);
       }
 
-      onComplete({ provider, api_url: apiUrl, api_key: '***', model });
+      onComplete({ provider, api_url: apiUrl, api_key: '***', model, image_model: imageModel });
     } catch {
       setError(t.common.failedToSave);
     } finally {
@@ -169,6 +171,17 @@ export default function LLM({ onComplete, onBack, initialData }: StepProps) {
             value={model}
             onChange={(e) => setModel(e.target.value)}
             placeholder="gpt-4o-mini"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="llm-image-model">{t.steps.llm.imageModel}</Label>
+          <Input
+            id="llm-image-model"
+            className="mt-1"
+            value={imageModel}
+            onChange={(e) => setImageModel(e.target.value)}
+            placeholder="dall-e-3"
           />
         </div>
 

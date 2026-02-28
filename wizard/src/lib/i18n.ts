@@ -28,6 +28,7 @@ export interface Translations {
       apiUrl: string;
       apiKey: string;
       model: string;
+      imageModel: string;
       testConnection: string;
       connected: string;
       latency: string;
@@ -146,6 +147,7 @@ const en: Translations = {
       apiUrl: 'API URL',
       apiKey: 'API Key',
       model: 'Model',
+      imageModel: 'Image Model',
       testConnection: 'Test Connection',
       connected: 'Connected!',
       latency: 'Latency:',
@@ -264,6 +266,7 @@ const ru: Translations = {
       apiUrl: 'URL API',
       apiKey: 'API-ключ',
       model: 'Модель',
+      imageModel: 'Модель для изображений',
       testConnection: 'Проверить соединение',
       connected: 'Подключено!',
       latency: 'Задержка:',

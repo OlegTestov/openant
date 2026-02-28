@@ -28,6 +28,7 @@ const setupStateSchema = z.object({
       api_url: z.string(),
       api_key: z.string(),
       model: z.string(),
+      image_model: z.string().optional(),
     })
     .optional(),
   blog: z

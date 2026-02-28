@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Check, Loader2, X, Circle } from 'lucide-react';
 import { StepLayout } from '@/components/StepLayout';
 import { Button } from '@/components/ui/button';
@@ -190,20 +190,16 @@ export default function Deploy({ onComplete }: StepProps) {
     [t],
   );
 
+  useEffect(() => {
+    startDeploy();
+  }, [startDeploy]);
+
   const completedCount = steps.filter((s) => s.status === 'completed').length;
   const totalSteps = DEPLOY_STEP_LABELS.length;
   const showProgress = isDeploying || isCompleted || error;
 
   return (
     <StepLayout title={t.steps.deploy.title} showBack={false} showNext={false}>
-      {!showProgress && (
-        <div className="flex justify-center">
-          <Button size="lg" onClick={() => startDeploy()}>
-            {t.steps.deploy.deploy}
-          </Button>
-        </div>
-      )}
-
       {showProgress && (
         <div className="space-y-4">
           <Progress value={(completedCount / totalSteps) * 100} />
