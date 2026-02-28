@@ -45,6 +45,14 @@ function getWorkflowTemplatesPath(): string {
   return process.env.WORKFLOW_TEMPLATES_PATH || '/app/n8n/workflows';
 }
 
+/** Resolve domain from wizard state, falling back to DOMAIN env var (set by cloud-init in SaaS mode) */
+function getEffectiveDomain(state: SetupState): string | null {
+  if (state.domain?.use_domain) {
+    return state.domain.domain ?? null;
+  }
+  return process.env.DOMAIN || null;
+}
+
 async function readWorkflowTemplate(name: string): Promise<object> {
   const basePath = getWorkflowTemplatesPath();
   const content = await fs.readFile(`${basePath}/${name}.template.json`, 'utf-8');
@@ -52,7 +60,7 @@ async function readWorkflowTemplate(name: string): Promise<object> {
 }
 
 function buildEnvVars(state: SetupState): Record<string, string> {
-  const domain = state.domain?.use_domain ? (state.domain.domain ?? '') : '';
+  const domain = getEffectiveDomain(state) ?? '';
   const serverIp = process.env.SERVER_IP || '';
 
   return {
@@ -79,7 +87,7 @@ function buildEnvVars(state: SetupState): Record<string, string> {
 }
 
 function buildUrls(state: SetupState): Record<string, string> {
-  const domain = state.domain?.use_domain ? (state.domain.domain ?? null) : null;
+  const domain = getEffectiveDomain(state);
   const ip = process.env.SERVER_IP || 'localhost';
 
   return {
@@ -105,7 +113,7 @@ async function executeDeployStep(
     }
 
     case 2: {
-      const domain = state.domain?.use_domain ? (state.domain.domain ?? null) : null;
+      const domain = getEffectiveDomain(state);
       const caddyfile = generateCaddyfile(domain);
       await writeCaddyfile(caddyfile);
       break;
@@ -122,15 +130,16 @@ async function executeDeployStep(
     }
 
     case 5: {
-      const blogUrl = state.domain?.use_domain
-        ? `https://${state.domain.domain}`
+      const effectiveDomain = getEffectiveDomain(state);
+      const blogUrl = effectiveDomain
+        ? `https://${effectiveDomain}`
         : `http://${process.env.SERVER_IP}`;
       const ghostResult = await adapters.blog.setup({
         title: state.blog?.title ?? '',
         description: state.blog?.description ?? '',
         language: state.blog?.language ?? '',
         url: blogUrl,
-        adminEmail: `admin@${state.domain?.domain || 'openant.local'}`,
+        adminEmail: `admin@${effectiveDomain || 'openant.local'}`,
       });
       ctx.ghostKeys = ghostResult;
 
@@ -156,7 +165,7 @@ async function executeDeployStep(
 
     case 7: {
       const nocoResult = await adapters.table.setup({
-        adminEmail: `admin@${state.domain?.domain || 'openant.local'}`,
+        adminEmail: `admin@${getEffectiveDomain(state) || 'openant.local'}`,
       });
       ctx.nocoKeys = nocoResult;
 
@@ -178,7 +187,7 @@ async function executeDeployStep(
 
     case 8: {
       const n8nResult = await adapters.automation.setup({
-        adminEmail: `admin@${state.domain?.domain || 'openant.local'}`,
+        adminEmail: `admin@${getEffectiveDomain(state) || 'openant.local'}`,
       });
       ctx.n8nKeys = n8nResult;
 
@@ -336,7 +345,7 @@ export const POST = withAuth(async (req: Request) => {
       const urls = buildUrls(state);
       const credentials = getServiceCredentials(
         process.env.SETUP_TOKEN || '',
-        state.domain?.domain,
+        getEffectiveDomain(state) ?? undefined,
       );
       sendSSEEvent(controller, 'complete', {
         success: true,
