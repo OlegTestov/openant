@@ -172,10 +172,7 @@ async function updateCustomThemeSettings(
   });
 }
 
-async function deleteAllPosts(
-  ghostUrl: string,
-  headers: Record<string, string>,
-): Promise<void> {
+async function deleteAllPosts(ghostUrl: string, headers: Record<string, string>): Promise<void> {
   const res = await fetch(`${ghostUrl}/ghost/api/admin/posts/?limit=all`, { headers });
   if (!res.ok) return;
 

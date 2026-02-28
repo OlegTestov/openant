@@ -26,13 +26,21 @@ interface TestResult {
 
 export default function LLM({ onComplete, onBack, initialData }: StepProps) {
   const initial = initialData as
-    | { provider?: string; api_url?: string; api_key?: string; model?: string; image_model?: string }
+    | {
+        provider?: string;
+        api_url?: string;
+        api_key?: string;
+        model?: string;
+        image_model?: string;
+      }
     | undefined;
   const [provider, setProvider] = useState(initial?.provider ?? 'openrouter');
   const [apiUrl, setApiUrl] = useState(initial?.api_url ?? LLM_PRESETS[0].apiUrl);
   const [apiKey, setApiKey] = useState(initial?.api_key ?? '');
   const [model, setModel] = useState(initial?.model ?? LLM_PRESETS[0].defaultModel);
-  const [imageModel, setImageModel] = useState(initial?.image_model ?? LLM_PRESETS[0].defaultImageModel);
+  const [imageModel, setImageModel] = useState(
+    initial?.image_model ?? LLM_PRESETS[0].defaultImageModel,
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
@@ -57,7 +65,13 @@ export default function LLM({ onComplete, onBack, initialData }: StepProps) {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ provider, api_url: apiUrl, api_key: apiKey, model, image_model: imageModel }),
+      body: JSON.stringify({
+        provider,
+        api_url: apiUrl,
+        api_key: apiKey,
+        model,
+        image_model: imageModel,
+      }),
     });
     return res.json();
   }
