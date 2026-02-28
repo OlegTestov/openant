@@ -34,10 +34,18 @@ export default function SetupPage() {
   useEffect(() => {
     async function restorePosition() {
       try {
-        const token =
-          new URLSearchParams(window.location.search).get('token') ||
-          localStorage.getItem('setup_token');
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('token') || localStorage.getItem('setup_token');
         if (token) localStorage.setItem('setup_token', token);
+
+        // Handle reconfigure: reset state before restoring position
+        if (params.get('reconfigure') === 'true') {
+          await fetch('/api/dashboard/reconfigure', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          window.history.replaceState({}, '', `/setup${token ? `?token=${token}` : ''}`);
+        }
 
         const res = await fetch('/api/setup/status', {
           headers: { Authorization: `Bearer ${token}` },
@@ -95,7 +103,12 @@ export default function SetupPage() {
 
     // Last step (apply configuration) completed → redirect to dashboard
     if (currentStep >= filteredSteps.length - 1) {
-      window.location.href = '/dashboard';
+      if (saasMode) {
+        const saasUrl = process.env.NEXT_PUBLIC_OPENANT_SAAS_URL || 'https://openant.app';
+        window.location.href = `${saasUrl}/dashboard?setup_complete=true`;
+      } else {
+        window.location.href = '/dashboard';
+      }
       return;
     }
 

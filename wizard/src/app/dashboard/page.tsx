@@ -138,7 +138,15 @@ export default function DashboardPage() {
     window.location.href = '/setup';
   }
 
-  if (!data)
+  // In SaaS mode, redirect to the main openant.app dashboard
+  useEffect(() => {
+    if (data?.saas_mode) {
+      const saasUrl = process.env.NEXT_PUBLIC_OPENANT_SAAS_URL || 'https://openant.app';
+      window.location.href = `${saasUrl}/dashboard`;
+    }
+  }, [data?.saas_mode]);
+
+  if (!data || data.saas_mode)
     return <div className="flex h-screen items-center justify-center">{t.common.loading}</div>;
 
   return (

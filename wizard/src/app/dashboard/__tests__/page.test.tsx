@@ -163,7 +163,7 @@ describe('DashboardPage', () => {
     expect(dots[0].className).toContain('bg-red-500');
   });
 
-  it('shows SaaS badge when saas_mode is true', async () => {
+  it('redirects to openant.app when saas_mode is true', async () => {
     mockFetch.mockImplementation((url: string) => {
       if (url.includes('/api/dashboard/status')) {
         return Promise.resolve({
@@ -184,19 +184,10 @@ describe('DashboardPage', () => {
 
     render(<DashboardPage />);
 
+    // In SaaS mode, the page shows loading and triggers a redirect
     await waitFor(() => {
-      expect(screen.getByText('Managed by openant SaaS')).toBeInTheDocument();
+      expect(screen.getByText('Loading...')).toBeInTheDocument();
     });
-  });
-
-  it('hides SaaS badge in self-hosted mode', async () => {
-    render(<DashboardPage />);
-
-    await waitFor(() => {
-      expect(screen.getAllByText('Ghost').length).toBeGreaterThanOrEqual(1);
-    });
-
-    expect(screen.queryByText('Managed by openant SaaS')).not.toBeInTheDocument();
   });
 
   it('Reconfigure button shows confirmation dialog', async () => {

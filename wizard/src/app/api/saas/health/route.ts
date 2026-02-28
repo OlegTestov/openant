@@ -1,5 +1,6 @@
 import { apiHandler } from '@/lib/api-handler';
 import { createAdapters } from '@/lib/adapters';
+import { readState } from '@/lib/state';
 
 export const GET = apiHandler(async () => {
   if (process.env.OPENANT_SAAS_MODE !== 'true') {
@@ -21,6 +22,8 @@ export const GET = apiHandler(async () => {
     stats = null;
   }
 
+  const state = await readState();
+
   return Response.json({
     wizard: 'healthy',
     ghost: ghost ? 'healthy' : 'unhealthy',
@@ -34,5 +37,6 @@ export const GET = apiHandler(async () => {
           articles_error: stats.error,
         }
       : null,
+    deployed: state.deployed ?? false,
   });
 });
