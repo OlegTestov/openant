@@ -160,6 +160,22 @@ describe('GET /api/dashboard/status', () => {
     expect(body.data.credentials.n8n).toHaveProperty('password');
   });
 
+  it('handles Caddy HTTP→HTTPS redirect as healthy', async () => {
+    global.fetch = vi.fn().mockImplementation((url: string | URL | Request) => {
+      const urlStr = typeof url === 'string' ? url : url instanceof URL ? url.toString() : url.url;
+      if (urlStr.includes('caddy:80')) {
+        return Promise.resolve({ ok: false, status: 308 });
+      }
+      return originalFetch(url);
+    }) as typeof fetch;
+
+    const { GET } = await import('../status/route');
+    const res = await GET(createAuthRequest());
+    const body = await res.json();
+
+    expect(body.data.caddy).toBe('healthy');
+  });
+
   it('handles Caddy 404 as healthy', async () => {
     global.fetch = vi.fn().mockImplementation((url: string | URL | Request) => {
       const urlStr = typeof url === 'string' ? url : url instanceof URL ? url.toString() : url.url;

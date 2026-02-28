@@ -12,8 +12,10 @@ async function checkCaddy(): Promise<boolean> {
   try {
     const res = await fetch('http://caddy:80', {
       signal: AbortSignal.timeout(3000),
+      redirect: 'manual',
     });
-    return res.ok || res.status === 404;
+    // Caddy with domain config redirects HTTP→HTTPS (3xx), which counts as alive
+    return res.ok || res.status === 404 || (res.status >= 300 && res.status < 400);
   } catch {
     return false;
   }
