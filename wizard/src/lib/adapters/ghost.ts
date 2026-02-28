@@ -172,6 +172,22 @@ async function updateCustomThemeSettings(
   });
 }
 
+async function deleteAllPosts(
+  ghostUrl: string,
+  headers: Record<string, string>,
+): Promise<void> {
+  const res = await fetch(`${ghostUrl}/ghost/api/admin/posts/?limit=all`, { headers });
+  if (!res.ok) return;
+
+  const data = (await res.json()) as { posts: Array<{ id: string }> };
+  for (const post of data.posts) {
+    await fetch(`${ghostUrl}/ghost/api/admin/posts/${post.id}/`, {
+      method: 'DELETE',
+      headers,
+    }).catch(() => {}); // ignore errors
+  }
+}
+
 async function ghostNeedsSetup(ghostUrl: string): Promise<boolean> {
   try {
     const res = await fetch(`${ghostUrl}/ghost/api/admin/authentication/setup/`);
@@ -303,6 +319,12 @@ export function createGhostAdapter(): BlogAdapter {
 
       // Step 4: Configure custom theme settings (session cookie only, not available via JWT)
       await updateCustomThemeSettings(authUrl, {
+        Cookie: sessionCookie,
+        Origin: authUrl,
+      });
+
+      // Step 5: Delete default posts (e.g. "Coming soon")
+      await deleteAllPosts(authUrl, {
         Cookie: sessionCookie,
         Origin: authUrl,
       });
