@@ -34,8 +34,9 @@ async function signIn(ghostUrl: string, email: string, password: string): Promis
 async function getOrCreateIntegration(
   ghostUrl: string,
   sessionCookie: string,
+  origin: string,
 ): Promise<BlogSetupResult> {
-  const headers = { 'Content-Type': 'application/json', Cookie: sessionCookie };
+  const headers = { 'Content-Type': 'application/json', Cookie: sessionCookie, Origin: origin };
 
   // Check for existing integration first
   const listRes = await fetch(`${ghostUrl}/ghost/api/admin/integrations/?include=api_keys`, {
@@ -234,7 +235,7 @@ export function createGhostAdapter(): BlogAdapter {
       }
 
       // Step 2: Get or create integration API keys (via auth URL for cookie support)
-      const keys = await getOrCreateIntegration(authUrl, sessionCookie);
+      const keys = await getOrCreateIntegration(authUrl, sessionCookie, authUrl);
 
       // Step 3: Update site settings (via auth URL for cookie support)
       const settingsRes = await fetch(`${authUrl}/ghost/api/admin/settings/`, {
@@ -242,6 +243,7 @@ export function createGhostAdapter(): BlogAdapter {
         headers: {
           'Content-Type': 'application/json',
           Cookie: sessionCookie,
+          Origin: authUrl,
         },
         body: JSON.stringify({
           settings: [
