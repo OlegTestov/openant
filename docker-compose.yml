@@ -26,6 +26,7 @@ services:
       - NODE_ENV=production
       - SERVER_IP=${SERVER_IP}
       - GHOST_INTERNAL_URL=http://ghost:2368
+      - GHOST_URL=${GHOST_URL}
       - NOCODB_INTERNAL_URL=http://nocodb:8080
       - N8N_INTERNAL_URL=http://n8n:5678
     networks:
