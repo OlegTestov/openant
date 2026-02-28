@@ -6,15 +6,22 @@ function getGhostUrl(): string {
   return process.env.GHOST_INTERNAL_URL || 'http://ghost:2368';
 }
 
+/** Ghost sets Secure cookies when its URL is HTTPS, so session-based auth
+ *  must go through the external HTTPS URL (via Caddy) to receive Set-Cookie. */
+function getGhostAuthUrl(): string {
+  return process.env.GHOST_URL || getGhostUrl();
+}
+
 function getAdminPassword(): string {
   const token = process.env.SETUP_TOKEN || 'openant-default';
   return crypto.createHash('sha256').update(`ghost-admin-${token}`).digest('hex').slice(0, 32);
 }
 
 async function signIn(ghostUrl: string, email: string, password: string): Promise<string | null> {
-  const res = await fetch(`${ghostUrl}/ghost/api/admin/session/`, {
+  const authUrl = getGhostAuthUrl();
+  const res = await fetch(`${authUrl}/ghost/api/admin/session/`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', Origin: authUrl },
     body: JSON.stringify({ username: email, password }),
   });
   // Ghost may return 500 (EmailError) even on successful auth — check cookie first
@@ -178,12 +185,15 @@ export function createGhostAdapter(): BlogAdapter {
       }
 
       // Full setup path: fresh Ghost instance
+      // Ghost sets Secure cookies when configured with HTTPS URL, so session-based
+      // requests must go through the external HTTPS URL to receive Set-Cookie headers.
+      const authUrl = getGhostAuthUrl();
       const password = getAdminPassword();
 
       // Step 1: Create admin account
-      const setupRes = await fetch(`${ghostUrl}/ghost/api/admin/authentication/setup/`, {
+      const setupRes = await fetch(`${authUrl}/ghost/api/admin/authentication/setup/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Origin: authUrl },
         body: JSON.stringify({
           setup: [
             {
@@ -223,11 +233,11 @@ export function createGhostAdapter(): BlogAdapter {
         throw new AdapterError('ghost', 'setup', `Ghost setup failed: ${setupRes.status} ${error}`);
       }
 
-      // Step 2: Get or create integration API keys
-      const keys = await getOrCreateIntegration(ghostUrl, sessionCookie);
+      // Step 2: Get or create integration API keys (via auth URL for cookie support)
+      const keys = await getOrCreateIntegration(authUrl, sessionCookie);
 
-      // Step 3: Update site settings
-      const settingsRes = await fetch(`${ghostUrl}/ghost/api/admin/settings/`, {
+      // Step 3: Update site settings (via auth URL for cookie support)
+      const settingsRes = await fetch(`${authUrl}/ghost/api/admin/settings/`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -136,7 +136,7 @@ describe('SetupPage', () => {
     // Review → Apply Configuration
     await user.click(screen.getByRole('button', { name: 'Apply Configuration' }));
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Deploy Configuration' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Apply Configuration' })).toBeInTheDocument();
     });
   });
 

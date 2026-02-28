@@ -188,8 +188,8 @@ const en: Translations = {
       applyConfiguration: 'Apply Configuration',
     },
     deploy: {
-      title: 'Deploy',
-      deploy: 'Deploy Configuration',
+      title: 'Apply Configuration',
+      deploy: 'Apply Configuration',
       retry: 'Retry from this step',
       complete: 'Setup complete!',
       serviceAccess: 'Service Access',
@@ -306,8 +306,8 @@ const ru: Translations = {
       applyConfiguration: 'Применить конфигурацию',
     },
     deploy: {
-      title: 'Развёртывание',
-      deploy: 'Развернуть конфигурацию',
+      title: 'Применить конфигурацию',
+      deploy: 'Применить конфигурацию',
       retry: 'Повторить с этого шага',
       complete: 'Настройка завершена!',
       serviceAccess: 'Доступ к сервисам',

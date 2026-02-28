@@ -11,5 +11,5 @@ export const STEPS: StepDefinition[] = [
   { id: 'blog', label: 'Blog', required: true },
   { id: 'social', label: 'Social', required: false },
   { id: 'review', label: 'Review', required: true },
-  { id: 'deploy', label: 'Deploy', required: true },
+  { id: 'deploy', label: 'Apply Configuration', required: true },
 ];

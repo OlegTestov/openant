@@ -93,7 +93,7 @@ export default function SetupPage() {
       setSavedConfig((prev) => ({ ...prev, [stepId]: data }));
     }
 
-    // Last step (deploy) completed → redirect to dashboard
+    // Last step (apply configuration) completed → redirect to dashboard
     if (currentStep >= filteredSteps.length - 1) {
       window.location.href = '/dashboard';
       return;

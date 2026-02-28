@@ -68,10 +68,10 @@ beforeEach(() => {
 });
 
 describe('Deploy', () => {
-  it('renders Deploy Configuration button initially', () => {
+  it('renders Apply Configuration button initially', () => {
     render(<Deploy onComplete={vi.fn()} />);
 
-    expect(screen.getByRole('button', { name: 'Deploy Configuration' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Apply Configuration' })).toBeInTheDocument();
   });
 
   it('shows progress bar during deployment', async () => {
@@ -91,7 +91,7 @@ describe('Deploy', () => {
     const user = userEvent.setup();
     render(<Deploy onComplete={vi.fn()} />);
 
-    await user.click(screen.getByRole('button', { name: 'Deploy Configuration' }));
+    await user.click(screen.getByRole('button', { name: 'Apply Configuration' }));
 
     await waitFor(() => {
       expect(screen.getByRole('progressbar')).toBeInTheDocument();
@@ -119,7 +119,7 @@ describe('Deploy', () => {
     const user = userEvent.setup();
     render(<Deploy onComplete={vi.fn()} />);
 
-    await user.click(screen.getByRole('button', { name: 'Deploy Configuration' }));
+    await user.click(screen.getByRole('button', { name: 'Apply Configuration' }));
 
     await waitFor(() => {
       expect(screen.getByText('Setup complete!')).toBeInTheDocument();
@@ -152,7 +152,7 @@ describe('Deploy', () => {
     const user = userEvent.setup();
     render(<Deploy onComplete={vi.fn()} />);
 
-    await user.click(screen.getByRole('button', { name: 'Deploy Configuration' }));
+    await user.click(screen.getByRole('button', { name: 'Apply Configuration' }));
 
     await waitFor(() => {
       expect(screen.getByText(/Error at step 4: Ghost API unavailable/)).toBeInTheDocument();
@@ -177,7 +177,7 @@ describe('Deploy', () => {
     const user = userEvent.setup();
     render(<Deploy onComplete={vi.fn()} />);
 
-    await user.click(screen.getByRole('button', { name: 'Deploy Configuration' }));
+    await user.click(screen.getByRole('button', { name: 'Apply Configuration' }));
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Retry from this step' })).toBeInTheDocument();
@@ -232,7 +232,7 @@ describe('Deploy', () => {
     const user = userEvent.setup();
     render(<Deploy onComplete={vi.fn()} />);
 
-    await user.click(screen.getByRole('button', { name: 'Deploy Configuration' }));
+    await user.click(screen.getByRole('button', { name: 'Apply Configuration' }));
 
     await waitFor(() => {
       expect(screen.getByText('Setup complete!')).toBeInTheDocument();
@@ -260,7 +260,7 @@ describe('Deploy', () => {
     const onComplete = vi.fn();
     render(<Deploy onComplete={onComplete} />);
 
-    await user.click(screen.getByRole('button', { name: 'Deploy Configuration' }));
+    await user.click(screen.getByRole('button', { name: 'Apply Configuration' }));
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Go to Dashboard' })).toBeInTheDocument();
