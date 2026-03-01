@@ -120,14 +120,19 @@ const SEARCH_PLACEHOLDER_TRANSLATIONS: Record<string, string> = {
 function buildCodeInjectionSettings(language: string): Array<{ key: string; value: string }> {
   const translation = SEARCH_PLACEHOLDER_TRANSLATIONS[language];
   if (!translation) return [];
+  // Sodo Search renders inputs inside Shadow DOM, so querySelectorAll alone
+  // won't find them. Poll briefly to catch both regular and shadow DOM inputs.
   const script =
     '<script>' +
     `(function(){var p='${translation}';` +
-    'var o=new MutationObserver(function(){' +
-    "document.querySelectorAll('[data-ghost-search] input').forEach(function(i){" +
-    'if(i.placeholder!==p)i.placeholder=p})});' +
-    'o.observe(document.body,{childList:true,subtree:true});' +
-    "document.querySelectorAll('[data-ghost-search] input').forEach(function(i){i.placeholder=p})" +
+    'function f(){' +
+    "document.querySelectorAll('[data-ghost-search]').forEach(function(el){" +
+    "el.querySelectorAll('input').forEach(function(i){if(i.placeholder!==p)i.placeholder=p});" +
+    'for(var j=0;j<el.children.length;j++){' +
+    'var s=el.children[j].shadowRoot;' +
+    "if(s)s.querySelectorAll('input').forEach(function(i){if(i.placeholder!==p)i.placeholder=p})}" +
+    '})};' +
+    'var c=0;var t=setInterval(function(){if(++c>50){clearInterval(t);return}f()},200)' +
     '})();' +
     '</script>';
   return [{ key: 'codeinjection_foot', value: script }];
