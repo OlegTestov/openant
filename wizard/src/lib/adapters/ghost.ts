@@ -117,9 +117,7 @@ const SEARCH_PLACEHOLDER_TRANSLATIONS: Record<string, string> = {
   fr: 'Rechercher des articles, tags et auteurs',
 };
 
-function buildCodeInjectionSettings(
-  language: string,
-): Array<{ key: string; value: string }> {
+function buildCodeInjectionSettings(language: string): Array<{ key: string; value: string }> {
   const translation = SEARCH_PLACEHOLDER_TRANSLATIONS[language];
   if (!translation) return [];
   const script =
