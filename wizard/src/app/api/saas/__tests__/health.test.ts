@@ -22,6 +22,24 @@ vi.mock('@/lib/adapters', () => ({
   }),
 }));
 
+const mockReadState = vi.fn().mockResolvedValue({
+  currentStep: 'deploy',
+  deployed: true,
+  steps: {},
+});
+
+vi.mock('@/lib/state', () => ({
+  readState: (...args: unknown[]) => mockReadState(...args),
+}));
+
+const mockGetEffectiveDomain = vi.fn().mockReturnValue(null);
+const mockGetServiceDomains = vi.fn().mockReturnValue(null);
+
+vi.mock('@/lib/domain', () => ({
+  getEffectiveDomain: (...args: unknown[]) => mockGetEffectiveDomain(...args),
+  getServiceDomains: (...args: unknown[]) => mockGetServiceDomains(...args),
+}));
+
 function createRequest(): Request {
   return new Request('http://localhost/api/saas/health');
 }
@@ -39,6 +57,9 @@ beforeEach(() => {
     completed: 2,
     error: 1,
   });
+  mockReadState.mockResolvedValue({ currentStep: 'deploy', deployed: true, steps: {} });
+  mockGetEffectiveDomain.mockReturnValue(null);
+  mockGetServiceDomains.mockReturnValue(null);
 });
 
 afterEach(() => {
@@ -82,6 +103,31 @@ describe('GET /api/saas/health', () => {
       articles_published: 5,
       articles_completed: 2,
       articles_error: 1,
+    });
+    expect(body.effective_domain).toBeNull();
+    expect(body.service_domains).toBeNull();
+  });
+
+  it('includes effective_domain and service_domains when custom domain is configured', async () => {
+    vi.stubEnv('OPENANT_SAAS_MODE', 'true');
+    mockGetEffectiveDomain.mockReturnValue('example.com');
+    mockGetServiceDomains.mockReturnValue({
+      ghost: 'blog.example.com',
+      nocodb: 'table.example.com',
+      n8n: 'auto.example.com',
+      wizard: 'setup.example.com',
+    });
+
+    const { GET } = await import('../health/route');
+    const res = await GET(createRequest());
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.effective_domain).toBe('example.com');
+    expect(body.service_domains).toEqual({
+      ghost: 'blog.example.com',
+      nocodb: 'table.example.com',
+      n8n: 'auto.example.com',
     });
   });
 

@@ -1,6 +1,7 @@
 import { apiHandler } from '@/lib/api-handler';
 import { createAdapters } from '@/lib/adapters';
 import { readState } from '@/lib/state';
+import { getEffectiveDomain, getServiceDomains } from '@/lib/domain';
 
 export const GET = apiHandler(async () => {
   if (process.env.OPENANT_SAAS_MODE !== 'true') {
@@ -23,6 +24,8 @@ export const GET = apiHandler(async () => {
   }
 
   const state = await readState();
+  const effectiveDomain = getEffectiveDomain(state);
+  const serviceDomains = getServiceDomains(state);
 
   return Response.json({
     wizard: 'healthy',
@@ -38,5 +41,9 @@ export const GET = apiHandler(async () => {
         }
       : null,
     deployed: state.deployed ?? false,
+    effective_domain: effectiveDomain,
+    service_domains: serviceDomains
+      ? { ghost: serviceDomains.ghost, nocodb: serviceDomains.nocodb, n8n: serviceDomains.n8n }
+      : null,
   });
 });
