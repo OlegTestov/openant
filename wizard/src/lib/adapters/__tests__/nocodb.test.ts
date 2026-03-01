@@ -57,14 +57,23 @@ describe('createNocoDBAdapter', () => {
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'base-id-1' }));
       // Step 5: List tables (none found)
       mockFetch.mockResolvedValueOnce(mockResponse({ list: [] }));
-      // Step 6: Create table
+      // Step 6: Create Articles table
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'table-id-1' }));
-      // Step 7: Create columns (Status, GhostURL, PinURL, Error)
+      // Step 7: Create Articles columns (Status, GhostURL, PinURL, Error)
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-1' }));
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-2' }));
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-3' }));
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-4' }));
       // Step 8: Insert sample row
+      mockFetch.mockResolvedValueOnce(mockResponse({ Id: 1 }));
+      // Step 9: Create Prompts table
+      mockFetch.mockResolvedValueOnce(mockResponse({ id: 'prompts-table-1' }));
+      // Step 10: Create Prompts columns (PinName, PinText, PinImage, ThreadText)
+      mockFetch.mockResolvedValueOnce(mockResponse({ id: 'pcol-1' }));
+      mockFetch.mockResolvedValueOnce(mockResponse({ id: 'pcol-2' }));
+      mockFetch.mockResolvedValueOnce(mockResponse({ id: 'pcol-3' }));
+      mockFetch.mockResolvedValueOnce(mockResponse({ id: 'pcol-4' }));
+      // Step 11: Insert default prompts
       mockFetch.mockResolvedValueOnce(mockResponse({ Id: 1 }));
     }
 
@@ -106,7 +115,7 @@ describe('createNocoDBAdapter', () => {
       expect(body.title).toBe('openant');
     });
 
-    it('creates table "Articles" with columns', async () => {
+    it('creates table "Articles" with Topic column', async () => {
       mockSetupSequence();
       const adapter = createNocoDBAdapter();
 
@@ -120,7 +129,7 @@ describe('createNocoDBAdapter', () => {
       expect(body.title).toBe('Articles');
       expect(body.columns).toEqual([
         { title: 'Id', column_name: 'id', uidt: 'ID', dt: 'int4', pk: true, ai: true, rqd: true },
-        { title: 'Title', uidt: 'SingleLineText', pv: true },
+        { title: 'Topic', uidt: 'SingleLineText', pv: true },
         { title: 'Description', uidt: 'LongText' },
         { title: 'Link', uidt: 'URL' },
       ]);
@@ -144,7 +153,47 @@ describe('createNocoDBAdapter', () => {
       expect(optionTitles).toContain('error');
     });
 
-    it('returns authToken, projectId, tableId', async () => {
+    it('creates Prompts table with correct columns', async () => {
+      mockSetupSequence();
+      const adapter = createNocoDBAdapter();
+
+      await adapter.setup(config);
+
+      // Call 11 = create Prompts table
+      const [url, opts] = mockFetch.mock.calls[11];
+      expect(url).toBe('http://nocodb:8080/api/v2/meta/bases/base-id-1/tables/');
+      expect(opts.method).toBe('POST');
+      const body = JSON.parse(opts.body as string);
+      expect(body.title).toBe('Prompts');
+      expect(body.columns).toEqual([
+        { title: 'Id', column_name: 'id', uidt: 'ID', dt: 'int4', pk: true, ai: true, rqd: true },
+        { title: 'ArticleTitle', uidt: 'LongText', pv: true },
+        { title: 'ArticleText', uidt: 'LongText' },
+        { title: 'ArticleImage', uidt: 'LongText' },
+      ]);
+    });
+
+    it('inserts default prompts into Prompts table', async () => {
+      mockSetupSequence();
+      const adapter = createNocoDBAdapter();
+
+      await adapter.setup(config);
+
+      // Call 16 = insert default prompts
+      const [url, opts] = mockFetch.mock.calls[16];
+      expect(url).toBe('http://nocodb:8080/api/v2/tables/prompts-table-1/records');
+      expect(opts.method).toBe('POST');
+      const body = JSON.parse(opts.body as string);
+      expect(body.ArticleTitle).toContain('SEO-optimized article title');
+      expect(body.ArticleText).toContain('Write a detailed SEO article');
+      expect(body.ArticleImage).toContain('professional blog cover image');
+      expect(body.PinName).toContain('Pinterest pin title');
+      expect(body.PinText).toContain('Pinterest pin description');
+      expect(body.PinImage).toContain('vertical Pinterest pin image');
+      expect(body.ThreadText).toContain('social media thread post');
+    });
+
+    it('returns authToken, projectId, tableId, promptsTableId', async () => {
       mockSetupSequence();
       const adapter = createNocoDBAdapter();
 
@@ -154,6 +203,7 @@ describe('createNocoDBAdapter', () => {
         authToken: 'auth-token-123',
         projectId: 'base-id-1',
         tableId: 'table-id-1',
+        promptsTableId: 'prompts-table-1',
       });
     });
 
@@ -168,9 +218,14 @@ describe('createNocoDBAdapter', () => {
       mockFetch.mockResolvedValueOnce(
         mockResponse({ list: [{ id: 'base-id-1', title: 'openant' }] }),
       );
-      // List tables — finds existing
+      // List tables — finds both existing
       mockFetch.mockResolvedValueOnce(
-        mockResponse({ list: [{ id: 'table-id-1', title: 'Articles' }] }),
+        mockResponse({
+          list: [
+            { id: 'table-id-1', title: 'Articles' },
+            { id: 'prompts-table-1', title: 'Prompts' },
+          ],
+        }),
       );
 
       const adapter = createNocoDBAdapter();
@@ -180,6 +235,7 @@ describe('createNocoDBAdapter', () => {
         authToken: 'auth-token-123',
         projectId: 'base-id-1',
         tableId: 'table-id-1',
+        promptsTableId: 'prompts-table-1',
       });
     });
 
@@ -198,14 +254,23 @@ describe('createNocoDBAdapter', () => {
       mockFetch.mockResolvedValueOnce(mockResponse({}));
       // List tables (none found)
       mockFetch.mockResolvedValueOnce(mockResponse({ list: [] }));
-      // Create table
+      // Create Articles table
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'table-id-1' }));
-      // Create columns (Status, GhostURL, PinURL, Error)
+      // Create Articles columns (Status, GhostURL, PinURL, Error)
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-1' }));
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-2' }));
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-3' }));
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-4' }));
       // Insert sample row
+      mockFetch.mockResolvedValueOnce(mockResponse({ Id: 1 }));
+      // Create Prompts table
+      mockFetch.mockResolvedValueOnce(mockResponse({ id: 'prompts-table-1' }));
+      // Create Prompts columns (PinName, PinText, PinImage, ThreadText)
+      mockFetch.mockResolvedValueOnce(mockResponse({ id: 'pcol-1' }));
+      mockFetch.mockResolvedValueOnce(mockResponse({ id: 'pcol-2' }));
+      mockFetch.mockResolvedValueOnce(mockResponse({ id: 'pcol-3' }));
+      mockFetch.mockResolvedValueOnce(mockResponse({ id: 'pcol-4' }));
+      // Insert default prompts
       mockFetch.mockResolvedValueOnce(mockResponse({ Id: 1 }));
 
       const adapter = createNocoDBAdapter();
@@ -241,7 +306,7 @@ describe('createNocoDBAdapter', () => {
           list: [
             {
               Id: 1,
-              Title: 'Test Article',
+              Topic: 'Test Article',
               Description: 'A test',
               Link: 'https://example.com',
               Status: null,
@@ -259,7 +324,7 @@ describe('createNocoDBAdapter', () => {
 
       expect(row).toEqual({
         id: '1',
-        title: 'Test Article',
+        topic: 'Test Article',
         description: 'A test',
         link: 'https://example.com',
         status: 'queue',
@@ -288,7 +353,7 @@ describe('createNocoDBAdapter', () => {
           list: [
             {
               Id: 7,
-              Title: 'Article',
+              Topic: 'Article',
               Description: '',
               Link: '',
               Status: 'generating',
@@ -306,7 +371,7 @@ describe('createNocoDBAdapter', () => {
 
       expect(row).toMatchObject({
         id: '7',
-        title: 'Article',
+        topic: 'Article',
         status: 'generating',
         ghostUrl: 'https://blog.com/post',
         pinUrl: 'https://pin.com/123',

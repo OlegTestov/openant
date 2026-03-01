@@ -256,6 +256,7 @@ async function executeDeployStep(
         NOCODB_AUTH_TOKEN: ctx.nocoKeys?.authToken ?? '',
         NOCODB_BASE_ID: ctx.nocoKeys?.projectId ?? '',
         NOCODB_TABLE_ID: ctx.nocoKeys?.tableId ?? '',
+        NOCODB_PROMPTS_TABLE_ID: ctx.nocoKeys?.promptsTableId ?? '',
         N8N_API_KEY: ctx.n8nKeys?.apiKey ?? '',
       };
       const currentEnv = await readEnv(getEnvPath());
@@ -309,10 +310,14 @@ export const POST = withAuth(async (req: Request) => {
         authToken: savedEnv.NOCODB_AUTH_TOKEN,
         projectId: savedEnv.NOCODB_BASE_ID,
         tableId: savedEnv.NOCODB_TABLE_ID,
+        promptsTableId: savedEnv.NOCODB_PROMPTS_TABLE_ID ?? '',
       };
       process.env.NOCODB_AUTH_TOKEN = savedEnv.NOCODB_AUTH_TOKEN;
       process.env.NOCODB_BASE_ID = savedEnv.NOCODB_BASE_ID;
       process.env.NOCODB_TABLE_ID = savedEnv.NOCODB_TABLE_ID;
+      if (savedEnv.NOCODB_PROMPTS_TABLE_ID) {
+        process.env.NOCODB_PROMPTS_TABLE_ID = savedEnv.NOCODB_PROMPTS_TABLE_ID;
+      }
     }
     if (savedEnv.N8N_API_KEY) {
       ctx.n8nKeys = { apiKey: savedEnv.N8N_API_KEY };

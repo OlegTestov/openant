@@ -64,8 +64,8 @@
         "bodyParameters": {
           "parameters": [
             {
-              "name": "Title",
-              "value": "={{ $json.list[0].Title }}"
+              "name": "Id",
+              "value": "={{ $json.list[0].Id }}"
             },
             {
               "name": "Status",
@@ -90,7 +90,7 @@
         "url": "",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ title: $('Get Published Articles').item.json.list[0].Title, description: $('Get Published Articles').item.json.list[0].Description || '', url: $('Get Published Articles').item.json.list[0].GhostURL || '' }) }}"
+        "jsonBody": "={{ JSON.stringify({ topic: $('Get Published Articles').item.json.list[0].Topic, description: $('Get Published Articles').item.json.list[0].Description || '', url: $('Get Published Articles').item.json.list[0].GhostURL || '' }) }}"
       }
     },
     {
@@ -105,8 +105,8 @@
         "bodyParameters": {
           "parameters": [
             {
-              "name": "Title",
-              "value": "={{ $('Get Published Articles').item.json.list[0].Title }}"
+              "name": "Id",
+              "value": "={{ $('Get Published Articles').item.json.list[0].Id }}"
             },
             {
               "name": "Status",

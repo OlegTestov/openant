@@ -53,7 +53,7 @@ describe('NocoDB integration', () => {
         'xc-auth': authToken,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ Title: 'Test Article', Status: 'queue' }),
+      body: JSON.stringify({ Topic: 'Test Article', Status: 'queue' }),
     });
     if (!insertRes.ok) {
       const errorBody = await insertRes.text();

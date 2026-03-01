@@ -52,11 +52,12 @@ export interface TableSetupResult {
   authToken: string;
   projectId: string;
   tableId: string;
+  promptsTableId: string;
 }
 
 export interface ArticleRow {
   id: string;
-  title: string;
+  topic: string;
   description?: string;
   link?: string;
   status: ArticleStatus;

@@ -66,7 +66,7 @@ async function createArticlesTable(
       title: 'Articles',
       columns: [
         { title: 'Id', column_name: 'id', uidt: 'ID', dt: 'int4', pk: true, ai: true, rqd: true },
-        { title: 'Title', uidt: 'SingleLineText', pv: true },
+        { title: 'Topic', uidt: 'SingleLineText', pv: true },
         { title: 'Description', uidt: 'LongText' },
         { title: 'Link', uidt: 'URL' },
       ],
@@ -114,6 +114,85 @@ async function createArticlesTable(
   }
 
   return tableId;
+}
+
+const DEFAULT_PROMPTS = {
+  ArticleTitle:
+    'Generate an SEO-optimized article title in {language} language with {tone} tone.\n\nTopic: {topic}\nDescription: {description}\n\nReturn ONLY the title text, nothing else. The title should be:\n- Engaging and click-worthy\n- Include relevant keywords naturally\n- 50-70 characters long',
+  ArticleText:
+    'Write a detailed SEO article in {language} language with {tone} tone.\n\nTopic: {topic}\nDescription: {description}\nInclude this link naturally: {link}\n\nReturn only HTML content (no <html>, <head>, <body> tags — just article content with <h2>, <p>, <ul>, <a> tags).',
+  ArticleImage:
+    'Generate a professional blog cover image for an article about: {topic}. Style: modern, clean, minimal. No text on the image.',
+  PinName:
+    'Generate a catchy Pinterest pin title in {language} for an article about: {topic}. Maximum 100 characters. Return ONLY the title.',
+  PinText:
+    'Write a compelling Pinterest pin description in {language} for: {topic}. Include relevant keywords. 150-300 characters. Return ONLY the description.',
+  PinImage:
+    'Create a vertical Pinterest pin image (2:3 ratio) about: {topic}. Style: eye-catching, bold colors, modern design. No text overlay.',
+  ThreadText:
+    'Write a social media thread post in {language} with {tone} tone about: {topic}. Keep it concise, engaging, 1-2 paragraphs. Include a call to action to read the full article at: {link}',
+};
+
+async function createPromptsTable(
+  baseUrl: string,
+  authToken: string,
+  baseId: string,
+): Promise<string> {
+  const tableRes = await nocoFetch(`${baseUrl}/api/v2/meta/bases/${baseId}/tables/`, authToken, {
+    method: 'POST',
+    body: JSON.stringify({
+      title: 'Prompts',
+      columns: [
+        { title: 'Id', column_name: 'id', uidt: 'ID', dt: 'int4', pk: true, ai: true, rqd: true },
+        { title: 'ArticleTitle', uidt: 'LongText', pv: true },
+        { title: 'ArticleText', uidt: 'LongText' },
+        { title: 'ArticleImage', uidt: 'LongText' },
+      ],
+    }),
+  });
+  if (!tableRes.ok) {
+    const error = await tableRes.text();
+    throw new AdapterError(
+      'nocodb',
+      'setup',
+      `Failed to create Prompts table: ${tableRes.status} ${error}`,
+    );
+  }
+
+  const tableData = (await tableRes.json()) as { id: string };
+  const promptsTableId = tableData.id;
+
+  // Create remaining columns (NocoDB limits columns at table creation)
+  const additionalColumns = [
+    { title: 'PinName', uidt: 'LongText' },
+    { title: 'PinText', uidt: 'LongText' },
+    { title: 'PinImage', uidt: 'LongText' },
+    { title: 'ThreadText', uidt: 'LongText' },
+  ];
+
+  for (const col of additionalColumns) {
+    const colRes = await nocoFetch(
+      `${baseUrl}/api/v2/meta/tables/${promptsTableId}/columns/`,
+      authToken,
+      { method: 'POST', body: JSON.stringify(col) },
+    );
+    if (!colRes.ok) {
+      const error = await colRes.text();
+      throw new AdapterError(
+        'nocodb',
+        'setup',
+        `Failed to create Prompts column "${col.title}": ${colRes.status} ${error}`,
+      );
+    }
+  }
+
+  // Insert default prompts
+  await nocoFetch(`${baseUrl}/api/v2/tables/${promptsTableId}/records`, authToken, {
+    method: 'POST',
+    body: JSON.stringify(DEFAULT_PROMPTS),
+  });
+
+  return promptsTableId;
 }
 
 export function createNocoDBAdapter(): TableAdapter {
@@ -205,9 +284,8 @@ export function createNocoDBAdapter(): TableAdapter {
         }
       }
 
-      // Step 4: Check for existing "Articles" table, or create one
-      let tableId: string;
-      let tableCreated = false;
+      // Step 4: List existing tables
+      let existingTables: Array<{ id: string; title: string }> = [];
       const listTablesRes = await nocoFetch(
         `${baseUrl}/api/v2/meta/bases/${baseId}/tables/`,
         authToken,
@@ -216,24 +294,26 @@ export function createNocoDBAdapter(): TableAdapter {
         const tablesData = (await listTablesRes.json()) as {
           list?: Array<{ id: string; title: string }>;
         };
-        const existingTable = tablesData.list?.find((t) => t.title === 'Articles');
-        if (existingTable) {
-          tableId = existingTable.id;
-        } else {
-          tableId = await createArticlesTable(baseUrl, authToken, baseId);
-          tableCreated = true;
-        }
+        existingTables = tablesData.list ?? [];
+      }
+
+      // Step 5: Check for existing "Articles" table, or create one
+      let tableId: string;
+      let tableCreated = false;
+      const existingArticles = existingTables.find((t) => t.title === 'Articles');
+      if (existingArticles) {
+        tableId = existingArticles.id;
       } else {
         tableId = await createArticlesTable(baseUrl, authToken, baseId);
         tableCreated = true;
       }
 
-      // Step 5: Insert a sample row so the user sees table structure
+      // Step 6: Insert a sample row so the user sees table structure
       if (tableCreated) {
         await nocoFetch(`${baseUrl}/api/v2/tables/${tableId}/records`, authToken, {
           method: 'POST',
           body: JSON.stringify({
-            Title: 'Example: 10 Tips for Productive Remote Work',
+            Topic: 'Example: 10 Tips for Productive Remote Work',
             Description:
               'A practical guide covering workspace setup, time management, and communication best practices for remote teams.',
             Link: 'https://example.com/remote-work-tips',
@@ -241,7 +321,13 @@ export function createNocoDBAdapter(): TableAdapter {
         });
       }
 
-      return { authToken, projectId: baseId, tableId };
+      // Step 7: Check for existing "Prompts" table, or create one
+      const existingPrompts = existingTables.find((t) => t.title === 'Prompts');
+      const promptsTableId = existingPrompts
+        ? existingPrompts.id
+        : await createPromptsTable(baseUrl, authToken, baseId);
+
+      return { authToken, projectId: baseId, tableId, promptsTableId };
     },
 
     async getNextQueued(): Promise<ArticleRow | null> {
@@ -268,7 +354,7 @@ export function createNocoDBAdapter(): TableAdapter {
       const row = data.list[0];
       return {
         id: String(row.Id),
-        title: row.Title as string,
+        topic: row.Topic as string,
         description: (row.Description as string) || undefined,
         link: (row.Link as string) || undefined,
         status: (row.Status as ArticleStatus) || 'queue',

@@ -64,8 +64,8 @@
         "bodyParameters": {
           "parameters": [
             {
-              "name": "Title",
-              "value": "={{ $json.list[0].Title }}"
+              "name": "Id",
+              "value": "={{ $json.list[0].Id }}"
             },
             {
               "name": "Status",
@@ -93,7 +93,7 @@
           "values": [
             {
               "role": "user",
-              "content": "=Write a detailed SEO article in {{BLOG_LANGUAGE}} language with {{BLOG_TONE}} tone.\n\nTopic: {{ $('Get Next Queued').item.json.list[0].Title }}\nDescription: {{ $('Get Next Queued').item.json.list[0].Description || '' }}\nInclude this link naturally: {{ $('Get Next Queued').item.json.list[0].Link || '' }}\n\nReturn only HTML content (no <html>, <head>, <body> tags — just article content with <h2>, <p>, <ul>, <a> tags)."
+              "content": "=Write a detailed SEO article in {{BLOG_LANGUAGE}} language with {{BLOG_TONE}} tone.\n\nTopic: {{ $('Get Next Queued').item.json.list[0].Topic }}\nDescription: {{ $('Get Next Queued').item.json.list[0].Description || '' }}\nInclude this link naturally: {{ $('Get Next Queued').item.json.list[0].Link || '' }}\n\nReturn only HTML content (no <html>, <head>, <body> tags — just article content with <h2>, <p>, <ul>, <a> tags)."
             }
           ]
         }
@@ -114,8 +114,8 @@
         "bodyParameters": {
           "parameters": [
             {
-              "name": "Title",
-              "value": "={{ $('Get Next Queued').item.json.list[0].Title }}"
+              "name": "Id",
+              "value": "={{ $('Get Next Queued').item.json.list[0].Id }}"
             },
             {
               "name": "Status",
@@ -136,7 +136,7 @@
       "typeVersion": 2,
       "position": [1450, 250],
       "parameters": {
-        "jsCode": "const crypto = require('crypto');\nconst key = '{{GHOST_ADMIN_API_KEY}}';\nconst [id, secret] = key.split(':');\nconst header = Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT',kid:id})).toString('base64url');\nconst now = Math.floor(Date.now()/1000);\nconst payload = Buffer.from(JSON.stringify({iat:now,exp:now+300,aud:'/admin/'})).toString('base64url');\nconst hmac = crypto.createHmac('sha256', Buffer.from(secret, 'hex'));\nhmac.update(`${header}.${payload}`);\nconst sig = hmac.digest('base64url');\nconst jwt = `${header}.${payload}.${sig}`;\nconst articleTitle = $('Get Next Queued').first().json.list[0].Title;\nlet articleHtml = $('Generate Article').first().json.message.content;\narticleHtml = articleHtml.replace(/^```html?\\n?/i, '').replace(/\\n?```\\s*$/, '').trim();\nconst mobiledoc = JSON.stringify({ version: '0.3.1', atoms: [], cards: [['html', { html: articleHtml }]], markups: [], sections: [[10, 0]] });\nreturn [{ json: { jwt, articleTitle, mobiledoc } }];"
+        "jsCode": "const crypto = require('crypto');\nconst key = '{{GHOST_ADMIN_API_KEY}}';\nconst [id, secret] = key.split(':');\nconst header = Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT',kid:id})).toString('base64url');\nconst now = Math.floor(Date.now()/1000);\nconst payload = Buffer.from(JSON.stringify({iat:now,exp:now+300,aud:'/admin/'})).toString('base64url');\nconst hmac = crypto.createHmac('sha256', Buffer.from(secret, 'hex'));\nhmac.update(`${header}.${payload}`);\nconst sig = hmac.digest('base64url');\nconst jwt = `${header}.${payload}.${sig}`;\nconst articleTopic = $('Get Next Queued').first().json.list[0].Topic;\nlet articleHtml = $('Generate Article').first().json.message.content;\narticleHtml = articleHtml.replace(/^```html?\\n?/i, '').replace(/\\n?```\\s*$/, '').trim();\nconst mobiledoc = JSON.stringify({ version: '0.3.1', atoms: [], cards: [['html', { html: articleHtml }]], markups: [], sections: [[10, 0]] });\nreturn [{ json: { jwt, articleTopic, mobiledoc } }];"
       }
     },
     {
@@ -156,7 +156,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ posts: [{ title: $json.articleTitle, mobiledoc: $json.mobiledoc, status: 'published' }] }) }}"
+        "jsonBody": "={{ JSON.stringify({ posts: [{ title: $json.articleTopic, mobiledoc: $json.mobiledoc, status: 'published' }] }) }}"
       }
     },
     {
@@ -171,8 +171,8 @@
         "bodyParameters": {
           "parameters": [
             {
-              "name": "Title",
-              "value": "={{ $('Get Next Queued').item.json.list[0].Title }}"
+              "name": "Id",
+              "value": "={{ $('Get Next Queued').item.json.list[0].Id }}"
             },
             {
               "name": "Status",

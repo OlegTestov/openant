@@ -10,6 +10,7 @@ export function createMockNocoDBAdapter(): TableAdapter {
         authToken: 'mock-nocodb-token',
         projectId: 'mock-project-id',
         tableId: 'mock-table-id',
+        promptsTableId: 'mock-prompts-table-id',
       };
     },
     async getNextQueued() {

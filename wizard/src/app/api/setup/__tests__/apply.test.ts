@@ -50,6 +50,7 @@ const mockTableSetup = vi.fn(() =>
     authToken: 'mock-noco-token',
     projectId: 'mock-project-id',
     tableId: 'mock-table-id',
+    promptsTableId: 'mock-prompts-table-id',
   }),
 );
 const mockAutomationSetup = vi.fn(() => Promise.resolve({ apiKey: 'mock-n8n-api-key' }));
