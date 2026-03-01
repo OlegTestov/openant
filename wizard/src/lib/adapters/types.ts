@@ -108,6 +108,7 @@ export interface WorkflowParams {
   makeWebhookUrl?: string;
   nocodbBaseId?: string;
   nocodbTableId?: string;
+  nocodbPromptsTableId?: string;
   ghostAdminApiKey?: string;
   ghostUrl?: string;
 }

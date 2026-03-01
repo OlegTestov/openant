@@ -402,6 +402,38 @@ describe('createN8nAdapter', () => {
       expect(openAiNode.credentials.openAiApi.id).toBe('real-cred-id');
     });
 
+    it('substitutes NOCODB_PROMPTS_TABLE_ID marker', async () => {
+      const templateWithPrompts = {
+        ...template,
+        nodes: [
+          ...template.nodes,
+          {
+            type: 'n8n-nodes-base.httpRequest',
+            name: 'Get Prompts',
+            parameters: {
+              url: 'http://nocodb:8080/api/v2/tables/{{NOCODB_PROMPTS_TABLE_ID}}/records',
+            },
+          },
+        ],
+      };
+
+      mockFetch.mockResolvedValueOnce(mockResponse({ id: 'wf-1' }));
+      const adapter = createN8nAdapter();
+
+      await adapter.importWorkflow(templateWithPrompts, {
+        ...params,
+        nocodbPromptsTableId: 'prompts-table-xyz',
+      });
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+      const promptsNode = body.nodes.find(
+        (n: { name: string }) => n.name === 'Get Prompts',
+      );
+      expect(promptsNode.parameters.url).toBe(
+        'http://nocodb:8080/api/v2/tables/prompts-table-xyz/records',
+      );
+    });
+
     it('substitutes blogLanguage and blogTone markers', async () => {
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'wf-1' }));
       const adapter = createN8nAdapter();

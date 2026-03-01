@@ -235,6 +235,7 @@ async function executeDeployStep(
         makeWebhookUrl: state.social?.make_webhook_url,
         nocodbBaseId: ctx.nocoKeys?.projectId,
         nocodbTableId: ctx.nocoKeys?.tableId,
+        nocodbPromptsTableId: ctx.nocoKeys?.promptsTableId,
         ghostAdminApiKey: ctx.ghostKeys?.adminApiKey,
         ghostUrl: buildEnvVars(state).GHOST_URL,
       };

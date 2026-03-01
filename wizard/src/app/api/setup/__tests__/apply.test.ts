@@ -429,6 +429,20 @@ describe('POST /api/setup/apply', () => {
     expect(mockActivateWorkflow).toHaveBeenCalledTimes(2);
   });
 
+  it('step 10: passes nocodbPromptsTableId in workflow params', async () => {
+    const { POST } = await import('../apply/route');
+    const res = await POST(createRequest());
+
+    await res.text();
+
+    expect(mockImportWorkflow).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        nocodbPromptsTableId: 'mock-prompts-table-id',
+      }),
+    );
+  });
+
   it('step 10: imports only generate workflow when no make_webhook_url', async () => {
     mockState.social = {
       pinterest_enabled: false,

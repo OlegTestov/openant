@@ -81,10 +81,40 @@
       }
     },
     {
-      "name": "Generate Article",
+      "name": "Get Prompts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1050, 250],
+      "parameters": {
+        "method": "GET",
+        "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_PROMPTS_TABLE_ID}}/records",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "", "name": "NocoDB" }
+      }
+    },
+    {
+      "name": "Prepare Prompts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 250],
+      "parameters": {
+        "jsCode": "const prompts = $('Get Prompts').first().json.list[0];\nconst article = $('Get Next Queued').first().json.list[0];\nconst lang = '{{BLOG_LANGUAGE}}';\nconst tone = '{{BLOG_TONE}}';\n\nfunction fill(template) {\n  return template\n    .replace(/\\{topic\\}/g, article.Topic || '')\n    .replace(/\\{description\\}/g, article.Description || '')\n    .replace(/\\{link\\}/g, article.Link || '')\n    .replace(/\\{language\\}/g, lang)\n    .replace(/\\{tone\\}/g, tone);\n}\n\nreturn [{ json: {\n  titlePrompt: fill(prompts.ArticleTitle),\n  textPrompt: fill(prompts.ArticleText),\n}}];"
+      }
+    },
+    {
+      "name": "Generate Title",
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 1.4,
-      "position": [1050, 250],
+      "position": [1450, 250],
       "parameters": {
         "resource": "text",
         "operation": "message",
@@ -93,7 +123,29 @@
           "values": [
             {
               "role": "user",
-              "content": "=Write a detailed SEO article in {{BLOG_LANGUAGE}} language with {{BLOG_TONE}} tone.\n\nTopic: {{ $('Get Next Queued').item.json.list[0].Topic }}\nDescription: {{ $('Get Next Queued').item.json.list[0].Description || '' }}\nInclude this link naturally: {{ $('Get Next Queued').item.json.list[0].Link || '' }}\n\nReturn only HTML content (no <html>, <head>, <body> tags — just article content with <h2>, <p>, <ul>, <a> tags)."
+              "content": "={{ $json.titlePrompt }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "openAiApi": { "id": "", "name": "LLM API" }
+      }
+    },
+    {
+      "name": "Generate Article",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.4,
+      "position": [1650, 250],
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": { "__rl": true, "mode": "id", "value": "gpt-4o-mini" },
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "={{ $('Prepare Prompts').item.json.textPrompt }}"
             }
           ]
         }
@@ -106,7 +158,7 @@
       "name": "Update Status: publishing",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1250, 250],
+      "position": [1850, 250],
       "parameters": {
         "method": "PATCH",
         "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
@@ -134,16 +186,16 @@
       "name": "Build Ghost JWT",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1450, 250],
+      "position": [2050, 250],
       "parameters": {
-        "jsCode": "const crypto = require('crypto');\nconst key = '{{GHOST_ADMIN_API_KEY}}';\nconst [id, secret] = key.split(':');\nconst header = Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT',kid:id})).toString('base64url');\nconst now = Math.floor(Date.now()/1000);\nconst payload = Buffer.from(JSON.stringify({iat:now,exp:now+300,aud:'/admin/'})).toString('base64url');\nconst hmac = crypto.createHmac('sha256', Buffer.from(secret, 'hex'));\nhmac.update(`${header}.${payload}`);\nconst sig = hmac.digest('base64url');\nconst jwt = `${header}.${payload}.${sig}`;\nconst articleTopic = $('Get Next Queued').first().json.list[0].Topic;\nlet articleHtml = $('Generate Article').first().json.message.content;\narticleHtml = articleHtml.replace(/^```html?\\n?/i, '').replace(/\\n?```\\s*$/, '').trim();\nconst mobiledoc = JSON.stringify({ version: '0.3.1', atoms: [], cards: [['html', { html: articleHtml }]], markups: [], sections: [[10, 0]] });\nreturn [{ json: { jwt, articleTopic, mobiledoc } }];"
+        "jsCode": "const crypto = require('crypto');\nconst key = '{{GHOST_ADMIN_API_KEY}}';\nconst [id, secret] = key.split(':');\nconst header = Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT',kid:id})).toString('base64url');\nconst now = Math.floor(Date.now()/1000);\nconst payload = Buffer.from(JSON.stringify({iat:now,exp:now+300,aud:'/admin/'})).toString('base64url');\nconst hmac = crypto.createHmac('sha256', Buffer.from(secret, 'hex'));\nhmac.update(`${header}.${payload}`);\nconst sig = hmac.digest('base64url');\nconst jwt = `${header}.${payload}.${sig}`;\nconst articleTitle = $('Generate Title').first().json.message.content.trim();\nlet articleHtml = $('Generate Article').first().json.message.content;\narticleHtml = articleHtml.replace(/^```html?\\n?/i, '').replace(/\\n?```\\s*$/, '').trim();\nconst mobiledoc = JSON.stringify({ version: '0.3.1', atoms: [], cards: [['html', { html: articleHtml }]], markups: [], sections: [[10, 0]] });\nreturn [{ json: { jwt, articleTitle, mobiledoc } }];"
       }
     },
     {
       "name": "POST to Ghost",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1650, 250],
+      "position": [2250, 250],
       "parameters": {
         "method": "POST",
         "url": "{{GHOST_URL}}/ghost/api/admin/posts/",
@@ -156,14 +208,14 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ posts: [{ title: $json.articleTopic, mobiledoc: $json.mobiledoc, status: 'published' }] }) }}"
+        "jsonBody": "={{ JSON.stringify({ posts: [{ title: $json.articleTitle, mobiledoc: $json.mobiledoc, status: 'published' }] }) }}"
       }
     },
     {
       "name": "Update Status: published",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1850, 250],
+      "position": [2450, 250],
       "parameters": {
         "method": "PATCH",
         "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
@@ -203,6 +255,15 @@
       "main": [[{ "node": "Update Status: generating", "type": "main", "index": 0 }]]
     },
     "Update Status: generating": {
+      "main": [[{ "node": "Get Prompts", "type": "main", "index": 0 }]]
+    },
+    "Get Prompts": {
+      "main": [[{ "node": "Prepare Prompts", "type": "main", "index": 0 }]]
+    },
+    "Prepare Prompts": {
+      "main": [[{ "node": "Generate Title", "type": "main", "index": 0 }]]
+    },
+    "Generate Title": {
       "main": [[{ "node": "Generate Article", "type": "main", "index": 0 }]]
     },
     "Generate Article": {
