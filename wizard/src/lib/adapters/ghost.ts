@@ -110,6 +110,31 @@ export function createGhostJwt(adminApiKey: string): string {
   return `${header}.${payload}.${signature}`;
 }
 
+const SEARCH_PLACEHOLDER_TRANSLATIONS: Record<string, string> = {
+  ru: 'Поиск по записям, тегам и авторам',
+  es: 'Buscar publicaciones, etiquetas y autores',
+  de: 'Beiträge, Tags und Autoren durchsuchen',
+  fr: 'Rechercher des articles, tags et auteurs',
+};
+
+function buildCodeInjectionSettings(
+  language: string,
+): Array<{ key: string; value: string }> {
+  const translation = SEARCH_PLACEHOLDER_TRANSLATIONS[language];
+  if (!translation) return [];
+  const script =
+    '<script>' +
+    `(function(){var p='${translation}';` +
+    'var o=new MutationObserver(function(){' +
+    "document.querySelectorAll('[data-ghost-search] input').forEach(function(i){" +
+    'if(i.placeholder!==p)i.placeholder=p})});' +
+    'o.observe(document.body,{childList:true,subtree:true});' +
+    "document.querySelectorAll('[data-ghost-search] input').forEach(function(i){i.placeholder=p})" +
+    '})();' +
+    '</script>';
+  return [{ key: 'codeinjection_foot', value: script }];
+}
+
 const GHOST_SETTINGS = [
   { key: 'navigation', value: '[]' },
   { key: 'secondary_navigation', value: '[]' },
@@ -140,6 +165,7 @@ async function updateSettingsWithJwt(
         { key: 'title', value: config.title },
         { key: 'description', value: config.description },
         { key: 'locale', value: config.language },
+        ...buildCodeInjectionSettings(config.language),
         ...GHOST_SETTINGS,
       ],
     }),
@@ -300,6 +326,7 @@ export function createGhostAdapter(): BlogAdapter {
             { key: 'title', value: config.title },
             { key: 'description', value: config.description },
             { key: 'locale', value: config.language },
+            ...buildCodeInjectionSettings(config.language),
             ...GHOST_SETTINGS,
           ],
         }),
