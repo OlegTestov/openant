@@ -17,6 +17,8 @@ interface ReviewConfig {
     publish_interval_minutes: number;
   };
   social?: { make_webhook_url?: string; pinterest_enabled: boolean; threads_enabled: boolean };
+  saas_mode?: boolean;
+  default_domain?: string | null;
 }
 
 function formatInterval(minutes: number): string {
@@ -92,7 +94,11 @@ export default function Review({ onComplete, onBack, onGoToStep }: StepProps) {
           <div className="min-w-0">
             <p className="text-sm font-medium">{t.steps.review.domain}</p>
             <p className="text-muted-foreground text-sm">
-              {config?.domain?.use_domain ? config.domain.domain : t.steps.review.ipMode}
+              {config?.domain?.use_domain
+                ? config.domain.domain
+                : config?.saas_mode && config?.default_domain
+                  ? config.default_domain
+                  : t.steps.review.ipMode}
             </p>
           </div>
           <span className="text-muted-foreground ml-4 text-sm">{t.steps.review.edit}</span>

@@ -8,6 +8,9 @@ export interface SetupState {
   domain?: {
     use_domain: boolean;
     domain?: string;
+    ghost_prefix?: string;
+    nocodb_prefix?: string;
+    n8n_prefix?: string;
   };
   llm?: {
     provider: string;

@@ -11,8 +11,17 @@ export interface Translations {
     domain: {
       title: string;
       description: string;
+      optional: string;
+      optionalHint: string;
+      currentAccess: string;
       hasDomain: string;
       enterDomain: string;
+      serviceRouting: string;
+      ghostPrefix: string;
+      nocodbPrefix: string;
+      n8nPrefix: string;
+      rootDomainHint: string;
+      requiredRecords: string;
       pointDns: string;
       subdomains: string;
       dnsOk: string;
@@ -130,8 +139,17 @@ const en: Translations = {
     domain: {
       title: 'Domain Configuration',
       description: 'Configure how your services will be accessed',
+      optional: 'This step is optional',
+      optionalHint: 'Your services are already available at:',
+      currentAccess: 'Your services are available at: {domain}',
       hasDomain: 'I have a domain',
       enterDomain: 'example.com',
+      serviceRouting: 'Service Routing',
+      ghostPrefix: 'Blog (Ghost)',
+      nocodbPrefix: 'NocoDB',
+      n8nPrefix: 'n8n',
+      rootDomainHint: 'Leave empty for root domain',
+      requiredRecords: 'Configure DNS A-records pointing to: {ip}',
       pointDns: 'Point DNS A-record to:',
       subdomains: 'Subdomains: table.*, auto.*, setup.*',
       dnsOk: 'DNS configured correctly',
@@ -249,8 +267,17 @@ const ru: Translations = {
     domain: {
       title: 'Настройка домена',
       description: 'Настройте доступ к сервисам',
+      optional: 'Этот шаг необязателен',
+      optionalHint: 'Ваши сервисы уже доступны по адресу:',
+      currentAccess: 'Ваши сервисы доступны по адресу: {domain}',
       hasDomain: 'У меня есть домен',
       enterDomain: 'example.com',
+      serviceRouting: 'Маршрутизация сервисов',
+      ghostPrefix: 'Блог (Ghost)',
+      nocodbPrefix: 'NocoDB',
+      n8nPrefix: 'n8n',
+      rootDomainHint: 'Оставьте пустым для корневого домена',
+      requiredRecords: 'Настройте DNS A-записи на: {ip}',
       pointDns: 'Настройте DNS A-запись на:',
       subdomains: 'Поддомены: table.*, auto.*, setup.*',
       dnsOk: 'DNS настроен правильно',

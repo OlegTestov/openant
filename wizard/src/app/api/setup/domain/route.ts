@@ -8,6 +8,9 @@ export const domainSchema = z
   .object({
     use_domain: z.boolean(),
     domain: z.string().optional(),
+    ghost_prefix: z.string().optional(),
+    nocodb_prefix: z.string().optional(),
+    n8n_prefix: z.string().optional(),
   })
   .refine((data) => !data.use_domain || (data.domain && data.domain.length > 0), {
     message: 'Domain is required when "I have a domain" is enabled',
@@ -53,6 +56,9 @@ export const POST = withAuth(
     state.domain = {
       use_domain: body.use_domain,
       domain: body.domain,
+      ghost_prefix: body.ghost_prefix,
+      nocodb_prefix: body.nocodb_prefix,
+      n8n_prefix: body.n8n_prefix,
     };
     state.steps.domain = { completed: true };
     state.currentStep = 'llm';
@@ -71,6 +77,7 @@ export const POST = withAuth(
       data: {
         server_ip: serverIp,
         dns_check: dnsCheck,
+        current_domain: process.env.DOMAIN || null,
       },
     });
   }),

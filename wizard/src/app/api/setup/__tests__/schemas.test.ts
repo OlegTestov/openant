@@ -39,6 +39,28 @@ describe('domainSchema', () => {
   it('rejects use_domain=true with empty domain', () => {
     expect(() => domainSchema.parse({ use_domain: true, domain: '' })).toThrow();
   });
+
+  it('accepts optional prefix fields', () => {
+    expect(() =>
+      domainSchema.parse({
+        use_domain: true,
+        domain: 'example.com',
+        ghost_prefix: 'blog',
+        nocodb_prefix: 'table',
+        n8n_prefix: 'n8n',
+      }),
+    ).not.toThrow();
+  });
+
+  it('accepts empty ghost_prefix for root domain', () => {
+    expect(() =>
+      domainSchema.parse({
+        use_domain: true,
+        domain: 'example.com',
+        ghost_prefix: '',
+      }),
+    ).not.toThrow();
+  });
 });
 
 describe('llmSchema', () => {

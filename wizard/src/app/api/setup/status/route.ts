@@ -18,6 +18,7 @@ export const GET = withAuth(
         blog: state.blog,
         social: state.social,
         saas_mode: process.env.OPENANT_SAAS_MODE === 'true',
+        default_domain: process.env.DOMAIN || null,
       },
     });
   }),

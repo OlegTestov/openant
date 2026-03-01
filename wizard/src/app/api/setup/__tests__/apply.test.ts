@@ -245,7 +245,7 @@ describe('POST /api/setup/apply', () => {
     const urls = completeEvent?.data.urls as Record<string, string>;
     expect(urls.blog).toBe('https://example.com');
     expect(urls.table).toBe('https://table.example.com');
-    expect(urls.n8n).toBe('https://auto.example.com');
+    expect(urls.n8n).toBe('https://n8n.example.com');
     expect(urls.dashboard).toBeUndefined();
 
     const credentials = completeEvent?.data.credentials as Record<string, Record<string, string>>;
@@ -333,7 +333,12 @@ describe('POST /api/setup/apply', () => {
 
     await res.text();
 
-    expect(generateCaddyfile).toHaveBeenCalledWith('example.com');
+    expect(generateCaddyfile).toHaveBeenCalledWith({
+      ghost: 'example.com',
+      nocodb: 'table.example.com',
+      n8n: 'n8n.example.com',
+      wizard: 'setup.example.com',
+    });
   });
 
   it('step 3: calls startServices()', async () => {

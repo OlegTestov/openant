@@ -2,7 +2,7 @@ import { promises as fs } from 'fs';
 import { withAuth } from '@/lib/auth';
 import { readState, writeState } from '@/lib/state';
 import { readEnv, writeEnv } from '@/lib/config';
-import { generateCaddyfile, writeCaddyfile } from '@/lib/caddy';
+import { generateCaddyfile, writeCaddyfile, type ServiceDomains } from '@/lib/caddy';
 import { startServices, reloadCaddy } from '@/lib/docker';
 import { createAdapters } from '@/lib/adapters';
 import { createSSEStream, sendSSEEvent, closeSSE } from '@/lib/sse';
@@ -53,6 +53,24 @@ function getEffectiveDomain(state: SetupState): string | null {
   return process.env.DOMAIN || null;
 }
 
+/** Build per-service domain map from state prefixes */
+function getServiceDomains(state: SetupState): ServiceDomains | null {
+  const domain = getEffectiveDomain(state);
+  if (!domain) return null;
+
+  function resolve(prefix: string | undefined, fallback: string): string {
+    const p = prefix ?? fallback;
+    return p ? `${p}.${domain}` : domain!;
+  }
+
+  return {
+    ghost: resolve(state.domain?.ghost_prefix, ''),
+    nocodb: resolve(state.domain?.nocodb_prefix, 'table'),
+    n8n: resolve(state.domain?.n8n_prefix, 'n8n'),
+    wizard: `setup.${domain}`,
+  };
+}
+
 async function readWorkflowTemplate(name: string): Promise<object> {
   const basePath = getWorkflowTemplatesPath();
   const content = await fs.readFile(`${basePath}/${name}.template.json`, 'utf-8');
@@ -60,15 +78,15 @@ async function readWorkflowTemplate(name: string): Promise<object> {
 }
 
 function buildEnvVars(state: SetupState): Record<string, string> {
-  const domain = getEffectiveDomain(state) ?? '';
+  const domains = getServiceDomains(state);
   const serverIp = process.env.SERVER_IP || '';
 
   return {
-    DOMAIN: domain,
-    GHOST_URL: domain ? `https://${domain}` : `http://${serverIp}`,
-    NOCODB_PUBLIC_URL: domain ? `https://table.${domain}` : `http://${serverIp}:8080`,
-    N8N_HOST: domain ? `auto.${domain}` : serverIp,
-    N8N_WEBHOOK_URL: domain ? `https://auto.${domain}` : `http://${serverIp}:5678`,
+    DOMAIN: getEffectiveDomain(state) ?? '',
+    GHOST_URL: domains ? `https://${domains.ghost}` : `http://${serverIp}`,
+    NOCODB_PUBLIC_URL: domains ? `https://${domains.nocodb}` : `http://${serverIp}:8080`,
+    N8N_HOST: domains ? domains.n8n : serverIp,
+    N8N_WEBHOOK_URL: domains ? `https://${domains.n8n}` : `http://${serverIp}:5678`,
 
     LLM_API_URL: state.llm?.api_url ?? '',
     LLM_API_KEY: state.llm?.api_key ?? '',
@@ -88,13 +106,13 @@ function buildEnvVars(state: SetupState): Record<string, string> {
 }
 
 function buildUrls(state: SetupState): Record<string, string> {
-  const domain = getEffectiveDomain(state);
+  const domains = getServiceDomains(state);
   const ip = process.env.SERVER_IP || 'localhost';
 
   return {
-    blog: domain ? `https://${domain}` : `http://${ip}`,
-    table: domain ? `https://table.${domain}` : `http://${ip}:8080`,
-    n8n: domain ? `https://auto.${domain}` : `http://${ip}:5678`,
+    blog: domains ? `https://${domains.ghost}` : `http://${ip}`,
+    table: domains ? `https://${domains.nocodb}` : `http://${ip}:8080`,
+    n8n: domains ? `https://${domains.n8n}` : `http://${ip}:5678`,
   };
 }
 
@@ -114,8 +132,8 @@ async function executeDeployStep(
     }
 
     case 2: {
-      const domain = getEffectiveDomain(state);
-      const caddyfile = generateCaddyfile(domain);
+      const domains = getServiceDomains(state);
+      const caddyfile = generateCaddyfile(domains);
       await writeCaddyfile(caddyfile);
       break;
     }
@@ -131,10 +149,11 @@ async function executeDeployStep(
     }
 
     case 5: {
-      const effectiveDomain = getEffectiveDomain(state);
-      const blogUrl = effectiveDomain
-        ? `https://${effectiveDomain}`
+      const svcDomains = getServiceDomains(state);
+      const blogUrl = svcDomains
+        ? `https://${svcDomains.ghost}`
         : `http://${process.env.SERVER_IP}`;
+      const effectiveDomain = getEffectiveDomain(state);
       const ghostResult = await adapters.blog.setup({
         title: state.blog?.title ?? '',
         description: state.blog?.description ?? '',

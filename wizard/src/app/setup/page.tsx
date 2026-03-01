@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { STEPS } from '@/lib/steps';
 import { Stepper } from '@/components/Stepper';
 
@@ -21,15 +21,8 @@ export default function SetupPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [saasMode, setSaasMode] = useState(false);
 
-  const filteredSteps = useMemo(
-    () => (saasMode ? STEPS.filter((s) => s.id !== 'domain') : STEPS),
-    [saasMode],
-  );
-
-  const filteredComponents = useMemo(
-    () => (saasMode ? STEP_COMPONENTS.filter((_, i) => STEPS[i].id !== 'domain') : STEP_COMPONENTS),
-    [saasMode],
-  );
+  const filteredSteps = STEPS;
+  const filteredComponents = STEP_COMPONENTS;
 
   useEffect(() => {
     async function restorePosition() {
@@ -70,8 +63,7 @@ export default function SetupPage() {
             ...(data.data.social && { social: data.data.social }),
           });
 
-          const activeSteps = isSaas ? STEPS.filter((s) => s.id !== 'domain') : STEPS;
-          const stepIndex = activeSteps.findIndex((s) => s.id === data.data.currentStep);
+          const stepIndex = STEPS.findIndex((s) => s.id === data.data.currentStep);
           if (stepIndex >= 0) setCurrentStep(stepIndex);
         }
       } catch {

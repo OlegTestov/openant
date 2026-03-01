@@ -1,33 +1,43 @@
 import { promises as fs } from 'fs';
 
+export interface ServiceDomains {
+  ghost: string;
+  nocodb: string;
+  n8n: string;
+  wizard: string;
+}
+
 function getCaddyfilePath(): string {
   return process.env.CADDYFILE_PATH || '/app/Caddyfile';
 }
 
-export function generateCaddyfile(domain: string | null): string {
-  if (!domain) {
+export function generateCaddyfile(domains: ServiceDomains | null): string {
+  if (!domains) {
     return `:80 {
     reverse_proxy ghost:2368
 }
 `;
   }
 
-  return `${domain} {
+  const blocks: string[] = [];
+
+  blocks.push(`${domains.ghost} {
     reverse_proxy ghost:2368
-}
+}`);
 
-table.${domain} {
+  blocks.push(`${domains.nocodb} {
     reverse_proxy nocodb:8080
-}
+}`);
 
-auto.${domain} {
+  blocks.push(`${domains.n8n} {
     reverse_proxy n8n:5678
-}
+}`);
 
-setup.${domain} {
+  blocks.push(`${domains.wizard} {
     reverse_proxy wizard:3000
-}
-`;
+}`);
+
+  return blocks.join('\n\n') + '\n';
 }
 
 export async function writeCaddyfile(content: string): Promise<void> {
