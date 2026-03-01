@@ -65,7 +65,7 @@ async function createArticlesTable(
     body: JSON.stringify({
       title: 'Articles',
       columns: [
-        { title: 'Title', uidt: 'SingleLineText' },
+        { title: 'Title', uidt: 'SingleLineText', pn: true },
         { title: 'Description', uidt: 'LongText' },
         { title: 'Link', uidt: 'URL' },
       ],

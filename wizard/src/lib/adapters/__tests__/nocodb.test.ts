@@ -119,7 +119,7 @@ describe('createNocoDBAdapter', () => {
       const body = JSON.parse(opts.body as string);
       expect(body.title).toBe('Articles');
       expect(body.columns).toEqual([
-        { title: 'Title', uidt: 'SingleLineText' },
+        { title: 'Title', uidt: 'SingleLineText', pn: true },
         { title: 'Description', uidt: 'LongText' },
         { title: 'Link', uidt: 'URL' },
       ]);
