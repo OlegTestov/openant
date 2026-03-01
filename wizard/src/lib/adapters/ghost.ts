@@ -120,19 +120,13 @@ const SEARCH_PLACEHOLDER_TRANSLATIONS: Record<string, string> = {
 function buildCodeInjectionSettings(language: string): Array<{ key: string; value: string }> {
   const translation = SEARCH_PLACEHOLDER_TRANSLATIONS[language];
   if (!translation) return [];
-  // Sodo Search renders inputs inside Shadow DOM, so querySelectorAll alone
-  // won't find them. Poll briefly to catch both regular and shadow DOM inputs.
+  // Source theme renders the homepage search as a <button data-ghost-search>
+  // with hardcoded English text, not an <input>. Replace textContent on those buttons.
   const script =
     '<script>' +
     `(function(){var p='${translation}';` +
-    'function f(){' +
-    "document.querySelectorAll('[data-ghost-search]').forEach(function(el){" +
-    "el.querySelectorAll('input').forEach(function(i){if(i.placeholder!==p)i.placeholder=p});" +
-    'for(var j=0;j<el.children.length;j++){' +
-    'var s=el.children[j].shadowRoot;' +
-    "if(s)s.querySelectorAll('input').forEach(function(i){if(i.placeholder!==p)i.placeholder=p})}" +
-    '})};' +
-    'var c=0;var t=setInterval(function(){if(++c>50){clearInterval(t);return}f()},200)' +
+    "document.querySelectorAll('button[data-ghost-search].gh-form-input').forEach(function(b){" +
+    'if(b.textContent.trim()!==p)b.textContent=p})' +
     '})();' +
     '</script>';
   return [{ key: 'codeinjection_foot', value: script }];
