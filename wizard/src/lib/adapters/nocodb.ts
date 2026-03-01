@@ -65,7 +65,8 @@ async function createArticlesTable(
     body: JSON.stringify({
       title: 'Articles',
       columns: [
-        { title: 'Title', uidt: 'SingleLineText', pn: true },
+        { title: 'Id', column_name: 'id', uidt: 'ID', dt: 'int4', pk: true, ai: true, rqd: true },
+        { title: 'Title', uidt: 'SingleLineText', pv: true },
         { title: 'Description', uidt: 'LongText' },
         { title: 'Link', uidt: 'URL' },
       ],
@@ -266,7 +267,7 @@ export function createNocoDBAdapter(): TableAdapter {
 
       const row = data.list[0];
       return {
-        id: String(row.Title),
+        id: String(row.Id),
         title: row.Title as string,
         description: (row.Description as string) || undefined,
         link: (row.Link as string) || undefined,
@@ -287,7 +288,7 @@ export function createNocoDBAdapter(): TableAdapter {
       const tableId = getEnvOrThrow('NOCODB_TABLE_ID', 'updateStatus');
       const baseUrl = getNocoDbUrl();
 
-      const body: Record<string, unknown> = { Title: rowId, Status: status };
+      const body: Record<string, unknown> = { Id: Number(rowId), Status: status };
       if (extra?.ghostUrl) body.GhostURL = extra.ghostUrl;
       if (extra?.pinUrl) body.PinURL = extra.pinUrl;
       if (extra?.error) body.Error = extra.error;

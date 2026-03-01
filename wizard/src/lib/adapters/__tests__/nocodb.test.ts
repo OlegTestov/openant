@@ -119,7 +119,8 @@ describe('createNocoDBAdapter', () => {
       const body = JSON.parse(opts.body as string);
       expect(body.title).toBe('Articles');
       expect(body.columns).toEqual([
-        { title: 'Title', uidt: 'SingleLineText', pn: true },
+        { title: 'Id', column_name: 'id', uidt: 'ID', dt: 'int4', pk: true, ai: true, rqd: true },
+        { title: 'Title', uidt: 'SingleLineText', pv: true },
         { title: 'Description', uidt: 'LongText' },
         { title: 'Link', uidt: 'URL' },
       ]);
@@ -239,6 +240,7 @@ describe('createNocoDBAdapter', () => {
         mockResponse({
           list: [
             {
+              Id: 1,
               Title: 'Test Article',
               Description: 'A test',
               Link: 'https://example.com',
@@ -256,7 +258,7 @@ describe('createNocoDBAdapter', () => {
       const row = await adapter.getNextQueued();
 
       expect(row).toEqual({
-        id: 'Test Article',
+        id: '1',
         title: 'Test Article',
         description: 'A test',
         link: 'https://example.com',
@@ -285,6 +287,7 @@ describe('createNocoDBAdapter', () => {
         mockResponse({
           list: [
             {
+              Id: 7,
               Title: 'Article',
               Description: '',
               Link: '',
@@ -302,7 +305,7 @@ describe('createNocoDBAdapter', () => {
       const row = await adapter.getNextQueued();
 
       expect(row).toMatchObject({
-        id: 'Article',
+        id: '7',
         title: 'Article',
         status: 'generating',
         ghostUrl: 'https://blog.com/post',
@@ -323,7 +326,7 @@ describe('createNocoDBAdapter', () => {
       expect(url).toContain('/records');
       expect(opts.method).toBe('PATCH');
       const body = JSON.parse(opts.body as string);
-      expect(body).toMatchObject({ Title: '42', Status: 'publishing' });
+      expect(body).toMatchObject({ Id: 42, Status: 'publishing' });
     });
 
     it('includes extra fields when provided (ghostUrl, pinUrl, error)', async () => {
