@@ -1,12 +1,9 @@
 import { withAuth } from '@/lib/auth';
 import { apiHandler } from '@/lib/api-handler';
 import { createAdapters } from '@/lib/adapters';
-import { readEnv } from '@/lib/config';
+import { readState } from '@/lib/state';
 import { getServiceCredentials } from '@/lib/credentials';
-
-function getEnvPath(): string {
-  return process.env.ENV_FILE_PATH || '/app/.env';
-}
+import { getEffectiveDomain, getServiceDomains } from '@/lib/domain';
 
 async function checkCaddy(): Promise<boolean> {
   try {
@@ -48,15 +45,16 @@ export const GET = withAuth(
       caddy = 'unhealthy';
     }
 
-    const env = await readEnv(getEnvPath());
-    const domain = env.DOMAIN || null;
+    const state = await readState();
+    const effectiveDomain = getEffectiveDomain(state);
+    const domains = getServiceDomains(state);
     const ip = process.env.SERVER_IP || 'localhost';
 
-    const urls = domain
+    const urls = domains
       ? {
-          blog: `https://${domain}`,
-          table: `https://table.${domain}`,
-          n8n: `https://auto.${domain}`,
+          blog: `https://${domains.ghost}`,
+          table: `https://${domains.nocodb}`,
+          n8n: `https://${domains.n8n}`,
         }
       : {
           blog: `http://${ip}`,
@@ -64,7 +62,7 @@ export const GET = withAuth(
           n8n: `http://${ip}:5678`,
         };
 
-    const credentials = getServiceCredentials(process.env.SETUP_TOKEN || '', domain || undefined);
+    const credentials = getServiceCredentials(process.env.SETUP_TOKEN || '', effectiveDomain ?? undefined);
 
     return Response.json({
       success: true,

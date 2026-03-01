@@ -14,9 +14,16 @@ vi.mock('@/lib/adapters', () => ({
   }),
 }));
 
-vi.mock('@/lib/config', () => ({
-  readEnv: vi.fn().mockResolvedValue({}),
+const mockReadState = vi.fn();
+vi.mock('@/lib/state', () => ({
+  readState: (...args: unknown[]) => mockReadState(...args),
 }));
+
+const defaultState = {
+  currentStep: 'welcome',
+  deployed: false,
+  steps: {},
+};
 
 function createAuthRequest(): Request {
   return new Request('http://localhost/api/dashboard/status', {
@@ -36,6 +43,7 @@ beforeEach(() => {
   mockBlogHealthCheck.mockResolvedValue(true);
   mockTableHealthCheck.mockResolvedValue(true);
   mockAutomationHealthCheck.mockResolvedValue(true);
+  mockReadState.mockResolvedValue({ ...defaultState });
 
   // Mock fetch for Caddy health check
   global.fetch = vi.fn().mockImplementation((url: string | URL | Request) => {
@@ -102,17 +110,38 @@ describe('GET /api/dashboard/status', () => {
     expect(body.data.caddy).toBe('unhealthy');
   });
 
-  it('returns domain-based URLs when DOMAIN is set', async () => {
-    const { readEnv } = await import('@/lib/config');
-    vi.mocked(readEnv).mockResolvedValueOnce({ DOMAIN: 'example.com' });
+  it('returns domain-based URLs when user configured a domain', async () => {
+    mockReadState.mockResolvedValueOnce({
+      ...defaultState,
+      domain: {
+        use_domain: true,
+        domain: 'example.com',
+        ghost_prefix: 'blog',
+        nocodb_prefix: 'table',
+        n8n_prefix: 'n8n',
+      },
+    });
 
     const { GET } = await import('../status/route');
     const res = await GET(createAuthRequest());
     const body = await res.json();
 
-    expect(body.data.urls.blog).toBe('https://example.com');
+    expect(body.data.urls.blog).toBe('https://blog.example.com');
     expect(body.data.urls.table).toBe('https://table.example.com');
-    expect(body.data.urls.n8n).toBe('https://auto.example.com');
+    expect(body.data.urls.n8n).toBe('https://n8n.example.com');
+  });
+
+  it('returns domain-based URLs from DOMAIN env when use_domain is false', async () => {
+    vi.stubEnv('DOMAIN', 'auto.openant.app');
+    mockReadState.mockResolvedValueOnce({ ...defaultState });
+
+    const { GET } = await import('../status/route');
+    const res = await GET(createAuthRequest());
+    const body = await res.json();
+
+    expect(body.data.urls.blog).toBe('https://auto.openant.app');
+    expect(body.data.urls.table).toBe('https://table.auto.openant.app');
+    expect(body.data.urls.n8n).toBe('https://n8n.auto.openant.app');
   });
 
   it('returns IP-based URLs when no DOMAIN', async () => {
@@ -145,19 +174,20 @@ describe('GET /api/dashboard/status', () => {
     expect(body.data.saas_mode).toBe(false);
   });
 
-  it('returns service credentials computed from SETUP_TOKEN', async () => {
+  it('returns service credentials with correct domain email', async () => {
+    mockReadState.mockResolvedValueOnce({
+      ...defaultState,
+      domain: { use_domain: true, domain: 'mysite.com' },
+    });
+
     const { GET } = await import('../status/route');
     const res = await GET(createAuthRequest());
     const body = await res.json();
 
-    expect(body.data.credentials).toBeDefined();
-    expect(body.data.credentials.ghost).toHaveProperty('email');
-    expect(body.data.credentials.ghost).toHaveProperty('password');
+    expect(body.data.credentials.ghost.email).toBe('admin@mysite.com');
+    expect(body.data.credentials.nocodb.email).toBe('admin@mysite.com');
+    expect(body.data.credentials.n8n.email).toBe('admin@mysite.com');
     expect(body.data.credentials.ghost).toHaveProperty('adminUrl');
-    expect(body.data.credentials.nocodb).toHaveProperty('email');
-    expect(body.data.credentials.nocodb).toHaveProperty('password');
-    expect(body.data.credentials.n8n).toHaveProperty('email');
-    expect(body.data.credentials.n8n).toHaveProperty('password');
   });
 
   it('handles Caddy HTTP→HTTPS redirect as healthy', async () => {
