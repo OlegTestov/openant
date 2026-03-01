@@ -22,7 +22,7 @@ export function getServiceDomains(state: SetupState): ServiceDomains | null {
   return {
     ghost: resolve(state.domain?.ghost_prefix, ''),
     nocodb: resolve(state.domain?.nocodb_prefix, 'table'),
-    n8n: resolve(state.domain?.n8n_prefix, 'n8n'),
+    n8n: resolve(state.domain?.n8n_prefix, 'auto'),
     wizard: `setup.${domain}`,
   };
 }

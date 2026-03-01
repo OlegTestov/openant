@@ -47,20 +47,33 @@ export const GET = withAuth(
 
     const state = await readState();
     const effectiveDomain = getEffectiveDomain(state);
-    const domains = getServiceDomains(state);
     const ip = process.env.SERVER_IP || 'localhost';
 
-    const urls = domains
-      ? {
-          blog: `https://${domains.ghost}`,
-          table: `https://${domains.nocodb}`,
-          n8n: `https://${domains.n8n}`,
-        }
-      : {
-          blog: `http://${ip}`,
-          table: `http://${ip}:8080`,
-          n8n: `http://${ip}:5678`,
-        };
+    const isSaasMode = process.env.OPENANT_SAAS_MODE === 'true';
+    const saasDomain = process.env.DOMAIN;
+
+    let urls: { blog: string; table: string; n8n: string };
+    if (isSaasMode && saasDomain) {
+      // SaaS mode: always link to auto-generated subdomains (DNS pre-configured, always works)
+      urls = {
+        blog: `https://${saasDomain}`,
+        table: `https://table.${saasDomain}`,
+        n8n: `https://auto.${saasDomain}`,
+      };
+    } else {
+      const domains = getServiceDomains(state);
+      urls = domains
+        ? {
+            blog: `https://${domains.ghost}`,
+            table: `https://${domains.nocodb}`,
+            n8n: `https://${domains.n8n}`,
+          }
+        : {
+            blog: `http://${ip}`,
+            table: `http://${ip}:8080`,
+            n8n: `http://${ip}:5678`,
+          };
+    }
 
     const credentials = getServiceCredentials(
       process.env.SETUP_TOKEN || '',

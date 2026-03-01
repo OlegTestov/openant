@@ -132,16 +132,36 @@ describe('GET /api/dashboard/status', () => {
   });
 
   it('returns domain-based URLs from DOMAIN env when use_domain is false', async () => {
-    vi.stubEnv('DOMAIN', 'auto.openant.app');
+    vi.stubEnv('DOMAIN', 'slug.openant.app');
     mockReadState.mockResolvedValueOnce({ ...defaultState });
 
     const { GET } = await import('../status/route');
     const res = await GET(createAuthRequest());
     const body = await res.json();
 
-    expect(body.data.urls.blog).toBe('https://auto.openant.app');
-    expect(body.data.urls.table).toBe('https://table.auto.openant.app');
-    expect(body.data.urls.n8n).toBe('https://n8n.auto.openant.app');
+    expect(body.data.urls.blog).toBe('https://slug.openant.app');
+    expect(body.data.urls.table).toBe('https://table.slug.openant.app');
+    expect(body.data.urls.n8n).toBe('https://auto.slug.openant.app');
+  });
+
+  it('returns SaaS auto-subdomains in SaaS mode even with custom domain', async () => {
+    vi.stubEnv('OPENANT_SAAS_MODE', 'true');
+    vi.stubEnv('DOMAIN', 'slug.app.openant.app');
+    mockReadState.mockResolvedValueOnce({
+      ...defaultState,
+      domain: { use_domain: true, domain: 'example.com', ghost_prefix: 'blog' },
+    });
+
+    const { GET } = await import('../status/route');
+    const res = await GET(createAuthRequest());
+    const body = await res.json();
+
+    // URLs use SaaS auto-subdomains (always reachable), not custom domain
+    expect(body.data.urls.blog).toBe('https://slug.app.openant.app');
+    expect(body.data.urls.table).toBe('https://table.slug.app.openant.app');
+    expect(body.data.urls.n8n).toBe('https://auto.slug.app.openant.app');
+    // Credentials still use the custom domain
+    expect(body.data.credentials.ghost.email).toBe('admin@example.com');
   });
 
   it('returns IP-based URLs when no DOMAIN', async () => {
