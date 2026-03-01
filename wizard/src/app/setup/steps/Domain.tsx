@@ -143,8 +143,7 @@ export default function Domain({ onComplete, onBack, initialData }: StepProps) {
             <AlertDescription>
               <p className="text-sm font-medium">{t.steps.domain.optional}</p>
               <p className="text-muted-foreground mt-1 text-sm">
-                {t.steps.domain.optionalHint}{' '}
-                <code className="font-mono">{defaultDomain}</code>
+                {t.steps.domain.optionalHint} <code className="font-mono">{defaultDomain}</code>
               </p>
             </AlertDescription>
           </Alert>
@@ -227,9 +226,15 @@ export default function Domain({ onComplete, onBack, initialData }: StepProps) {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="bg-muted/50 border-b">
-                          <th className="px-3 py-2 text-left font-medium">{t.steps.domain.dnsType}</th>
-                          <th className="px-3 py-2 text-left font-medium">{t.steps.domain.dnsName}</th>
-                          <th className="px-3 py-2 text-left font-medium">{t.steps.domain.dnsValue}</th>
+                          <th className="px-3 py-2 text-left font-medium">
+                            {t.steps.domain.dnsType}
+                          </th>
+                          <th className="px-3 py-2 text-left font-medium">
+                            {t.steps.domain.dnsName}
+                          </th>
+                          <th className="px-3 py-2 text-left font-medium">
+                            {t.steps.domain.dnsValue}
+                          </th>
                         </tr>
                       </thead>
                       <tbody>

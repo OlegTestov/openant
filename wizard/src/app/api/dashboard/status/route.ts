@@ -62,7 +62,10 @@ export const GET = withAuth(
           n8n: `http://${ip}:5678`,
         };
 
-    const credentials = getServiceCredentials(process.env.SETUP_TOKEN || '', effectiveDomain ?? undefined);
+    const credentials = getServiceCredentials(
+      process.env.SETUP_TOKEN || '',
+      effectiveDomain ?? undefined,
+    );
 
     return Response.json({
       success: true,
