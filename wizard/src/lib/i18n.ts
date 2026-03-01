@@ -22,6 +22,9 @@ export interface Translations {
       n8nPrefix: string;
       rootDomainHint: string;
       requiredRecords: string;
+      dnsType: string;
+      dnsName: string;
+      dnsValue: string;
       pointDns: string;
       subdomains: string;
       dnsOk: string;
@@ -149,7 +152,10 @@ const en: Translations = {
       nocodbPrefix: 'NocoDB',
       n8nPrefix: 'n8n',
       rootDomainHint: 'Leave empty for root domain',
-      requiredRecords: 'Configure DNS A-records pointing to: {ip}',
+      requiredRecords: 'Required DNS records',
+      dnsType: 'Type',
+      dnsName: 'Name',
+      dnsValue: 'Value',
       pointDns: 'Point DNS A-record to:',
       subdomains: 'Subdomains: table.*, auto.*, setup.*',
       dnsOk: 'DNS configured correctly',
@@ -277,7 +283,10 @@ const ru: Translations = {
       nocodbPrefix: 'NocoDB',
       n8nPrefix: 'n8n',
       rootDomainHint: 'Оставьте пустым для корневого домена',
-      requiredRecords: 'Настройте DNS A-записи на: {ip}',
+      requiredRecords: 'Необходимые DNS-записи',
+      dnsType: 'Тип',
+      dnsName: 'Имя',
+      dnsValue: 'Значение',
       pointDns: 'Настройте DNS A-запись на:',
       subdomains: 'Поддомены: table.*, auto.*, setup.*',
       dnsOk: 'DNS настроен правильно',

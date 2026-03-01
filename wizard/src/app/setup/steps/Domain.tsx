@@ -28,7 +28,7 @@ export default function Domain({ onComplete, onBack, initialData }: StepProps) {
   const initial = initialData as InitialDomainData | undefined;
   const [useDomain, setUseDomain] = useState(initial?.use_domain ?? false);
   const [domain, setDomain] = useState(initial?.domain ?? '');
-  const [ghostPrefix, setGhostPrefix] = useState(initial?.ghost_prefix ?? '');
+  const [ghostPrefix, setGhostPrefix] = useState(initial?.ghost_prefix ?? 'blog');
   const [nocodbPrefix, setNocodbPrefix] = useState(initial?.nocodb_prefix ?? 'table');
   const [n8nPrefix, setN8nPrefix] = useState(initial?.n8n_prefix ?? 'n8n');
   const [serverIp, setServerIp] = useState<string | null>(null);
@@ -50,6 +50,7 @@ export default function Domain({ onComplete, onBack, initialData }: StepProps) {
         if (data.success) {
           setSaasMode(data.data.saas_mode ?? false);
           setDefaultDomain(data.data.default_domain ?? null);
+          if (data.data.server_ip) setServerIp(data.data.server_ip);
         }
       } catch {
         // ignore
@@ -220,12 +221,29 @@ export default function Domain({ onComplete, onBack, initialData }: StepProps) {
                   </p>
                 </div>
 
-                <Alert>
-                  <AlertDescription>
-                    <p>{t.steps.domain.requiredRecords.replace('{ip}', serverIp || '<SERVER_IP>')}</p>
-                    <p className="mt-1 font-mono text-xs">{getDnsRecords().join(', ')}</p>
-                  </AlertDescription>
-                </Alert>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">{t.steps.domain.requiredRecords}</p>
+                  <div className="overflow-hidden rounded-md border">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-muted/50 border-b">
+                          <th className="px-3 py-2 text-left font-medium">{t.steps.domain.dnsType}</th>
+                          <th className="px-3 py-2 text-left font-medium">{t.steps.domain.dnsName}</th>
+                          <th className="px-3 py-2 text-left font-medium">{t.steps.domain.dnsValue}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {getDnsRecords().map((record) => (
+                          <tr key={record} className="border-b last:border-b-0">
+                            <td className="px-3 py-2 font-mono">A</td>
+                            <td className="px-3 py-2 font-mono">{record}</td>
+                            <td className="px-3 py-2 font-mono">{serverIp || '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             )}
 

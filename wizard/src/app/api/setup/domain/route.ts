@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { withAuth } from '@/lib/auth';
 import { apiHandler } from '@/lib/api-handler';
 import { readState, writeState } from '@/lib/state';
+import { getServerIp } from '@/lib/server-ip';
 
 export const domainSchema = z
   .object({
@@ -15,21 +16,6 @@ export const domainSchema = z
   .refine((data) => !data.use_domain || (data.domain && data.domain.length > 0), {
     message: 'Domain is required when "I have a domain" is enabled',
   });
-
-async function getServerIp(): Promise<string> {
-  if (process.env.SERVER_IP) {
-    return process.env.SERVER_IP;
-  }
-
-  try {
-    const res = await fetch('https://ifconfig.me', {
-      headers: { Accept: 'text/plain' },
-    });
-    return (await res.text()).trim();
-  } catch {
-    return 'unknown';
-  }
-}
 
 async function checkDns(
   domain: string,

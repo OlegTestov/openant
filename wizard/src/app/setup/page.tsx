@@ -64,7 +64,7 @@ export default function SetupPage() {
           });
 
           const stepIndex = STEPS.findIndex((s) => s.id === data.data.currentStep);
-          if (stepIndex >= 0) setCurrentStep(stepIndex);
+          if (stepIndex > 1) setCurrentStep(stepIndex);
         }
       } catch {
         // If restore fails — start from the first step
