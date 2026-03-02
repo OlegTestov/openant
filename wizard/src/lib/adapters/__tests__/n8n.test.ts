@@ -426,9 +426,7 @@ describe('createN8nAdapter', () => {
       });
 
       const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
-      const promptsNode = body.nodes.find(
-        (n: { name: string }) => n.name === 'Get Prompts',
-      );
+      const promptsNode = body.nodes.find((n: { name: string }) => n.name === 'Get Prompts');
       expect(promptsNode.parameters.url).toBe(
         'http://nocodb:8080/api/v2/tables/prompts-table-xyz/records',
       );
