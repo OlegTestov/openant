@@ -69,10 +69,10 @@ function buildEnvVars(state: SetupState): Record<string, string> {
     N8N_WEBHOOK_URL: domains ? `https://${domains.n8n}` : `http://${serverIp}:5678`,
 
     // Managed mode: LLM vars already set by cloud-init; BYOK mode: from wizard state
-    LLM_API_URL: managed ? (process.env.LLM_API_URL || '') : (state.llm?.api_url ?? ''),
-    LLM_API_KEY: managed ? (process.env.LLM_API_KEY || '') : (state.llm?.api_key ?? ''),
-    LLM_MODEL: managed ? (process.env.LLM_MODEL || '') : (state.llm?.model ?? ''),
-    LLM_IMAGE_MODEL: managed ? (process.env.LLM_IMAGE_MODEL || '') : (state.llm?.image_model ?? ''),
+    LLM_API_URL: managed ? process.env.LLM_API_URL || '' : (state.llm?.api_url ?? ''),
+    LLM_API_KEY: managed ? process.env.LLM_API_KEY || '' : (state.llm?.api_key ?? ''),
+    LLM_MODEL: managed ? process.env.LLM_MODEL || '' : (state.llm?.model ?? ''),
+    LLM_IMAGE_MODEL: managed ? process.env.LLM_IMAGE_MODEL || '' : (state.llm?.image_model ?? ''),
 
     BLOG_TITLE: state.blog?.title ?? '',
     BLOG_DESCRIPTION: state.blog?.description ?? '',
@@ -212,12 +212,8 @@ async function executeDeployStep(
 
     case 9: {
       // Managed mode: LLM credentials from env; BYOK: from wizard state
-      const llmApiKey = isManaged()
-        ? (process.env.LLM_API_KEY || '')
-        : (state.llm?.api_key ?? '');
-      const llmApiUrl = isManaged()
-        ? (process.env.LLM_API_URL || '')
-        : (state.llm?.api_url ?? '');
+      const llmApiKey = isManaged() ? process.env.LLM_API_KEY || '' : (state.llm?.api_key ?? '');
+      const llmApiUrl = isManaged() ? process.env.LLM_API_URL || '' : (state.llm?.api_url ?? '');
       const llmCredId = await adapters.automation.createCredential({
         name: 'LLM API',
         type: 'openAiApi',
@@ -247,7 +243,7 @@ async function executeDeployStep(
       const workflowParams: WorkflowParams = {
         credentialIds: ctx.credentialIds ?? {},
         scheduleIntervalMinutes: state.blog?.publish_interval_minutes ?? 60,
-        llmModel: isManaged() ? (process.env.LLM_MODEL || '') : (state.llm?.model ?? ''),
+        llmModel: isManaged() ? process.env.LLM_MODEL || '' : (state.llm?.model ?? ''),
         blogLanguage: state.blog?.language ?? '',
         blogTone: state.blog?.tone ?? '',
         makeWebhookUrl: state.social?.make_webhook_url,

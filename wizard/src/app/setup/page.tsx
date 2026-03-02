@@ -71,9 +71,7 @@ export default function SetupPage() {
 
           // Resolve step index in filtered steps (managed mode may skip LLM)
           const mode = data.data.instance_mode || 'byok';
-          const stepsForIndex = mode === 'managed'
-            ? STEPS.filter((s) => s.id !== 'llm')
-            : STEPS;
+          const stepsForIndex = mode === 'managed' ? STEPS.filter((s) => s.id !== 'llm') : STEPS;
           const stepIndex = stepsForIndex.findIndex((s) => s.id === data.data.currentStep);
           if (stepIndex > 1) setCurrentStep(stepIndex);
         }
