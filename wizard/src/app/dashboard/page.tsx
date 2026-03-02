@@ -20,7 +20,7 @@ interface DashboardData {
   credentials: {
     ghost: CredentialInfo;
     nocodb: CredentialInfo;
-    n8n: CredentialInfo;
+    n8n?: CredentialInfo;
   } | null;
   saas_mode: boolean;
 }
@@ -208,12 +208,14 @@ export default function DashboardPage() {
               links={[{ href: data.urls.table, label: t.dashboard.openTable }]}
               credential={data.credentials.nocodb}
             />
-            <CredentialRow
-              label={t.services.n8n}
-              description={t.services.n8nDesc}
-              links={[{ href: data.urls.n8n, label: t.dashboard.openAutomation }]}
-              credential={data.credentials.n8n}
-            />
+            {data.credentials.n8n && (
+              <CredentialRow
+                label={t.services.n8n}
+                description={t.services.n8nDesc}
+                links={[{ href: data.urls.n8n, label: t.dashboard.openAutomation }]}
+                credential={data.credentials.n8n}
+              />
+            )}
           </CardContent>
         </Card>
       )}

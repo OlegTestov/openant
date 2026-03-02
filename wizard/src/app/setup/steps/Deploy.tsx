@@ -24,7 +24,7 @@ interface CredentialInfo {
 interface DeployCredentials {
   ghost: CredentialInfo;
   nocodb: CredentialInfo;
-  n8n: CredentialInfo;
+  n8n?: CredentialInfo;
 }
 
 const DEPLOY_STEP_LABELS = [
@@ -254,12 +254,14 @@ export default function Deploy({ onComplete }: StepProps) {
                 url={urls.table}
                 credential={credentials.nocodb}
               />
-              <ServiceAccessRow
-                label={t.services.n8n}
-                description={t.services.n8nDesc}
-                url={urls.n8n}
-                credential={credentials.n8n}
-              />
+              {credentials.n8n && (
+                <ServiceAccessRow
+                  label={t.services.n8n}
+                  description={t.services.n8nDesc}
+                  url={urls.n8n}
+                  credential={credentials.n8n}
+                />
+              )}
             </div>
           )}
 
