@@ -31,6 +31,10 @@ services:
       - N8N_INTERNAL_URL=http://n8n:5678
       - OPENANT_SAAS_URL=${OPENANT_SAAS_URL:-}
       - NEXT_PUBLIC_OPENANT_SAAS_URL=${OPENANT_SAAS_URL:-}
+      - INSTANCE_MODE=${INSTANCE_MODE:-byok}
+      - GHOST_ADMIN_PASSWORD=${GHOST_ADMIN_PASSWORD:-}
+      - NOCODB_ADMIN_PASSWORD=${NOCODB_ADMIN_PASSWORD:-}
+      - N8N_ADMIN_PASSWORD=${N8N_ADMIN_PASSWORD:-}
     networks:
       - openant_net
     healthcheck:

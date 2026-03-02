@@ -30,6 +30,7 @@ Everything runs on your own server. You control the data.
 - **Topic queue** -- add 50 topics at once, the system processes them one by one (FIFO)
 - **Self-hosted** -- all data stays on your server, no third-party accounts except the LLM API
 - **Domain + HTTPS** -- optional custom domain with automatic SSL certificates
+- **SaaS-ready** -- supports managed mode (`INSTANCE_MODE=managed`) where LLM key is pre-injected and n8n is hidden from the user
 
 ## Quick start
 
@@ -114,6 +115,17 @@ cd wizard && npm install && npm run dev
 ```
 
 NocoDB is at `localhost:8080`, n8n at `localhost:5678`. Ghost is behind Caddy at `localhost:80`.
+
+### Environment variables (SaaS mode)
+
+When provisioned by the SaaS Control Plane, these additional env vars are set via cloud-init:
+
+| Variable | Description |
+|----------|-------------|
+| `INSTANCE_MODE` | `managed` (LLM pre-injected, n8n hidden) or `byok` (default, user brings own key) |
+| `GHOST_ADMIN_PASSWORD` | Random admin password for Ghost |
+| `NOCODB_ADMIN_PASSWORD` | Random admin password for NocoDB |
+| `N8N_ADMIN_PASSWORD` | Random admin password for n8n |
 
 ### Useful commands
 

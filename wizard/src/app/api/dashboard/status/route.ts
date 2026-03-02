@@ -52,26 +52,29 @@ export const GET = withAuth(
     const isSaasMode = process.env.OPENANT_SAAS_MODE === 'true';
     const saasDomain = process.env.DOMAIN;
 
-    let urls: { blog: string; table: string; n8n: string };
+    const managed = process.env.INSTANCE_MODE === 'managed';
+
+    let urls: { blog: string; table: string; n8n?: string };
     if (isSaasMode && saasDomain) {
-      // SaaS mode: always link to auto-generated subdomains (DNS pre-configured, always works)
       urls = {
         blog: `https://${saasDomain}`,
         table: `https://table.${saasDomain}`,
-        n8n: `https://auto.${saasDomain}`,
       };
+      if (!managed) {
+        urls.n8n = `https://auto.${saasDomain}`;
+      }
     } else {
       const domains = getServiceDomains(state);
       urls = domains
         ? {
             blog: `https://${domains.ghost}`,
             table: `https://${domains.nocodb}`,
-            n8n: `https://${domains.n8n}`,
+            ...(!managed && { n8n: `https://${domains.n8n}` }),
           }
         : {
             blog: `http://${ip}`,
             table: `http://${ip}:8080`,
-            n8n: `http://${ip}:5678`,
+            ...(!managed && { n8n: `http://${ip}:5678` }),
           };
     }
 
@@ -80,19 +83,23 @@ export const GET = withAuth(
       effectiveDomain ?? undefined,
     );
 
+    const credentialsResult: Record<string, unknown> = {
+      ghost: { ...credentials.ghost, adminUrl: `${urls.blog}/ghost/` },
+      nocodb: credentials.nocodb,
+    };
+    if (!managed) {
+      credentialsResult.n8n = credentials.n8n;
+    }
+
     return Response.json({
       success: true,
       data: {
         ghost,
         nocodb,
-        n8n,
+        ...(managed ? {} : { n8n }),
         caddy,
         urls,
-        credentials: {
-          ghost: { ...credentials.ghost, adminUrl: `${urls.blog}/ghost/` },
-          nocodb: credentials.nocodb,
-          n8n: credentials.n8n,
-        },
+        credentials: credentialsResult,
         saas_mode: process.env.OPENANT_SAAS_MODE === 'true',
       },
     });

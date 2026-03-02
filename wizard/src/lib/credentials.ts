@@ -18,23 +18,18 @@ export function getServiceCredentials(setupToken: string, domain?: string): Serv
   return {
     ghost: {
       email: adminEmail,
-      password: crypto
-        .createHash('sha256')
-        .update(`ghost-admin-${token}`)
-        .digest('hex')
-        .slice(0, 32),
+      password: process.env.GHOST_ADMIN_PASSWORD ||
+        crypto.createHash('sha256').update(`ghost-admin-${token}`).digest('hex').slice(0, 32),
     },
     nocodb: {
       email: adminEmail,
-      password: crypto
-        .createHash('sha256')
-        .update(`nocodb-admin-${token}`)
-        .digest('hex')
-        .slice(0, 32),
+      password: process.env.NOCODB_ADMIN_PASSWORD ||
+        crypto.createHash('sha256').update(`nocodb-admin-${token}`).digest('hex').slice(0, 32),
     },
     n8n: {
       email: adminEmail,
-      password: `N${crypto.createHash('sha256').update(`n8n-admin-${token}`).digest('hex').slice(0, 20)}!`,
+      password: process.env.N8N_ADMIN_PASSWORD ||
+        `N${crypto.createHash('sha256').update(`n8n-admin-${token}`).digest('hex').slice(0, 20)}!`,
     },
   };
 }

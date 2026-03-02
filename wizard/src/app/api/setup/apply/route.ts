@@ -52,9 +52,14 @@ async function readWorkflowTemplate(name: string): Promise<object> {
   return JSON.parse(content) as object;
 }
 
+function isManaged(): boolean {
+  return process.env.INSTANCE_MODE === 'managed';
+}
+
 function buildEnvVars(state: SetupState): Record<string, string> {
   const domains = getServiceDomains(state);
   const serverIp = process.env.SERVER_IP || '';
+  const managed = isManaged();
 
   return {
     DOMAIN: getEffectiveDomain(state) ?? '',
@@ -63,10 +68,11 @@ function buildEnvVars(state: SetupState): Record<string, string> {
     N8N_HOST: domains ? domains.n8n : serverIp,
     N8N_WEBHOOK_URL: domains ? `https://${domains.n8n}` : `http://${serverIp}:5678`,
 
-    LLM_API_URL: state.llm?.api_url ?? '',
-    LLM_API_KEY: state.llm?.api_key ?? '',
-    LLM_MODEL: state.llm?.model ?? '',
-    LLM_IMAGE_MODEL: state.llm?.image_model ?? '',
+    // Managed mode: LLM vars already set by cloud-init; BYOK mode: from wizard state
+    LLM_API_URL: managed ? (process.env.LLM_API_URL || '') : (state.llm?.api_url ?? ''),
+    LLM_API_KEY: managed ? (process.env.LLM_API_KEY || '') : (state.llm?.api_key ?? ''),
+    LLM_MODEL: managed ? (process.env.LLM_MODEL || '') : (state.llm?.model ?? ''),
+    LLM_IMAGE_MODEL: managed ? (process.env.LLM_IMAGE_MODEL || '') : (state.llm?.image_model ?? ''),
 
     BLOG_TITLE: state.blog?.title ?? '',
     BLOG_DESCRIPTION: state.blog?.description ?? '',
@@ -83,12 +89,18 @@ function buildEnvVars(state: SetupState): Record<string, string> {
 function buildUrls(state: SetupState): Record<string, string> {
   const domains = getServiceDomains(state);
   const ip = process.env.SERVER_IP || 'localhost';
+  const managed = isManaged();
 
-  return {
+  const urls: Record<string, string> = {
     blog: domains ? `https://${domains.ghost}` : `http://${ip}`,
     table: domains ? `https://${domains.nocodb}` : `http://${ip}:8080`,
-    n8n: domains ? `https://${domains.n8n}` : `http://${ip}:5678`,
   };
+
+  if (!managed) {
+    urls.n8n = domains ? `https://${domains.n8n}` : `http://${ip}:5678`;
+  }
+
+  return urls;
 }
 
 async function executeDeployStep(
@@ -108,7 +120,7 @@ async function executeDeployStep(
 
     case 2: {
       const domains = getServiceDomains(state);
-      const caddyfile = generateCaddyfile(domains);
+      const caddyfile = generateCaddyfile(domains, process.env.INSTANCE_MODE);
       await writeCaddyfile(caddyfile);
       break;
     }
@@ -199,13 +211,19 @@ async function executeDeployStep(
     }
 
     case 9: {
-      const llmApiKey = state.llm?.api_key ?? '';
+      // Managed mode: LLM credentials from env; BYOK: from wizard state
+      const llmApiKey = isManaged()
+        ? (process.env.LLM_API_KEY || '')
+        : (state.llm?.api_key ?? '');
+      const llmApiUrl = isManaged()
+        ? (process.env.LLM_API_URL || '')
+        : (state.llm?.api_url ?? '');
       const llmCredId = await adapters.automation.createCredential({
         name: 'LLM API',
         type: 'openAiApi',
         data: {
           apiKey: llmApiKey,
-          url: state.llm?.api_url ?? '',
+          url: llmApiUrl,
           headerName: 'Authorization',
           headerValue: `Bearer ${llmApiKey}`,
         },
@@ -229,7 +247,7 @@ async function executeDeployStep(
       const workflowParams: WorkflowParams = {
         credentialIds: ctx.credentialIds ?? {},
         scheduleIntervalMinutes: state.blog?.publish_interval_minutes ?? 60,
-        llmModel: state.llm?.model ?? '',
+        llmModel: isManaged() ? (process.env.LLM_MODEL || '') : (state.llm?.model ?? ''),
         blogLanguage: state.blog?.language ?? '',
         blogTone: state.blog?.tone ?? '',
         makeWebhookUrl: state.social?.make_webhook_url,
@@ -281,7 +299,8 @@ export const POST = withAuth(async (req: Request) => {
 
   const state = await readState();
 
-  if (!state.blog || !state.llm) {
+  const managed = process.env.INSTANCE_MODE === 'managed';
+  if (!state.blog || (!managed && !state.llm)) {
     return Response.json(
       { success: false, error: 'Incomplete configuration: blog and LLM settings are required' },
       { status: 400 },
@@ -349,14 +368,17 @@ export const POST = withAuth(async (req: Request) => {
         process.env.SETUP_TOKEN || '',
         getEffectiveDomain(state) ?? undefined,
       );
+      const credentialsResult: Record<string, unknown> = {
+        ghost: { ...credentials.ghost, adminUrl: `${urls.blog}/ghost/` },
+        nocodb: credentials.nocodb,
+      };
+      if (!isManaged()) {
+        credentialsResult.n8n = credentials.n8n;
+      }
       sendSSEEvent(controller, 'complete', {
         success: true,
         urls,
-        credentials: {
-          ghost: { ...credentials.ghost, adminUrl: `${urls.blog}/ghost/` },
-          nocodb: credentials.nocodb,
-          n8n: credentials.n8n,
-        },
+        credentials: credentialsResult,
       });
     } catch (error) {
       sendSSEEvent(controller, 'error', {

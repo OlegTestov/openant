@@ -20,6 +20,7 @@ export const GET = withAuth(
         blog: state.blog,
         social: state.social,
         saas_mode: process.env.OPENANT_SAAS_MODE === 'true',
+        instance_mode: process.env.INSTANCE_MODE || 'byok',
         default_domain: process.env.DOMAIN || null,
         server_ip: serverIp,
       },

@@ -334,12 +334,15 @@ describe('POST /api/setup/apply', () => {
 
     await res.text();
 
-    expect(generateCaddyfile).toHaveBeenCalledWith({
-      ghost: 'example.com',
-      nocodb: 'table.example.com',
-      n8n: 'auto.example.com',
-      wizard: 'setup.example.com',
-    });
+    expect(generateCaddyfile).toHaveBeenCalledWith(
+      {
+        ghost: 'example.com',
+        nocodb: 'table.example.com',
+        n8n: 'auto.example.com',
+        wizard: 'setup.example.com',
+      },
+      undefined,
+    );
   });
 
   it('step 3: calls startServices()', async () => {

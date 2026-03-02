@@ -11,7 +11,7 @@ function getCaddyfilePath(): string {
   return process.env.CADDYFILE_PATH || '/app/Caddyfile';
 }
 
-export function generateCaddyfile(domains: ServiceDomains | null): string {
+export function generateCaddyfile(domains: ServiceDomains | null, mode?: string): string {
   if (!domains) {
     return `:80 {
     reverse_proxy ghost:2368
@@ -29,9 +29,11 @@ export function generateCaddyfile(domains: ServiceDomains | null): string {
     reverse_proxy nocodb:8080
 }`);
 
-  blocks.push(`${domains.n8n} {
+  if (mode !== 'managed') {
+    blocks.push(`${domains.n8n} {
     reverse_proxy n8n:5678
 }`);
+  }
 
   blocks.push(`${domains.wizard} {
     reverse_proxy wizard:3000

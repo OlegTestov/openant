@@ -13,6 +13,7 @@ function getGhostAuthUrl(): string {
 }
 
 function getAdminPassword(): string {
+  if (process.env.GHOST_ADMIN_PASSWORD) return process.env.GHOST_ADMIN_PASSWORD;
   const token = process.env.SETUP_TOKEN || 'openant-default';
   return crypto.createHash('sha256').update(`ghost-admin-${token}`).digest('hex').slice(0, 32);
 }

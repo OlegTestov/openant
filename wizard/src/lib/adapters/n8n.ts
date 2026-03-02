@@ -61,12 +61,17 @@ export function createN8nAdapter(): AutomationAdapter {
       }
 
       // n8n requires: min 8 chars, at least 1 uppercase, at least 1 number
-      const hash = crypto
-        .createHash('sha256')
-        .update(`n8n-admin-${process.env.SETUP_TOKEN || 'openant-default'}`)
-        .digest('hex')
-        .slice(0, 20);
-      const password = `N${hash}!`;
+      let password: string;
+      if (process.env.N8N_ADMIN_PASSWORD) {
+        password = process.env.N8N_ADMIN_PASSWORD;
+      } else {
+        const hash = crypto
+          .createHash('sha256')
+          .update(`n8n-admin-${process.env.SETUP_TOKEN || 'openant-default'}`)
+          .digest('hex')
+          .slice(0, 20);
+        password = `N${hash}!`;
+      }
 
       // Step 1: Create owner (skip if already exists)
       const setupRes = await fetch(`${baseUrl}/rest/owner/setup`, {

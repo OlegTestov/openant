@@ -20,9 +20,14 @@ export default function SetupPage() {
   const [savedConfig, setSavedConfig] = useState<Record<string, Record<string, unknown>>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [saasMode, setSaasMode] = useState(false);
+  const [instanceMode, setInstanceMode] = useState<string>('byok');
 
-  const filteredSteps = STEPS;
-  const filteredComponents = STEP_COMPONENTS;
+  // Filter out LLM step for managed mode (LLM key is pre-configured)
+  const isManaged = instanceMode === 'managed';
+  const filteredSteps = isManaged ? STEPS.filter((s) => s.id !== 'llm') : STEPS;
+  const filteredComponents = isManaged
+    ? STEP_COMPONENTS.filter((_, i) => STEPS[i].id !== 'llm')
+    : STEP_COMPONENTS;
 
   useEffect(() => {
     async function restorePosition() {
@@ -48,6 +53,7 @@ export default function SetupPage() {
         if (data.success) {
           const isSaas = data.data.saas_mode ?? false;
           setSaasMode(isSaas);
+          setInstanceMode(data.data.instance_mode || 'byok');
 
           const completed = new Set<string>();
           for (const [id, info] of Object.entries(data.data.steps)) {
@@ -63,7 +69,12 @@ export default function SetupPage() {
             ...(data.data.social && { social: data.data.social }),
           });
 
-          const stepIndex = STEPS.findIndex((s) => s.id === data.data.currentStep);
+          // Resolve step index in filtered steps (managed mode may skip LLM)
+          const mode = data.data.instance_mode || 'byok';
+          const stepsForIndex = mode === 'managed'
+            ? STEPS.filter((s) => s.id !== 'llm')
+            : STEPS;
+          const stepIndex = stepsForIndex.findIndex((s) => s.id === data.data.currentStep);
           if (stepIndex > 1) setCurrentStep(stepIndex);
         }
       } catch {

@@ -210,6 +210,7 @@ export function createNocoDBAdapter(): TableAdapter {
       const baseUrl = getNocoDbUrl();
       const password =
         config.adminPassword ||
+        process.env.NOCODB_ADMIN_PASSWORD ||
         crypto
           .createHash('sha256')
           .update(`nocodb-admin-${process.env.SETUP_TOKEN || 'openant-default'}`)
