@@ -19,6 +19,7 @@ interface ReviewConfig {
   social?: { make_webhook_url?: string; pinterest_enabled: boolean; threads_enabled: boolean };
   saas_mode?: boolean;
   default_domain?: string | null;
+  instance_mode?: string;
 }
 
 function formatInterval(minutes: number): string {
@@ -58,6 +59,8 @@ export default function Review({ onComplete, onBack, onGoToStep }: StepProps) {
     loadConfig();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const isManaged = config?.instance_mode === 'managed';
 
   if (isLoading) {
     return (
@@ -104,33 +107,35 @@ export default function Review({ onComplete, onBack, onGoToStep }: StepProps) {
           <span className="text-muted-foreground ml-4 text-sm">{t.steps.review.edit}</span>
         </div>
 
-        <div
-          className="hover:bg-muted/50 flex cursor-pointer items-center justify-between px-4 py-3 transition-colors"
-          onClick={() => onGoToStep?.(2)}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === 'Enter' && onGoToStep?.(2)}
-        >
-          <div className="min-w-0">
-            <p className="text-sm font-medium">{t.steps.review.llm}</p>
-            {config?.llm ? (
-              <p className="text-muted-foreground text-sm">
-                {config.llm.provider} / {config.llm.model}
-                {config.llm.image_model ? ` / ${config.llm.image_model}` : ''}
-              </p>
-            ) : (
-              <p className="text-muted-foreground text-sm">{t.steps.review.notConfigured}</p>
-            )}
+        {!isManaged && (
+          <div
+            className="hover:bg-muted/50 flex cursor-pointer items-center justify-between px-4 py-3 transition-colors"
+            onClick={() => onGoToStep?.(2)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && onGoToStep?.(2)}
+          >
+            <div className="min-w-0">
+              <p className="text-sm font-medium">{t.steps.review.llm}</p>
+              {config?.llm ? (
+                <p className="text-muted-foreground text-sm">
+                  {config.llm.provider} / {config.llm.model}
+                  {config.llm.image_model ? ` / ${config.llm.image_model}` : ''}
+                </p>
+              ) : (
+                <p className="text-muted-foreground text-sm">{t.steps.review.notConfigured}</p>
+              )}
+            </div>
+            <span className="text-muted-foreground ml-4 text-sm">{t.steps.review.edit}</span>
           </div>
-          <span className="text-muted-foreground ml-4 text-sm">{t.steps.review.edit}</span>
-        </div>
+        )}
 
         <div
           className="hover:bg-muted/50 flex cursor-pointer items-center justify-between px-4 py-3 transition-colors"
-          onClick={() => onGoToStep?.(3)}
+          onClick={() => onGoToStep?.(isManaged ? 2 : 3)}
           role="button"
           tabIndex={0}
-          onKeyDown={(e) => e.key === 'Enter' && onGoToStep?.(3)}
+          onKeyDown={(e) => e.key === 'Enter' && onGoToStep?.(isManaged ? 2 : 3)}
         >
           <div className="min-w-0">
             <p className="text-sm font-medium">{t.steps.review.blog}</p>
@@ -148,10 +153,10 @@ export default function Review({ onComplete, onBack, onGoToStep }: StepProps) {
 
         <div
           className="hover:bg-muted/50 flex cursor-pointer items-center justify-between px-4 py-3 transition-colors"
-          onClick={() => onGoToStep?.(4)}
+          onClick={() => onGoToStep?.(isManaged ? 3 : 4)}
           role="button"
           tabIndex={0}
-          onKeyDown={(e) => e.key === 'Enter' && onGoToStep?.(4)}
+          onKeyDown={(e) => e.key === 'Enter' && onGoToStep?.(isManaged ? 3 : 4)}
         >
           <div className="min-w-0">
             <p className="text-sm font-medium">{t.steps.review.social}</p>
