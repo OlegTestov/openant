@@ -85,6 +85,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [1050, 250],
+      "onError": "continueErrorOutput",
       "parameters": {
         "method": "GET",
         "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_PROMPTS_TABLE_ID}}/records",
@@ -106,6 +107,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [1250, 250],
+      "onError": "continueErrorOutput",
       "parameters": {
         "jsCode": "const prompts = $('Get Prompts').first().json.list[0];\nconst article = $('Get Next Queued').first().json.list[0];\nconst lang = '{{BLOG_LANGUAGE}}';\nconst tone = '{{BLOG_TONE}}';\n\nfunction fill(template) {\n  return (template || '')\n    .replace(/\\{topic\\}/g, article.Topic || '')\n    .replace(/\\{description\\}/g, article.Description || '')\n    .replace(/\\{link\\}/g, article.Link || '')\n    .replace(/\\{language\\}/g, lang)\n    .replace(/\\{tone\\}/g, tone);\n}\n\nreturn [{ json: {\n  titlePrompt: fill(prompts.ArticleTitle),\n  textPrompt: fill(prompts.ArticleText),\n  imagePrompt: fill(prompts.ArticleImage),\n}}];"
       }
@@ -115,6 +117,10 @@
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 1.4,
       "position": [1450, 250],
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
       "parameters": {
         "resource": "text",
         "operation": "message",
@@ -137,6 +143,10 @@
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 1.4,
       "position": [1650, 250],
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
       "parameters": {
         "resource": "text",
         "operation": "message",
@@ -196,6 +206,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [2250, 250],
+      "onError": "continueErrorOutput",
       "parameters": {
         "jsCode": "const crypto = require('crypto');\nconst key = '{{GHOST_ADMIN_API_KEY}}';\nconst [id, secret] = key.split(':');\nconst header = Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT',kid:id})).toString('base64url');\nconst now = Math.floor(Date.now()/1000);\nconst payload = Buffer.from(JSON.stringify({iat:now,exp:now+300,aud:'/admin/'})).toString('base64url');\nconst hmac = crypto.createHmac('sha256', Buffer.from(secret, 'hex'));\nhmac.update(`${header}.${payload}`);\nconst sig = hmac.digest('base64url');\nconst jwt = `${header}.${payload}.${sig}`;\nconst articleTitle = $('Generate Title').first().json.message.content.trim();\nlet articleHtml = $('Generate Article').first().json.message.content;\narticleHtml = articleHtml.replace(/^```html?\\n?/i, '').replace(/\\n?```\\s*$/, '').trim();\nconst mobiledoc = JSON.stringify({ version: '0.3.1', atoms: [], cards: [['html', { html: articleHtml }]], markups: [], sections: [[10, 0]] });\nconst featureImageUrl = $('Generate & Upload Image').first().json.featureImageUrl || '';\nreturn [{ json: { jwt, articleTitle, mobiledoc, featureImageUrl } }];"
       }
@@ -205,6 +216,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [2450, 250],
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
       "parameters": {
         "method": "POST",
         "url": "{{GHOST_URL}}/ghost/api/admin/posts/",
@@ -218,6 +233,34 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ posts: [{ title: $json.articleTitle, mobiledoc: $json.mobiledoc, status: 'published', feature_image: $json.featureImageUrl || null }] }) }}"
+      }
+    },
+    {
+      "name": "Update Status: error",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1650, 500],
+      "parameters": {
+        "method": "PATCH",
+        "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "Id",
+              "value": "={{ $('Get Next Queued').first().json.list[0].Id }}"
+            },
+            {
+              "name": "Status",
+              "value": "error"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "", "name": "NocoDB" }
       }
     },
     {
@@ -267,16 +310,28 @@
       "main": [[{ "node": "Get Prompts", "type": "main", "index": 0 }]]
     },
     "Get Prompts": {
-      "main": [[{ "node": "Prepare Prompts", "type": "main", "index": 0 }]]
+      "main": [
+        [{ "node": "Prepare Prompts", "type": "main", "index": 0 }],
+        [{ "node": "Update Status: error", "type": "main", "index": 0 }]
+      ]
     },
     "Prepare Prompts": {
-      "main": [[{ "node": "Generate Title", "type": "main", "index": 0 }]]
+      "main": [
+        [{ "node": "Generate Title", "type": "main", "index": 0 }],
+        [{ "node": "Update Status: error", "type": "main", "index": 0 }]
+      ]
     },
     "Generate Title": {
-      "main": [[{ "node": "Generate Article", "type": "main", "index": 0 }]]
+      "main": [
+        [{ "node": "Generate Article", "type": "main", "index": 0 }],
+        [{ "node": "Update Status: error", "type": "main", "index": 0 }]
+      ]
     },
     "Generate Article": {
-      "main": [[{ "node": "Generate & Upload Image", "type": "main", "index": 0 }]]
+      "main": [
+        [{ "node": "Generate & Upload Image", "type": "main", "index": 0 }],
+        [{ "node": "Update Status: error", "type": "main", "index": 0 }]
+      ]
     },
     "Generate & Upload Image": {
       "main": [[{ "node": "Update Status: publishing", "type": "main", "index": 0 }]]
@@ -285,10 +340,16 @@
       "main": [[{ "node": "Build Ghost JWT", "type": "main", "index": 0 }]]
     },
     "Build Ghost JWT": {
-      "main": [[{ "node": "POST to Ghost", "type": "main", "index": 0 }]]
+      "main": [
+        [{ "node": "POST to Ghost", "type": "main", "index": 0 }],
+        [{ "node": "Update Status: error", "type": "main", "index": 0 }]
+      ]
     },
     "POST to Ghost": {
-      "main": [[{ "node": "Update Status: published", "type": "main", "index": 0 }]]
+      "main": [
+        [{ "node": "Update Status: published", "type": "main", "index": 0 }],
+        [{ "node": "Update Status: error", "type": "main", "index": 0 }]
+      ]
     }
   }
 }
