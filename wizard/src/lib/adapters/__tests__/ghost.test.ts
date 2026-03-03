@@ -234,6 +234,7 @@ describe('createGhostAdapter', () => {
         { key: 'title', value: 'My Blog' },
         { key: 'description', value: 'A test blog' },
         { key: 'locale', value: 'en' },
+        { key: 'codeinjection_head', value: expect.stringContaining('prefers-color-scheme: dark') },
         { key: 'navigation', value: '[]' },
         { key: 'secondary_navigation', value: '[]' },
         { key: 'members_signup_access', value: 'none' },

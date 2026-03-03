@@ -118,19 +118,51 @@ const SEARCH_PLACEHOLDER_TRANSLATIONS: Record<string, string> = {
   fr: 'Rechercher des articles, tags et auteurs',
 };
 
+const DARK_MODE_CSS = `
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background-color: #1a1a2e !important;
+    --color-lighter-gray: rgb(255 255 255 / 0.08);
+    --color-light-gray: #333;
+    --color-mid-gray: #555;
+    --color-dark-gray: #ddd;
+    --color-darker-gray: #e5e5e5;
+    --color-primary-text: #e5e5e5;
+    --color-secondary-text: rgb(255 255 255 / 0.6);
+    --color-border: rgb(255 255 255 / 0.12);
+    --color-dark-border: rgb(255 255 255 / 0.4);
+    --color-white: #1a1a2e;
+    --color-black: #fff;
+  }
+  body { background-color: #1a1a2e; color: #e5e5e5; }
+  .gh-dropdown { background-color: #242438; box-shadow: 0 0 0 1px rgb(255 255 255 / 0.08), 0 7px 20px -5px rgb(0 0 0 / 0.4); }
+  .gh-dropdown li a { color: #e5e5e5 !important; }
+  .gh-form:hover { background-color: rgb(255 255 255 / 0.1); }
+  .gh-form-input::placeholder, button.gh-form-input { color: rgb(255 255 255 / 0.35); }
+  .gh-content pre { background: rgb(255 255 255 / 0.06); }
+  .gh-content :not(pre) > code { background: rgb(255 255 255 / 0.08); }
+  img { opacity: 0.9; }
+}`;
+
 function buildCodeInjectionSettings(language: string): Array<{ key: string; value: string }> {
+  const settings: Array<{ key: string; value: string }> = [];
+
+  // Dark mode CSS (injected in <head> to prevent flash of light mode)
+  settings.push({ key: 'codeinjection_head', value: `<style>${DARK_MODE_CSS}</style>` });
+
+  // Search placeholder translation (injected in footer)
   const translation = SEARCH_PLACEHOLDER_TRANSLATIONS[language];
-  if (!translation) return [];
-  // Source theme renders the homepage search as a <button data-ghost-search>
-  // with hardcoded English text, not an <input>. Replace textContent on those buttons.
-  const script =
-    '<script>' +
-    `(function(){var p='${translation}';` +
-    "document.querySelectorAll('button[data-ghost-search].gh-form-input').forEach(function(b){" +
-    'if(b.textContent.trim()!==p)b.textContent=p})' +
-    '})();' +
-    '</script>';
-  return [{ key: 'codeinjection_foot', value: script }];
+  if (translation) {
+    const script = '<script>' +
+      `(function(){var p='${translation}';` +
+      "document.querySelectorAll('button[data-ghost-search].gh-form-input').forEach(function(b){" +
+      'if(b.textContent.trim()!==p)b.textContent=p})' +
+      '})();' +
+      '</script>';
+    settings.push({ key: 'codeinjection_foot', value: script });
+  }
+
+  return settings;
 }
 
 const GHOST_SETTINGS = [
