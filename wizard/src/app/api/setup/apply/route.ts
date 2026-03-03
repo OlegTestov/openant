@@ -244,6 +244,11 @@ async function executeDeployStep(
         credentialIds: ctx.credentialIds ?? {},
         scheduleIntervalMinutes: state.blog?.publish_interval_minutes ?? 60,
         llmModel: isManaged() ? process.env.LLM_MODEL || '' : (state.llm?.model ?? ''),
+        llmApiUrl: isManaged() ? process.env.LLM_API_URL || '' : (state.llm?.api_url ?? ''),
+        llmApiKey: isManaged() ? process.env.LLM_API_KEY || '' : (state.llm?.api_key ?? ''),
+        llmImageModel: isManaged()
+          ? process.env.LLM_IMAGE_MODEL || ''
+          : (state.llm?.image_model ?? ''),
         blogLanguage: state.blog?.language ?? '',
         blogTone: state.blog?.tone ?? '',
         makeWebhookUrl: state.social?.make_webhook_url,

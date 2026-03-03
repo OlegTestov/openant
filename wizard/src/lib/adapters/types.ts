@@ -103,6 +103,9 @@ export interface WorkflowParams {
   credentialIds: Record<string, string>;
   scheduleIntervalMinutes: number;
   llmModel: string;
+  llmApiUrl?: string;
+  llmApiKey?: string;
+  llmImageModel?: string;
   blogLanguage: string;
   blogTone: string;
   makeWebhookUrl?: string;

@@ -261,7 +261,7 @@ export function createN8nAdapter(): AutomationAdapter {
         }
       }
 
-      // String-level substitution for language, tone, NocoDB, and Ghost markers
+      // String-level substitution for language, tone, NocoDB, Ghost, and LLM markers
       const serialized = JSON.stringify(workflow)
         .replace(/\{\{BLOG_LANGUAGE\}\}/g, params.blogLanguage)
         .replace(/\{\{BLOG_TONE\}\}/g, params.blogTone)
@@ -269,7 +269,10 @@ export function createN8nAdapter(): AutomationAdapter {
         .replace(/\{\{NOCODB_TABLE_ID\}\}/g, params.nocodbTableId ?? '')
         .replace(/\{\{NOCODB_PROMPTS_TABLE_ID\}\}/g, params.nocodbPromptsTableId ?? '')
         .replace(/\{\{GHOST_ADMIN_API_KEY\}\}/g, params.ghostAdminApiKey ?? '')
-        .replace(/\{\{GHOST_URL\}\}/g, params.ghostUrl ?? '');
+        .replace(/\{\{GHOST_URL\}\}/g, params.ghostUrl ?? '')
+        .replace(/\{\{LLM_API_URL\}\}/g, params.llmApiUrl ?? '')
+        .replace(/\{\{LLM_API_KEY\}\}/g, params.llmApiKey ?? '')
+        .replace(/\{\{LLM_IMAGE_MODEL\}\}/g, params.llmImageModel ?? '');
       const finalWorkflow = JSON.parse(serialized) as N8nWorkflow;
 
       // Ensure required fields are present for n8n API
