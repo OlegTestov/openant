@@ -19,6 +19,7 @@ import type {
 
 interface DeployContext {
   ghostKeys?: BlogSetupResult;
+  ghostAdminEmail?: string;
   nocoKeys?: TableSetupResult;
   n8nKeys?: AutomationSetupResult;
   credentialIds?: Record<string, string>;
@@ -155,12 +156,18 @@ async function executeDeployStep(
       process.env.GHOST_ADMIN_API_KEY = ghostResult.adminApiKey;
       process.env.GHOST_CONTENT_API_KEY = ghostResult.contentApiKey;
 
+      // Make admin email available for theme upload (session auth)
+      const adminEmail = `admin@${effectiveDomain || 'openant.local'}`;
+      ctx.ghostAdminEmail = adminEmail;
+      process.env.GHOST_ADMIN_EMAIL = adminEmail;
+
       // Persist keys immediately so retries can recover
       const currentEnv = await readEnv(getEnvPath());
       await writeEnv(getEnvPath(), {
         ...currentEnv,
         GHOST_ADMIN_API_KEY: ghostResult.adminApiKey,
         GHOST_CONTENT_API_KEY: ghostResult.contentApiKey,
+        GHOST_ADMIN_EMAIL: adminEmail,
       });
       break;
     }
@@ -280,6 +287,7 @@ async function executeDeployStep(
       const additionalEnv: Record<string, string> = {
         GHOST_ADMIN_API_KEY: ctx.ghostKeys?.adminApiKey ?? '',
         GHOST_CONTENT_API_KEY: ctx.ghostKeys?.contentApiKey ?? '',
+        GHOST_ADMIN_EMAIL: ctx.ghostAdminEmail ?? '',
         NOCODB_AUTH_TOKEN: ctx.nocoKeys?.authToken ?? '',
         NOCODB_BASE_ID: ctx.nocoKeys?.projectId ?? '',
         NOCODB_TABLE_ID: ctx.nocoKeys?.tableId ?? '',
@@ -332,6 +340,10 @@ export const POST = withAuth(async (req: Request) => {
       };
       process.env.GHOST_ADMIN_API_KEY = savedEnv.GHOST_ADMIN_API_KEY;
       process.env.GHOST_CONTENT_API_KEY = savedEnv.GHOST_CONTENT_API_KEY;
+      if (savedEnv.GHOST_ADMIN_EMAIL) {
+        ctx.ghostAdminEmail = savedEnv.GHOST_ADMIN_EMAIL;
+        process.env.GHOST_ADMIN_EMAIL = savedEnv.GHOST_ADMIN_EMAIL;
+      }
     }
     if (savedEnv.NOCODB_AUTH_TOKEN && savedEnv.NOCODB_BASE_ID && savedEnv.NOCODB_TABLE_ID) {
       ctx.nocoKeys = {

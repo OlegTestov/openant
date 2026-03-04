@@ -493,6 +493,7 @@ describe('POST /api/setup/apply', () => {
       expect.objectContaining({
         GHOST_ADMIN_API_KEY: 'mock-admin-key',
         GHOST_CONTENT_API_KEY: 'mock-content-key',
+        GHOST_ADMIN_EMAIL: expect.stringContaining('admin@'),
         NOCODB_AUTH_TOKEN: 'mock-noco-token',
         NOCODB_BASE_ID: 'mock-project-id',
         NOCODB_TABLE_ID: 'mock-table-id',

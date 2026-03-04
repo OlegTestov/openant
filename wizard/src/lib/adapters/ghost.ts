@@ -13,6 +13,10 @@ function getGhostAuthUrl(): string {
   return process.env.GHOST_URL || getGhostUrl();
 }
 
+function getAdminEmail(): string {
+  return process.env.GHOST_ADMIN_EMAIL || 'admin@openant.local';
+}
+
 function getAdminPassword(): string {
   if (process.env.GHOST_ADMIN_PASSWORD) return process.env.GHOST_ADMIN_PASSWORD;
   const token = process.env.SETUP_TOKEN || 'openant-default';
@@ -377,12 +381,17 @@ export function createGhostAdapter(): BlogAdapter {
     },
 
     async uploadTheme(themePath: string): Promise<void> {
-      const jwt = requireAdminJwt('uploadTheme');
-      const ghostUrl = getGhostUrl();
-      const headers = { Authorization: `Ghost ${jwt}` };
+      // Theme upload requires session auth (JWT returns 404 for this endpoint)
+      const authUrl = getGhostAuthUrl();
+      const sessionCookie = await signIn(authUrl, getAdminEmail(), getAdminPassword());
+      if (!sessionCookie) {
+        throw new AdapterError('ghost', 'uploadTheme', 'Failed to sign in for theme upload');
+      }
+
+      const headers: Record<string, string> = { Cookie: sessionCookie, Origin: authUrl };
 
       // Skip upload if the theme is already installed and active
-      const listRes = await fetch(`${ghostUrl}/ghost/api/admin/themes/`, { headers });
+      const listRes = await fetch(`${authUrl}/ghost/api/admin/themes/`, { headers });
       if (listRes.ok) {
         const data = (await listRes.json()) as {
           themes: Array<{ name: string; active: boolean }>;
@@ -397,9 +406,9 @@ export function createGhostAdapter(): BlogAdapter {
         new Blob([fileBuffer], { type: 'application/zip' }),
         'openant-source.zip',
       );
-      const res = await fetch(`${ghostUrl}/ghost/api/admin/themes/upload/`, {
+      const res = await fetch(`${authUrl}/ghost/api/admin/themes/upload/`, {
         method: 'POST',
-        headers,
+        headers: { Cookie: sessionCookie, Origin: authUrl },
         body: formData,
       });
       await assertOk(res, 'uploadTheme', 'Failed to upload theme');

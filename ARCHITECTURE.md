@@ -1,6 +1,6 @@
 # openant — Architecture Overview
 
-> Last updated: 2026-03-02
+> Last updated: 2026-03-04
 
 ---
 
@@ -588,11 +588,11 @@ These are copy-pasted components (not a library dependency), styled with Tailwin
 
 ### Unit tests
 
-343 tests across 37 test files, all passing:
+347 tests across 37 test files, all passing:
 
 | File | Tests | What it verifies |
 |---|---|---|
-| `lib/adapters/__tests__/ghost.test.ts` | 30 | Ghost JWT creation, healthCheck, setup (fast path via JWT, full setup with cookie extraction, EmailError handling, "already configured" recovery, env var password), publishPost, getPostUrl, error cases |
+| `lib/adapters/__tests__/ghost.test.ts` | 34 | Ghost JWT creation, healthCheck, setup (fast path via JWT, full setup with cookie extraction, EmailError handling, "already configured" recovery, env var password), uploadTheme (POST with JWT, skip-if-active, missing key, upload failure), publishPost, getPostUrl, error cases |
 | `lib/adapters/__tests__/nocodb.test.ts` | 24 | healthCheck, setup (signup → signin → base → table → columns → sample row, default base deletion, env var password), getNextQueued (empty/non-empty, FIFO sort, blank-status filter, field mapping), updateStatus (status + extra fields), getStats (parallel queries, missing pageInfo) |
 | `lib/adapters/__tests__/n8n.test.ts` | 28 | healthCheck, setup (fast path with valid key, fallback on invalid key, masked key handling, owner creation, password format, env var password), createCredential, importWorkflow (template immutability, all 5 substitution types), activateWorkflow |
 | `lib/__tests__/docker.test.ts` | 3 | reloadCaddy exec command, AdapterError on failure, container-not-found skip |
@@ -618,7 +618,7 @@ These are copy-pasted components (not a library dependency), styled with Tailwin
 | `app/setup/steps/__tests__/Social.test.tsx` | 3 | Optional step alert, Pinterest/Threads toggles, empty form submit |
 | `app/setup/steps/__tests__/Review.test.tsx` | 3 | All config sections displayed, Edit button navigation, API key masking |
 | `app/setup/steps/__tests__/Deploy.test.tsx` | 7 | Deploy button, progress bar, checkmarks, error/retry, success URLs, Go to Dashboard |
-| `app/api/setup/__tests__/apply.test.ts` | 23 | SSE stream format, all 11 pipeline steps, error handling, startFrom retry, auth, URL generation (domain + IP mode), managed mode Caddyfile |
+| `app/api/setup/__tests__/apply.test.ts` | 24 | SSE stream format, all 12 pipeline steps, error handling, startFrom retry, auth, URL generation (domain + IP mode), managed mode Caddyfile |
 | `lib/__tests__/caddy.test.ts` | 11 | IP-mode and domain-mode Caddyfile generation, managed mode (no n8n block), writeCaddyfile path handling |
 | `lib/__tests__/sse.test.ts` | 4 | createSSEStream, sendSSEEvent format, closeSSE |
 | `lib/__tests__/credentials.test.ts` | 7 | Env var password priority, SHA-256 fallback, admin email from domain, default email, all 3 services returned |
