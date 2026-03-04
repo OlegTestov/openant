@@ -147,7 +147,8 @@ function buildCodeInjectionSettings(language: string): Array<{ key: string; valu
   // Search placeholder translation (injected in footer)
   const translation = SEARCH_PLACEHOLDER_TRANSLATIONS[language];
   if (translation) {
-    const script = '<script>' +
+    const script =
+      '<script>' +
       `(function(){var p='${translation}';` +
       "document.querySelectorAll('button[data-ghost-search].gh-form-input').forEach(function(b){" +
       'if(b.textContent.trim()!==p)b.textContent=p})' +

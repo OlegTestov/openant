@@ -486,9 +486,7 @@ describe('createGhostAdapter', () => {
 
       mockSignIn();
       // GET /themes/ — theme not installed yet
-      mockFetch.mockResolvedValueOnce(
-        mockResponse({ themes: [{ name: 'source', active: true }] }),
-      );
+      mockFetch.mockResolvedValueOnce(mockResponse({ themes: [{ name: 'source', active: true }] }));
       // POST /themes/upload/ — upload succeeds
       mockFetch.mockResolvedValueOnce(
         mockResponse({ themes: [{ name: 'openant-source', active: true }] }),
@@ -542,9 +540,7 @@ describe('createGhostAdapter', () => {
 
       mockSignIn();
       // GET /themes/ — theme not installed
-      mockFetch.mockResolvedValueOnce(
-        mockResponse({ themes: [] }),
-      );
+      mockFetch.mockResolvedValueOnce(mockResponse({ themes: [] }));
       // POST /themes/upload/ — fails
       mockFetch.mockResolvedValueOnce(mockResponse('Server Error', { ok: false, status: 500 }));
 
