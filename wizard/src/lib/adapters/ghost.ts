@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { promises as fs } from 'fs';
 import type { BlogAdapter, BlogConfig, PostData, PublishedPost, BlogSetupResult } from './types';
 import { AdapterError } from '@/lib/errors';
 
@@ -89,6 +90,21 @@ async function getOrCreateIntegration(
   return { adminApiKey: adminKey.secret, contentApiKey: contentKey.secret };
 }
 
+function requireAdminJwt(operation: string): string {
+  const adminApiKey = process.env.GHOST_ADMIN_API_KEY;
+  if (!adminApiKey) {
+    throw new AdapterError('ghost', operation, 'GHOST_ADMIN_API_KEY not set');
+  }
+  return createGhostJwt(adminApiKey);
+}
+
+async function assertOk(res: Response, operation: string, message: string): Promise<void> {
+  if (!res.ok) {
+    const body = await res.text();
+    throw new AdapterError('ghost', operation, `${message}: ${res.status} ${body}`);
+  }
+}
+
 export function createGhostJwt(adminApiKey: string): string {
   const [id, secret] = adminApiKey.split(':');
 
@@ -118,37 +134,11 @@ const SEARCH_PLACEHOLDER_TRANSLATIONS: Record<string, string> = {
   fr: 'Rechercher des articles, tags et auteurs',
 };
 
-const DARK_MODE_CSS = `
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background-color: #1a1a2e !important;
-    --color-lighter-gray: rgb(255 255 255 / 0.08);
-    --color-light-gray: #333;
-    --color-mid-gray: #555;
-    --color-dark-gray: #ddd;
-    --color-darker-gray: #e5e5e5;
-    --color-primary-text: #e5e5e5;
-    --color-secondary-text: rgb(255 255 255 / 0.6);
-    --color-border: rgb(255 255 255 / 0.12);
-    --color-dark-border: rgb(255 255 255 / 0.4);
-    --color-white: #1a1a2e;
-    --color-black: #fff;
-  }
-  body { background-color: #1a1a2e; color: #e5e5e5; }
-  .gh-dropdown { background-color: #242438; box-shadow: 0 0 0 1px rgb(255 255 255 / 0.08), 0 7px 20px -5px rgb(0 0 0 / 0.4); }
-  .gh-dropdown li a { color: #e5e5e5 !important; }
-  .gh-form:hover { background-color: rgb(255 255 255 / 0.1); }
-  .gh-form-input::placeholder, button.gh-form-input { color: rgb(255 255 255 / 0.35); }
-  .gh-content pre { background: rgb(255 255 255 / 0.06); }
-  .gh-content :not(pre) > code { background: rgb(255 255 255 / 0.08); }
-  img { opacity: 0.9; }
-}`;
-
 function buildCodeInjectionSettings(language: string): Array<{ key: string; value: string }> {
   const settings: Array<{ key: string; value: string }> = [];
 
-  // Dark mode CSS (injected in <head> to prevent flash of light mode)
-  settings.push({ key: 'codeinjection_head', value: `<style>${DARK_MODE_CSS}</style>` });
+  // Clear legacy dark mode CSS injection (now built into theme)
+  settings.push({ key: 'codeinjection_head', value: '' });
 
   // Search placeholder translation (injected in footer)
   const translation = SEARCH_PLACEHOLDER_TRANSLATIONS[language];
@@ -386,13 +376,37 @@ export function createGhostAdapter(): BlogAdapter {
       return keys;
     },
 
-    async publishPost(post: PostData): Promise<PublishedPost> {
-      const adminApiKey = process.env.GHOST_ADMIN_API_KEY;
-      if (!adminApiKey) {
-        throw new AdapterError('ghost', 'publishPost', 'GHOST_ADMIN_API_KEY not set');
+    async uploadTheme(themePath: string): Promise<void> {
+      const jwt = requireAdminJwt('uploadTheme');
+      const ghostUrl = getGhostUrl();
+      const headers = { Authorization: `Ghost ${jwt}` };
+
+      // Skip upload if the theme is already installed and active
+      const listRes = await fetch(`${ghostUrl}/ghost/api/admin/themes/`, { headers });
+      if (listRes.ok) {
+        const data = (await listRes.json()) as {
+          themes: Array<{ name: string; active: boolean }>;
+        };
+        if (data.themes.some((t) => t.name === 'openant-source' && t.active)) return;
       }
 
-      const jwt = createGhostJwt(adminApiKey);
+      const fileBuffer = await fs.readFile(themePath);
+      const formData = new FormData();
+      formData.append(
+        'file',
+        new Blob([fileBuffer], { type: 'application/zip' }),
+        'openant-source.zip',
+      );
+      const res = await fetch(`${ghostUrl}/ghost/api/admin/themes/upload/`, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+      await assertOk(res, 'uploadTheme', 'Failed to upload theme');
+    },
+
+    async publishPost(post: PostData): Promise<PublishedPost> {
+      const jwt = requireAdminJwt('publishPost');
 
       const res = await fetch(`${getGhostUrl()}/ghost/api/admin/posts/`, {
         method: 'POST',
@@ -414,11 +428,7 @@ export function createGhostAdapter(): BlogAdapter {
           ],
         }),
       });
-
-      if (!res.ok) {
-        const error = await res.text();
-        throw new AdapterError('ghost', 'publishPost', `Ghost API error: ${res.status} ${error}`);
-      }
+      await assertOk(res, 'publishPost', 'Ghost API error');
 
       const data = (await res.json()) as {
         posts: Array<{ id: string; url: string; slug: string }>;

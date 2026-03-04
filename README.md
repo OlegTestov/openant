@@ -29,6 +29,7 @@ Everything runs on your own server. You control the data.
 - **Social promotion** -- automatic Pinterest pins and Threads posts via Make.com
 - **Topic queue** -- add 50 topics at once, the system processes them one by one (FIFO)
 - **Self-hosted** -- all data stays on your server, no third-party accounts except the LLM API
+- **Dark mode** -- toggle dark/light mode from the header; persists across page loads, defaults to system preference
 - **Domain + HTTPS** -- optional custom domain with automatic SSL certificates
 - **SaaS-ready** -- supports managed mode (`INSTANCE_MODE=managed`) where LLM key is pre-injected and n8n is hidden from the user
 

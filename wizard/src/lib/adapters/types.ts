@@ -2,6 +2,7 @@
 export interface BlogAdapter {
   healthCheck(): Promise<boolean>;
   setup(config: BlogConfig): Promise<BlogSetupResult>;
+  uploadTheme(themePath: string): Promise<void>;
   publishPost(post: PostData): Promise<PublishedPost>;
   getPostUrl(postId: string): Promise<string>;
 }

@@ -45,6 +45,7 @@ const mockBlogSetup = vi.fn(() =>
     contentApiKey: 'mock-content-key',
   }),
 );
+const mockUploadTheme = vi.fn(() => Promise.resolve());
 const mockTableSetup = vi.fn(() =>
   Promise.resolve({
     authToken: 'mock-noco-token',
@@ -80,7 +81,7 @@ vi.mock('@/lib/docker', () => ({
 
 vi.mock('@/lib/adapters', () => ({
   createAdapters: vi.fn(() => ({
-    blog: { setup: mockBlogSetup },
+    blog: { setup: mockBlogSetup, uploadTheme: mockUploadTheme },
     table: { setup: mockTableSetup },
     automation: {
       setup: mockAutomationSetup,
@@ -200,15 +201,15 @@ describe('POST /api/setup/apply', () => {
     expect(body.success).toBe(false);
   });
 
-  it('executes all 11 steps in order', async () => {
+  it('executes all 12 steps in order', async () => {
     const { POST } = await import('../apply/route');
     const res = await POST(createRequest());
     const events = await readSSEEvents(res);
 
     const stepEvents = events.filter((e) => e.event === 'step');
-    expect(stepEvents).toHaveLength(22); // 11 running + 11 completed
+    expect(stepEvents).toHaveLength(24); // 12 running + 12 completed
 
-    for (let i = 1; i <= 11; i++) {
+    for (let i = 1; i <= 12; i++) {
       const runningIdx = stepEvents.findIndex(
         (e) => e.data.step === i && e.data.status === 'running',
       );
@@ -380,7 +381,7 @@ describe('POST /api/setup/apply', () => {
     });
   });
 
-  it('step 7: calls adapters.table.setup()', async () => {
+  it('step 8: calls adapters.table.setup()', async () => {
     const { POST } = await import('../apply/route');
     const res = await POST(createRequest());
 
@@ -393,7 +394,7 @@ describe('POST /api/setup/apply', () => {
     );
   });
 
-  it('step 8: calls adapters.automation.setup()', async () => {
+  it('step 9: calls adapters.automation.setup()', async () => {
     const { POST } = await import('../apply/route');
     const res = await POST(createRequest());
 
@@ -406,7 +407,7 @@ describe('POST /api/setup/apply', () => {
     );
   });
 
-  it('step 9: creates 2 credentials in n8n', async () => {
+  it('step 10: creates 2 credentials in n8n', async () => {
     const { POST } = await import('../apply/route');
     const res = await POST(createRequest());
 
@@ -421,7 +422,7 @@ describe('POST /api/setup/apply', () => {
     );
   });
 
-  it('step 10: imports and activates workflows', async () => {
+  it('step 11: imports and activates workflows', async () => {
     const { POST } = await import('../apply/route');
     const res = await POST(createRequest());
 
@@ -432,7 +433,7 @@ describe('POST /api/setup/apply', () => {
     expect(mockActivateWorkflow).toHaveBeenCalledTimes(2);
   });
 
-  it('step 10: passes nocodbPromptsTableId in workflow params', async () => {
+  it('step 11: passes nocodbPromptsTableId in workflow params', async () => {
     const { POST } = await import('../apply/route');
     const res = await POST(createRequest());
 
@@ -446,7 +447,7 @@ describe('POST /api/setup/apply', () => {
     );
   });
 
-  it('step 10: imports only generate workflow when no make_webhook_url', async () => {
+  it('step 11: imports only generate workflow when no make_webhook_url', async () => {
     mockState.social = {
       pinterest_enabled: false,
       threads_enabled: false,
@@ -461,7 +462,7 @@ describe('POST /api/setup/apply', () => {
     expect(mockActivateWorkflow).toHaveBeenCalledTimes(1);
   });
 
-  it('step 11: sets deployed=true in state.json', async () => {
+  it('step 12: sets deployed=true in state.json', async () => {
     const { POST } = await import('../apply/route');
     const { writeState } = await import('@/lib/state');
     const res = await POST(createRequest());
@@ -478,14 +479,14 @@ describe('POST /api/setup/apply', () => {
     );
   });
 
-  it('step 11: writes adapter keys to .env', async () => {
+  it('step 12: writes adapter keys to .env', async () => {
     const { POST } = await import('../apply/route');
     const { writeEnv } = await import('@/lib/config');
     const res = await POST(createRequest());
 
     await res.text();
 
-    // writeEnv is called 5 times: step 1 (initial), step 5 (ghost keys), step 7 (noco keys), step 8 (n8n key), step 11 (final merge)
+    // writeEnv is called 5 times: step 1 (initial), step 5 (ghost keys), step 8 (noco keys), step 9 (n8n key), step 12 (final merge)
     expect(writeEnv).toHaveBeenCalledTimes(5);
     expect(writeEnv).toHaveBeenLastCalledWith(
       expect.any(String),

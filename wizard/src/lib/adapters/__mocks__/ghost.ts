@@ -11,6 +11,7 @@ export function createMockGhostAdapter(): BlogAdapter {
         contentApiKey: 'mock-content-key',
       };
     },
+    async uploadTheme() {},
     async publishPost() {
       return {
         id: 'mock-post-id',

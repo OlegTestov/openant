@@ -30,6 +30,7 @@ const DEPLOY_STEPS = [
   { label: 'Checking services' },
   { label: 'Reloading Caddy' },
   { label: 'Creating Ghost admin account' },
+  { label: 'Uploading custom theme' },
   { label: 'Configuring Ghost settings' },
   { label: 'Creating NocoDB table' },
   { label: 'Setting up n8n' },
@@ -165,12 +166,18 @@ async function executeDeployStep(
     }
 
     case 6: {
+      const themePath = process.env.THEME_PATH || '/app/themes/openant-source.zip';
+      await adapters.blog.uploadTheme(themePath);
+      break;
+    }
+
+    case 7: {
       // Ghost adapter.setup() already configures title/description/locale
       // This step exists for pipeline progress visibility
       break;
     }
 
-    case 7: {
+    case 8: {
       const nocoResult = await adapters.table.setup({
         adminEmail: `admin@${getEffectiveDomain(state) || 'openant.local'}`,
       });
@@ -192,7 +199,7 @@ async function executeDeployStep(
       break;
     }
 
-    case 8: {
+    case 9: {
       const n8nResult = await adapters.automation.setup({
         adminEmail: `admin@${getEffectiveDomain(state) || 'openant.local'}`,
       });
@@ -210,7 +217,7 @@ async function executeDeployStep(
       break;
     }
 
-    case 9: {
+    case 10: {
       // Managed mode: LLM credentials from env; BYOK: from wizard state
       const llmApiKey = isManaged() ? process.env.LLM_API_KEY || '' : (state.llm?.api_key ?? '');
       const llmApiUrl = isManaged() ? process.env.LLM_API_URL || '' : (state.llm?.api_url ?? '');
@@ -236,7 +243,7 @@ async function executeDeployStep(
       break;
     }
 
-    case 10: {
+    case 11: {
       const generateTemplate = await readWorkflowTemplate('generate-article');
       const promoteTemplate = await readWorkflowTemplate('promote-article');
 
@@ -269,7 +276,7 @@ async function executeDeployStep(
       break;
     }
 
-    case 11: {
+    case 12: {
       const additionalEnv: Record<string, string> = {
         GHOST_ADMIN_API_KEY: ctx.ghostKeys?.adminApiKey ?? '',
         GHOST_CONTENT_API_KEY: ctx.ghostKeys?.contentApiKey ?? '',
@@ -295,7 +302,7 @@ export const POST = withAuth(async (req: Request) => {
   const url = new URL(req.url);
   const startFrom = Math.max(
     1,
-    Math.min(11, parseInt(url.searchParams.get('startFrom') || '1', 10)),
+    Math.min(DEPLOY_STEPS.length, parseInt(url.searchParams.get('startFrom') || '1', 10)),
   );
 
   const state = await readState();

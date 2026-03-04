@@ -234,7 +234,7 @@ describe('createGhostAdapter', () => {
         { key: 'title', value: 'My Blog' },
         { key: 'description', value: 'A test blog' },
         { key: 'locale', value: 'en' },
-        { key: 'codeinjection_head', value: expect.stringContaining('prefers-color-scheme: dark') },
+        { key: 'codeinjection_head', value: '' },
         { key: 'navigation', value: '[]' },
         { key: 'secondary_navigation', value: '[]' },
         { key: 'members_signup_access', value: 'none' },
@@ -468,6 +468,72 @@ describe('createGhostAdapter', () => {
       expect(mockFetch).toHaveBeenCalledTimes(7);
       // Settings call uses cookie from setup response
       expect(mockFetch.mock.calls[2][1].headers.Cookie).toBe('ghost-admin-api-session=from-setup');
+    });
+  });
+
+  describe('uploadTheme', () => {
+    it('sends POST to /themes/upload/ with JWT auth and file', async () => {
+      const { promises: mockFs } = await import('fs');
+      vi.spyOn(mockFs, 'readFile').mockResolvedValueOnce(Buffer.from('fake-zip'));
+
+      // GET /themes/ — theme not installed yet
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({ themes: [{ name: 'source', active: true }] }),
+      );
+      // POST /themes/upload/ — upload succeeds
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({ themes: [{ name: 'openant-source', active: true }] }),
+      );
+
+      const adapter = createGhostAdapter();
+      await adapter.uploadTheme('/app/themes/openant-source.zip');
+
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      const [listUrl] = mockFetch.mock.calls[0];
+      expect(listUrl).toBe('http://ghost:2368/ghost/api/admin/themes/');
+      const [url, opts] = mockFetch.mock.calls[1];
+      expect(url).toBe('http://ghost:2368/ghost/api/admin/themes/upload/');
+      expect(opts.method).toBe('POST');
+      expect(opts.headers.Authorization).toMatch(/^Ghost /);
+      expect(opts.body).toBeInstanceOf(FormData);
+    });
+
+    it('skips upload when theme is already active', async () => {
+      // GET /themes/ — openant-source already active
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({ themes: [{ name: 'openant-source', active: true }] }),
+      );
+
+      const adapter = createGhostAdapter();
+      await adapter.uploadTheme('/app/themes/openant-source.zip');
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('throws AdapterError when GHOST_ADMIN_API_KEY not set', async () => {
+      delete process.env.GHOST_ADMIN_API_KEY;
+      const adapter = createGhostAdapter();
+
+      await expect(adapter.uploadTheme('/app/themes/openant-source.zip')).rejects.toThrow(
+        'GHOST_ADMIN_API_KEY not set',
+      );
+    });
+
+    it('throws AdapterError on upload failure', async () => {
+      const { promises: mockFs } = await import('fs');
+      vi.spyOn(mockFs, 'readFile').mockResolvedValueOnce(Buffer.from('fake-zip'));
+
+      // GET /themes/ — theme not installed
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({ themes: [] }),
+      );
+      // POST /themes/upload/ — fails
+      mockFetch.mockResolvedValueOnce(mockResponse('Server Error', { ok: false, status: 500 }));
+
+      const adapter = createGhostAdapter();
+      await expect(adapter.uploadTheme('/app/themes/openant-source.zip')).rejects.toThrow(
+        'Failed to upload theme',
+      );
     });
   });
 

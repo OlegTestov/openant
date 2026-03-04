@@ -21,6 +21,7 @@ services:
       - ./.env:/app/.env
       - ./caddy/Caddyfile:/app/Caddyfile
       - ./n8n/workflows:/app/n8n/workflows:ro
+      - ./ghost/themes:/app/themes:ro
     environment:
       - SETUP_TOKEN=${SETUP_TOKEN}
       - NODE_ENV=production
