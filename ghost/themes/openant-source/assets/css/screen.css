@@ -2790,8 +2790,9 @@ body[class*=" gh-font-heading"]:not(.gh-font-heading-fira-sans):not(.gh-font-hea
 }
 
 .gh-footer-copyright {
-    text-align: right;
+    text-align: center;
     white-space: nowrap;
+    grid-column: 1 / -1;
 }
 
 .gh-footer-copyright a {
