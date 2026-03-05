@@ -496,13 +496,28 @@ describe('createGhostAdapter', () => {
       mockFetch.mockResolvedValueOnce(mockResponse({ themes: [{ name: 'source', active: true }] }));
       // POST /themes/upload/ — upload succeeds
       mockFetch.mockResolvedValueOnce(
+        mockResponse({ themes: [{ name: 'openant-source', active: false }] }),
+      );
+      // PUT /themes/openant-source/activate/ — activate succeeds
+      mockFetch.mockResolvedValueOnce(
         mockResponse({ themes: [{ name: 'openant-source', active: true }] }),
       );
+      // GET /custom_theme_settings/ — return defaults
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({
+          custom_theme_settings: [
+            { id: '1', key: 'navigation_layout', value: 'Logo in the middle' },
+            { id: '2', key: 'header_style', value: 'Highlight' },
+          ],
+        }),
+      );
+      // PUT /custom_theme_settings/ — update succeeds
+      mockFetch.mockResolvedValueOnce(mockResponse({}));
 
       const adapter = createGhostAdapter();
       await adapter.uploadTheme('/app/themes/openant-source.zip');
 
-      expect(mockFetch).toHaveBeenCalledTimes(3);
+      expect(mockFetch).toHaveBeenCalledTimes(6);
       // Call 0: sign-in
       expect(mockFetch.mock.calls[0][0]).toContain('/ghost/api/admin/session/');
       // Call 1: list themes
@@ -514,6 +529,14 @@ describe('createGhostAdapter', () => {
       expect(opts.method).toBe('POST');
       expect(opts.headers.Cookie).toBe(sessionCookie);
       expect(opts.body).toBeInstanceOf(FormData);
+      // Call 3: activate
+      expect(mockFetch.mock.calls[3][0]).toContain('/ghost/api/admin/themes/openant-source/activate/');
+      expect(mockFetch.mock.calls[3][1].method).toBe('PUT');
+      // Call 4: get custom theme settings
+      expect(mockFetch.mock.calls[4][0]).toContain('/ghost/api/admin/custom_theme_settings/');
+      // Call 5: put custom theme settings
+      expect(mockFetch.mock.calls[5][0]).toContain('/ghost/api/admin/custom_theme_settings/');
+      expect(mockFetch.mock.calls[5][1].method).toBe('PUT');
     });
 
     it('skips upload when theme is already active', async () => {
