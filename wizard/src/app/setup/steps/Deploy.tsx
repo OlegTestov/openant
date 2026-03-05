@@ -33,6 +33,7 @@ const DEPLOY_STEP_LABELS = [
   'Checking services',
   'Reloading Caddy',
   'Creating Ghost admin account',
+  'Uploading custom theme',
   'Configuring Ghost settings',
   'Creating NocoDB table',
   'Setting up n8n',
