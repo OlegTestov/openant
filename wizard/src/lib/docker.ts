@@ -20,8 +20,8 @@ async function waitForUrl(
 ): Promise<void> {
   for (let i = 0; i < maxRetries; i++) {
     try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
-      if (res.ok) return;
+      const res = await fetch(url, { signal: AbortSignal.timeout(3000), redirect: 'manual' });
+      if (res.status < 400) return;
     } catch {
       // not ready yet
     }
@@ -40,8 +40,8 @@ export async function startServices(): Promise<void> {
   // verify that services are healthy, not start them.
   try {
     const checks = await Promise.all([
-      fetch(urls.ghost + '/ghost/api/admin/site/', { signal: AbortSignal.timeout(2000) }).then(
-        (r) => r.ok,
+      fetch(urls.ghost + '/ghost/api/admin/site/', { signal: AbortSignal.timeout(2000), redirect: 'manual' }).then(
+        (r) => r.status < 400,
       ),
       fetch(urls.nocodb + '/api/v1/health', { signal: AbortSignal.timeout(2000) }).then(
         (r) => r.ok,

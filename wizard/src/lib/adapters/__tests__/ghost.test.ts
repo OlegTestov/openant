@@ -85,7 +85,14 @@ describe('createGhostAdapter', () => {
       const adapter = createGhostAdapter();
 
       expect(await adapter.healthCheck()).toBe(true);
-      expect(mockFetch).toHaveBeenCalledWith('http://ghost:2368/ghost/api/admin/site/');
+      expect(mockFetch).toHaveBeenCalledWith('http://ghost:2368/ghost/api/admin/site/', { redirect: 'manual' });
+    });
+
+    it('returns true when Ghost responds with 301 redirect', async () => {
+      mockFetch.mockResolvedValueOnce(mockResponse({}, { ok: false, status: 301 }));
+      const adapter = createGhostAdapter();
+
+      expect(await adapter.healthCheck()).toBe(true);
     });
 
     it('returns false when Ghost is unreachable', async () => {

@@ -253,8 +253,8 @@ export function createGhostAdapter(): BlogAdapter {
   return {
     async healthCheck() {
       try {
-        const res = await fetch(`${getGhostUrl()}/ghost/api/admin/site/`);
-        return res.ok;
+        const res = await fetch(`${getGhostUrl()}/ghost/api/admin/site/`, { redirect: 'manual' });
+        return res.status < 400;
       } catch {
         return false;
       }
