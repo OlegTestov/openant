@@ -87,6 +87,23 @@ describe('generateCaddyfile', () => {
     expect(result).toContain('setup.example.com {\n    reverse_proxy wizard:3000');
   });
 
+  it('adds tls internal in SaaS mode', () => {
+    const result = generateCaddyfile(DEFAULT_DOMAINS, undefined, true);
+
+    expect(result).toContain('tls internal');
+    // Every block should have tls internal
+    const blocks = result.split('\n\n');
+    for (const block of blocks) {
+      expect(block).toContain('tls internal');
+    }
+  });
+
+  it('does not add tls internal outside SaaS mode', () => {
+    const result = generateCaddyfile(DEFAULT_DOMAINS, undefined, false);
+
+    expect(result).not.toContain('tls internal');
+  });
+
   it('supports custom prefixes (ghost on subdomain)', () => {
     const domains: ServiceDomains = {
       ghost: 'blog.example.com',

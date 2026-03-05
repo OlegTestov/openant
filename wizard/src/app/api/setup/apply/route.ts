@@ -7,7 +7,7 @@ import { startServices, reloadCaddy } from '@/lib/docker';
 import { createAdapters } from '@/lib/adapters';
 import { createSSEStream, sendSSEEvent, closeSSE } from '@/lib/sse';
 import { getServiceCredentials } from '@/lib/credentials';
-import { getEffectiveDomain, getServiceDomains } from '@/lib/domain';
+import { getEffectiveDomain, getServiceDomains, isSaasMode } from '@/lib/domain';
 import type { SetupState } from '@/types/setup';
 import type { Adapters } from '@/lib/adapters';
 import type {
@@ -122,7 +122,7 @@ async function executeDeployStep(
 
     case 2: {
       const domains = getServiceDomains(state);
-      const caddyfile = generateCaddyfile(domains, process.env.INSTANCE_MODE);
+      const caddyfile = generateCaddyfile(domains, process.env.INSTANCE_MODE, isSaasMode());
       await writeCaddyfile(caddyfile);
       break;
     }

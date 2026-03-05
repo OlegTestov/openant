@@ -343,6 +343,7 @@ describe('POST /api/setup/apply', () => {
         wizard: 'setup.example.com',
       },
       undefined,
+      false,
     );
   });
 

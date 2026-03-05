@@ -11,7 +11,11 @@ function getCaddyfilePath(): string {
   return process.env.CADDYFILE_PATH || '/app/Caddyfile';
 }
 
-export function generateCaddyfile(domains: ServiceDomains | null, mode?: string): string {
+export function generateCaddyfile(
+  domains: ServiceDomains | null,
+  mode?: string,
+  saas?: boolean,
+): string {
   if (!domains) {
     return `:80 {
     reverse_proxy ghost:2368
@@ -19,23 +23,26 @@ export function generateCaddyfile(domains: ServiceDomains | null, mode?: string)
 `;
   }
 
+  // In SaaS mode, Cloudflare terminates TLS; Caddy uses internal certs.
+  const tls = saas ? '\n    tls internal' : '';
+
   const blocks: string[] = [];
 
-  blocks.push(`${domains.ghost} {
+  blocks.push(`${domains.ghost} {${tls}
     reverse_proxy ghost:2368
 }`);
 
-  blocks.push(`${domains.nocodb} {
+  blocks.push(`${domains.nocodb} {${tls}
     reverse_proxy nocodb:8080
 }`);
 
   if (mode !== 'managed') {
-    blocks.push(`${domains.n8n} {
+    blocks.push(`${domains.n8n} {${tls}
     reverse_proxy n8n:5678
 }`);
   }
 
-  blocks.push(`${domains.wizard} {
+  blocks.push(`${domains.wizard} {${tls}
     reverse_proxy wizard:3000
 }`);
 

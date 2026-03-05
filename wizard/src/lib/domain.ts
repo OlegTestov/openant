@@ -9,11 +9,30 @@ export function getEffectiveDomain(state: SetupState): string | null {
   return process.env.DOMAIN || null;
 }
 
+export function isSaasMode(): boolean {
+  return process.env.OPENANT_SAAS_MODE === 'true';
+}
+
 /** Build per-service domain map from state prefixes */
 export function getServiceDomains(state: SetupState): ServiceDomains | null {
   const domain = getEffectiveDomain(state);
   if (!domain) return null;
 
+  // SaaS mode: DOMAIN = "slug.openant.app", use flat subdomains like "slug-blog.openant.app"
+  if (isSaasMode()) {
+    const dotIndex = domain.indexOf('.');
+    if (dotIndex === -1) return null;
+    const slug = domain.slice(0, dotIndex);
+    const baseDomain = domain.slice(dotIndex + 1);
+    return {
+      ghost: `${slug}-blog.${baseDomain}`,
+      nocodb: `${slug}-table.${baseDomain}`,
+      n8n: `${slug}-auto.${baseDomain}`,
+      wizard: `${slug}-setup.${baseDomain}`,
+    };
+  }
+
+  // Self-hosted mode: nested subdomains like "table.mydomain.com"
   function resolve(prefix: string | undefined, fallback: string): string {
     const p = prefix ?? fallback;
     return p ? `${p}.${domain}` : domain!;
