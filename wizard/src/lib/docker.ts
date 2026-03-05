@@ -40,9 +40,10 @@ export async function startServices(): Promise<void> {
   // verify that services are healthy, not start them.
   try {
     const checks = await Promise.all([
-      fetch(urls.ghost + '/ghost/api/admin/site/', { signal: AbortSignal.timeout(2000), redirect: 'manual' }).then(
-        (r) => r.status < 400,
-      ),
+      fetch(urls.ghost + '/ghost/api/admin/site/', {
+        signal: AbortSignal.timeout(2000),
+        redirect: 'manual',
+      }).then((r) => r.status < 400),
       fetch(urls.nocodb + '/api/v1/health', { signal: AbortSignal.timeout(2000) }).then(
         (r) => r.ok,
       ),

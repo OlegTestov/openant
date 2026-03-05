@@ -85,7 +85,9 @@ describe('createGhostAdapter', () => {
       const adapter = createGhostAdapter();
 
       expect(await adapter.healthCheck()).toBe(true);
-      expect(mockFetch).toHaveBeenCalledWith('http://ghost:2368/ghost/api/admin/site/', { redirect: 'manual' });
+      expect(mockFetch).toHaveBeenCalledWith('http://ghost:2368/ghost/api/admin/site/', {
+        redirect: 'manual',
+      });
     });
 
     it('returns true when Ghost responds with 301 redirect', async () => {
@@ -530,7 +532,9 @@ describe('createGhostAdapter', () => {
       expect(opts.headers.Cookie).toBe(sessionCookie);
       expect(opts.body).toBeInstanceOf(FormData);
       // Call 3: activate
-      expect(mockFetch.mock.calls[3][0]).toContain('/ghost/api/admin/themes/openant-source/activate/');
+      expect(mockFetch.mock.calls[3][0]).toContain(
+        '/ghost/api/admin/themes/openant-source/activate/',
+      );
       expect(mockFetch.mock.calls[3][1].method).toBe('PUT');
       // Call 4: get custom theme settings
       expect(mockFetch.mock.calls[4][0]).toContain('/ghost/api/admin/custom_theme_settings/');

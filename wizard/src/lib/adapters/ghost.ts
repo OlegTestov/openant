@@ -415,10 +415,13 @@ export function createGhostAdapter(): BlogAdapter {
       await assertOk(res, 'uploadTheme', 'Failed to upload theme');
 
       // Activate the uploaded theme
-      const activateRes = await fetch(`${authUrl}/ghost/api/admin/themes/openant-source/activate/`, {
-        method: 'PUT',
-        headers,
-      });
+      const activateRes = await fetch(
+        `${authUrl}/ghost/api/admin/themes/openant-source/activate/`,
+        {
+          method: 'PUT',
+          headers,
+        },
+      );
       await assertOk(activateRes, 'uploadTheme', 'Failed to activate theme');
 
       // Apply custom theme settings (header_style, navigation_layout, etc.)
