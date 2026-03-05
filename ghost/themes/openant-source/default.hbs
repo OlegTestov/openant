@@ -86,6 +86,7 @@
     var n=c==='dark'?'light':'dark';
     document.documentElement.setAttribute('data-theme',n);
     localStorage.setItem('theme',n);
+    if(n==='dark'){document.documentElement.classList.remove('has-dark-text');document.documentElement.classList.add('has-light-text');}else{document.documentElement.classList.remove('has-light-text');document.documentElement.classList.add('has-dark-text');}
   });
 })();
 </script>
