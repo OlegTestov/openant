@@ -1,6 +1,6 @@
 # openant — Architecture Overview
 
-> Last updated: 2026-03-04
+> Last updated: 2026-03-05
 
 ---
 
@@ -62,7 +62,10 @@ openant/
 │       ├── stage-06-deploy-sse.md
 │       ├── stage-07-docker-infra.md
 │       ├── stage-08-dashboard-saas.md
-│       └── stage-10-ci-polish.md
+│       ├── stage-09-install-e2e.md
+│       ├── stage-10-ci-polish.md
+│       ├── openant-saas-phase-1.md
+│       └── openant-saas-phase-2.md
 │
 ├── wizard/                        # Next.js application (the only custom code)
 │   ├── Dockerfile                 # Multi-stage build (builder → runner)
@@ -77,7 +80,7 @@ openant/
 │   │   │   └── setup/
 │   │   │       ├── page.tsx       # Wizard container (client component)
 │   │   │       └── steps/         # Step form components
-│   │   ├── components/            # React components (Stepper, StepLayout, ServiceStatus, ui/)
+│   │   ├── components/            # React components (Stepper, StepLayout, ServiceStatus, ThemeToggle, ui/)
 │   │   ├── lib/                   # Business logic, adapters, utilities
 │   │   ├── types/                 # Shared TypeScript types
 │   │   ├── test/                  # Unit test setup
@@ -251,6 +254,21 @@ Ghost Admin API uses JWT with HMAC-SHA256, where the secret is hex-decoded from 
 `reloadCaddy()` — Executes `docker exec openant-caddy caddy reload` via `child_process.exec`. Throws `AdapterError` on failure. Used during deploy to apply Caddy configuration changes.
 
 ### Caddyfile generator
+
+**File:** `src/lib/domain.ts`
+
+Domain resolution utilities:
+
+| Function | Behavior |
+|---|---|
+| `getEffectiveDomain(state)` | Resolves domain from wizard state, falls back to `DOMAIN` env var (set by cloud-init in SaaS mode). |
+| `getServiceDomains(state)` | Builds per-service domain map (ghost, nocodb, n8n, wizard) from state prefixes. |
+
+**File:** `src/lib/server-ip.ts`
+
+| Function | Behavior |
+|---|---|
+| `getServerIp()` | Returns `SERVER_IP` env var if set, otherwise fetches public IP from `ifconfig.me`. |
 
 **File:** `src/lib/caddy.ts`
 
@@ -456,6 +474,7 @@ interface StepProps {
 | `Stepper` | `src/components/Stepper.tsx` | Horizontal progress indicator with numbered circles, check icons for completed steps, and connector lines. Semantic `<nav>`/`<ol>`/`<li>` with `aria-current="step"`. Responsive: labels hidden on mobile. |
 | `StepLayout` | `src/components/StepLayout.tsx` | Step wrapper with title, description, Card container, and i18n-aware Back/Next buttons. Supports `nextLabel`, `nextDisabled`, `isLoading` (spinner + `aria-busy`), `showBack`, `showNext`. |
 | `ServiceStatus` | `src/components/ServiceStatus.tsx` | Service health indicator: colored dot (green/red/yellow+pulse) + name + optional "Open →" link. Used in Dashboard and Deploy steps. |
+| `ThemeToggle` | `src/components/ThemeToggle.tsx` | Dark/light mode toggle button using `next-themes`. Sun/Moon icons via lucide-react. |
 
 ---
 
