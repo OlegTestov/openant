@@ -112,6 +112,7 @@ export interface WorkflowParams {
   blogLanguage: string;
   blogTone: string;
   makeWebhookUrl?: string;
+  pinterestBoard?: string;
   nocodbBaseId?: string;
   nocodbTableId?: string;
   nocodbPromptsTableId?: string;

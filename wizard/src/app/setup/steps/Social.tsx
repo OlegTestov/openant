@@ -11,11 +11,17 @@ import type { StepProps } from '@/types/step-props';
 
 export default function Social({ onComplete, onBack, initialData }: StepProps) {
   const initial = initialData as
-    | { make_webhook_url?: string; pinterest_enabled?: boolean; threads_enabled?: boolean }
+    | {
+        make_webhook_url?: string;
+        pinterest_enabled?: boolean;
+        threads_enabled?: boolean;
+        board?: string;
+      }
     | undefined;
   const [webhookUrl, setWebhookUrl] = useState(initial?.make_webhook_url ?? '');
   const [pinterest, setPinterest] = useState(initial?.pinterest_enabled ?? false);
   const [threads, setThreads] = useState(initial?.threads_enabled ?? false);
+  const [board, setBoard] = useState(initial?.board ?? '');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const t = useTranslations();
@@ -36,6 +42,7 @@ export default function Social({ onComplete, onBack, initialData }: StepProps) {
           make_webhook_url: webhookUrl,
           pinterest_enabled: pinterest,
           threads_enabled: threads,
+          board,
         }),
       });
 
@@ -50,6 +57,7 @@ export default function Social({ onComplete, onBack, initialData }: StepProps) {
         make_webhook_url: webhookUrl,
         pinterest_enabled: pinterest,
         threads_enabled: threads,
+        board,
       });
     } catch {
       setError(t.common.failedToSave);
@@ -100,6 +108,22 @@ export default function Social({ onComplete, onBack, initialData }: StepProps) {
             <Label htmlFor="pinterest-toggle">{t.steps.social.pinterest}</Label>
             <Switch id="pinterest-toggle" checked={pinterest} onCheckedChange={setPinterest} />
           </div>
+          {pinterest && (
+            <div className="pl-1">
+              <Label htmlFor="board">{t.steps.social.board}</Label>
+              <Input
+                id="board"
+                className="mt-1"
+                value={board}
+                onChange={(e) => setBoard(e.target.value)}
+                placeholder="My Board Name"
+                aria-describedby="board-hint"
+              />
+              <p id="board-hint" className="text-muted-foreground mt-1 text-xs">
+                {t.steps.social.boardHint}
+              </p>
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <Label htmlFor="threads-toggle">{t.steps.social.threads}</Label>
             <Switch id="threads-toggle" checked={threads} onCheckedChange={setThreads} />

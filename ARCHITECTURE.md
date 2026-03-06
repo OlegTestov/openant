@@ -34,8 +34,7 @@ openant/
 │
 ├── n8n/
 │   └── workflows/
-│       ├── generate-article.template.json   # Article generation workflow
-│       └── promote-article.template.json    # Social promotion workflow
+│       └── generate-article.template.json   # Article generation + Pinterest promotion workflow
 │
 ├── make/
 │   └── blueprint.json             # Make.com scenario template (Pinterest)
@@ -192,11 +191,11 @@ To rebuild the zip after modifying theme files: `bash ghost/themes/build-theme.s
 
 ## n8n workflow templates
 
-Two n8n workflow templates live in `n8n/workflows/`. They are imported into n8n during deploy step 11, with placeholder substitution.
+One n8n workflow template lives in `n8n/workflows/`. It is imported into n8n during deploy step 11, with placeholder substitution.
 
 ### generate-article.template.json
 
-14-node pipeline with system/user prompt split and image generation:
+22-node pipeline with system/user prompt split, image generation, and optional Pinterest promotion:
 
 ```
 Schedule Trigger → Get Next Queued (blank status) → Has Records?
@@ -204,7 +203,12 @@ Schedule Trigger → Get Next Queued (blank status) → Has Records?
   → Prepare Prompts (split system/user) → Generate Title (LLM)
   → Generate Article (LLM) → Generate & Upload Image (LLM + Ghost upload)
   → Update status: publishing → Build Ghost JWT → POST to Ghost
-  → Update status: published
+  → Update status: published → Check Pinterest (If: MAKE_WEBHOOK_URL not empty)
+    → false: Update Status: completed (no pin)
+    → true:  Prepare Pin Prompts → Generate Pin Title → Generate Pin Text
+             → Generate & Upload Pin Image → Send to Make Webhook
+             → Update Status: completed
+    → any pin error: Update Status: completed (pin error)
 ```
 
 **System/user prompt split**: Each LLM call sends two messages — a `system` message (static instructions from NocoDB Prompts table) and a `user` message (only dynamic data: topic, description, link). System prompts are fully rendered at deploy time (language/tone baked in), so no runtime substitution is needed in n8n.
@@ -213,9 +217,7 @@ Schedule Trigger → Get Next Queued (blank status) → Has Records?
 
 **HTML sanitization**: The "Build Ghost JWT" Code node post-processes article HTML before publishing. Two regex passes wrap any bare text (not inside block-level tags) in `<p>` tags — this prevents Ghost's Source theme from rendering loose text in broken multi-column layout. The article prompt also explicitly requires all paragraphs to be wrapped in `<p>` tags.
 
-### promote-article.template.json
-
-6-node pipeline: Schedule Trigger → Get Published from NocoDB (status=published) → Has Records? → Update status: promoting → Send to Make.com webhook → Update status: completed.
+**Pinterest promotion**: After publishing, the workflow checks if `{{MAKE_WEBHOOK_URL}}` is configured. If yes, it generates pin title, text, and image (2:3 vertical) via LLM using system prompts from the NocoDB Prompts table (`PinName`, `PinText`, `PinImage`), then sends a webhook to Make.com with `{ board, title, description, url, imageUrl }`. Pin errors do NOT affect article status — all pin error paths set `Status: completed` with an `Error` field, preventing queue stalling.
 
 ### Placeholder substitution
 
@@ -230,6 +232,8 @@ Templates contain `{{PLACEHOLDER}}` markers that the n8n adapter substitutes dur
 | `{{LLM_IMAGE_MODEL}}` | String replacement | `WorkflowParams.llmImageModel` |
 | `{{GHOST_ADMIN_API_KEY}}` | String replacement | `WorkflowParams.ghostAdminApiKey` |
 | `{{GHOST_URL}}` | String replacement | `WorkflowParams.ghostUrl` |
+| `{{MAKE_WEBHOOK_URL}}` | String replacement | `WorkflowParams.makeWebhookUrl` |
+| `{{PINTEREST_BOARD}}` | String replacement | `WorkflowParams.pinterestBoard` |
 | `minutesInterval` | Structured (schedule node) | `WorkflowParams.scheduleIntervalMinutes` |
 | `model` | Structured (OpenAI node) | `WorkflowParams.llmModel` |
 | `url` (Make node) | Structured (HTTP node named "Make") | `WorkflowParams.makeWebhookUrl` |
@@ -794,7 +798,7 @@ The pipeline is **fully idempotent** — re-deploying without resetting volumes 
 | 8 | NocoDB setup | Creates admin account, base, and table; removes default bases; inserts sample row |
 | 9 | n8n setup | Auto-provisions API key (fast path: verify existing key) |
 | 10 | n8n credentials | Creates 2 credentials (LLM API, NocoDB). Managed mode: reads LLM key from env vars instead of wizard state |
-| 11 | n8n workflows | Imports and activates generate + promote workflows. Managed mode: reads model from env |
+| 11 | n8n workflows | Imports and activates generate-article workflow (includes Pinterest promotion). Managed mode: reads model from env |
 | 12 | Finalize | Merges adapter keys into .env, sets `deployed: true`. Managed mode: excludes n8n from deploy result |
 
 ### Context hydration

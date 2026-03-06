@@ -7,6 +7,7 @@ export const socialSchema = z.object({
   make_webhook_url: z.string().url().optional().or(z.literal('')),
   pinterest_enabled: z.boolean(),
   threads_enabled: z.boolean(),
+  board: z.string().optional().or(z.literal('')),
 });
 
 export const POST = withAuth(
@@ -18,6 +19,7 @@ export const POST = withAuth(
       make_webhook_url: body.make_webhook_url || undefined,
       pinterest_enabled: body.pinterest_enabled,
       threads_enabled: body.threads_enabled,
+      board: body.board || undefined,
     };
     state.steps.social = { completed: true };
     state.currentStep = 'review';

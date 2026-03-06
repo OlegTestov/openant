@@ -272,7 +272,9 @@ export function createN8nAdapter(): AutomationAdapter {
         .replace(/\{\{GHOST_URL\}\}/g, params.ghostUrl ?? '')
         .replace(/\{\{LLM_API_URL\}\}/g, params.llmApiUrl ?? '')
         .replace(/\{\{LLM_API_KEY\}\}/g, params.llmApiKey ?? '')
-        .replace(/\{\{LLM_IMAGE_MODEL\}\}/g, params.llmImageModel ?? '');
+        .replace(/\{\{LLM_IMAGE_MODEL\}\}/g, params.llmImageModel ?? '')
+        .replace(/\{\{MAKE_WEBHOOK_URL\}\}/g, params.makeWebhookUrl ?? '')
+        .replace(/\{\{PINTEREST_BOARD\}\}/g, params.pinterestBoard ?? '');
       const finalWorkflow = JSON.parse(serialized) as N8nWorkflow;
 
       // Ensure required fields are present for n8n API

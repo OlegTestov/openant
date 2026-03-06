@@ -432,6 +432,44 @@ describe('createN8nAdapter', () => {
       );
     });
 
+    it('substitutes MAKE_WEBHOOK_URL and PINTEREST_BOARD markers', async () => {
+      const templateWithPinMarkers = {
+        ...template,
+        nodes: [
+          ...template.nodes,
+          {
+            type: 'n8n-nodes-base.if',
+            name: 'Check Pinterest',
+            parameters: {
+              value1: '{{MAKE_WEBHOOK_URL}}',
+            },
+          },
+          {
+            type: 'n8n-nodes-base.code',
+            name: 'Pin Board',
+            parameters: {
+              code: 'board: "{{PINTEREST_BOARD}}"',
+            },
+          },
+        ],
+      };
+
+      mockFetch.mockResolvedValueOnce(mockResponse({ id: 'wf-1' }));
+      const adapter = createN8nAdapter();
+
+      await adapter.importWorkflow(templateWithPinMarkers, {
+        ...params,
+        pinterestBoard: 'Travel Ideas',
+      });
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+      const ifNode = body.nodes.find((n: { name: string }) => n.name === 'Check Pinterest');
+      expect(ifNode.parameters.value1).toBe('https://hook.make.com/test');
+
+      const boardNode = body.nodes.find((n: { name: string }) => n.name === 'Pin Board');
+      expect(boardNode.parameters.code).toBe('board: "Travel Ideas"');
+    });
+
     it('substitutes blogLanguage and blogTone markers', async () => {
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'wf-1' }));
       const adapter = createN8nAdapter();

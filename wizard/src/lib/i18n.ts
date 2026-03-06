@@ -67,6 +67,8 @@ export interface Translations {
       webhookHint: string;
       pinterest: string;
       threads: string;
+      board: string;
+      boardHint: string;
     };
     review: {
       title: string;
@@ -198,6 +200,8 @@ const en: Translations = {
       webhookHint: 'Create a scenario in Make.com and paste the webhook URL here',
       pinterest: 'Pinterest',
       threads: 'Threads',
+      board: 'Pinterest Board',
+      boardHint: 'Name of the Pinterest board to publish pins to',
     },
     review: {
       title: 'Review Configuration',
@@ -329,6 +333,8 @@ const ru: Translations = {
       webhookHint: 'Создайте сценарий в Make.com и вставьте URL вебхука',
       pinterest: 'Pinterest',
       threads: 'Threads',
+      board: 'Доска Pinterest',
+      boardHint: 'Название доски Pinterest для публикации пинов',
     },
     review: {
       title: 'Проверка конфигурации',

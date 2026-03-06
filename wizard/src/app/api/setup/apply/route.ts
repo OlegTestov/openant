@@ -254,7 +254,6 @@ async function executeDeployStep(
 
     case 11: {
       const generateTemplate = await readWorkflowTemplate('generate-article');
-      const promoteTemplate = await readWorkflowTemplate('promote-article');
 
       const workflowParams: WorkflowParams = {
         credentialIds: ctx.credentialIds ?? {},
@@ -268,6 +267,7 @@ async function executeDeployStep(
         blogLanguage: state.blog?.language ?? '',
         blogTone: state.blog?.tone ?? '',
         makeWebhookUrl: state.social?.make_webhook_url,
+        pinterestBoard: state.social?.board,
         nocodbBaseId: ctx.nocoKeys?.projectId,
         nocodbTableId: ctx.nocoKeys?.tableId,
         nocodbPromptsTableId: ctx.nocoKeys?.promptsTableId,
@@ -277,11 +277,6 @@ async function executeDeployStep(
 
       const genId = await adapters.automation.importWorkflow(generateTemplate, workflowParams);
       await adapters.automation.activateWorkflow(genId);
-
-      if (state.social?.make_webhook_url) {
-        const promoId = await adapters.automation.importWorkflow(promoteTemplate, workflowParams);
-        await adapters.automation.activateWorkflow(promoId);
-      }
       break;
     }
 

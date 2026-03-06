@@ -423,18 +423,24 @@ describe('POST /api/setup/apply', () => {
     );
   });
 
-  it('step 11: imports and activates workflows', async () => {
+  it('step 11: imports and activates generate-article workflow', async () => {
     const { POST } = await import('../apply/route');
     const res = await POST(createRequest());
 
     await res.text();
 
-    // With make_webhook_url set, should import 2 workflows
-    expect(mockImportWorkflow).toHaveBeenCalledTimes(2);
-    expect(mockActivateWorkflow).toHaveBeenCalledTimes(2);
+    expect(mockImportWorkflow).toHaveBeenCalledTimes(1);
+    expect(mockActivateWorkflow).toHaveBeenCalledTimes(1);
   });
 
-  it('step 11: passes nocodbPromptsTableId in workflow params', async () => {
+  it('step 11: passes nocodbPromptsTableId and pinterestBoard in workflow params', async () => {
+    mockState.social = {
+      make_webhook_url: 'https://hook.make.com/abc',
+      pinterest_enabled: true,
+      threads_enabled: false,
+      board: 'My Pins',
+    };
+
     const { POST } = await import('../apply/route');
     const res = await POST(createRequest());
 
@@ -444,11 +450,12 @@ describe('POST /api/setup/apply', () => {
       expect.anything(),
       expect.objectContaining({
         nocodbPromptsTableId: 'mock-prompts-table-id',
+        pinterestBoard: 'My Pins',
       }),
     );
   });
 
-  it('step 11: imports only generate workflow when no make_webhook_url', async () => {
+  it('step 11: passes undefined pinterestBoard when social.board not set', async () => {
     mockState.social = {
       pinterest_enabled: false,
       threads_enabled: false,
@@ -460,7 +467,12 @@ describe('POST /api/setup/apply', () => {
     await res.text();
 
     expect(mockImportWorkflow).toHaveBeenCalledTimes(1);
-    expect(mockActivateWorkflow).toHaveBeenCalledTimes(1);
+    expect(mockImportWorkflow).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        pinterestBoard: undefined,
+      }),
+    );
   });
 
   it('step 12: sets deployed=true in state.json', async () => {

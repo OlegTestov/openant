@@ -228,4 +228,25 @@ describe('socialSchema', () => {
     expect(result.pinterest_enabled).toBe(true);
     expect(result.threads_enabled).toBe(false);
   });
+
+  it('accepts optional board field', () => {
+    const result = socialSchema.parse({
+      make_webhook_url: '',
+      pinterest_enabled: true,
+      threads_enabled: false,
+      board: 'My Pins',
+    });
+    expect(result.board).toBe('My Pins');
+  });
+
+  it('accepts empty board string', () => {
+    expect(() =>
+      socialSchema.parse({
+        make_webhook_url: '',
+        pinterest_enabled: false,
+        threads_enabled: false,
+        board: '',
+      }),
+    ).not.toThrow();
+  });
 });

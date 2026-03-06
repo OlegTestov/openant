@@ -30,6 +30,7 @@ export interface SetupState {
     make_webhook_url?: string;
     pinterest_enabled: boolean;
     threads_enabled: boolean;
+    board?: string;
   };
 }
 

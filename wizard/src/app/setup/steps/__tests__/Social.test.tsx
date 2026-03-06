@@ -29,6 +29,22 @@ describe('Social', () => {
     expect(screen.getAllByRole('switch')).toHaveLength(2);
   });
 
+  it('shows board input when Pinterest is enabled', async () => {
+    const user = userEvent.setup();
+
+    render(<Social onComplete={vi.fn()} onBack={vi.fn()} />);
+
+    // Board input should not be visible initially
+    expect(screen.queryByPlaceholderText('My Board Name')).not.toBeInTheDocument();
+
+    // Enable Pinterest
+    const switches = screen.getAllByRole('switch');
+    await user.click(switches[0]); // Pinterest toggle is first
+
+    // Board input should now be visible
+    expect(screen.getByPlaceholderText('My Board Name')).toBeInTheDocument();
+  });
+
   it('can submit with empty form', async () => {
     const user = userEvent.setup();
     const onComplete = vi.fn();

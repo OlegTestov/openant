@@ -302,6 +302,204 @@
       "credentials": {
         "httpHeaderAuth": { "id": "", "name": "NocoDB" }
       }
+    },
+    {
+      "name": "Check Pinterest",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [2850, 250],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "{{MAKE_WEBHOOK_URL}}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Update Status: completed (no pin)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [3050, 450],
+      "parameters": {
+        "method": "PATCH",
+        "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "Id",
+              "value": "={{ $('Get Next Queued').first().json.list[0].Id }}"
+            },
+            {
+              "name": "Status",
+              "value": "completed"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "", "name": "NocoDB" }
+      }
+    },
+    {
+      "name": "Prepare Pin Prompts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3050, 200],
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "jsCode": "const prompts = $('Get Prompts').first().json.list[0];\nconst article = $('Get Next Queued').first().json.list[0];\nconst title = $('Generate Title').first().json.message.content.trim();\nconst ghostUrl = $('POST to Ghost').first().json.posts[0].url || '';\n\nreturn [{ json: {\n  pinNameSystem: prompts.PinName || '',\n  pinNameUser: 'Topic: ' + (article.Topic || '') + '\\nDescription: ' + (article.Description || '') + '\\nArticle title: ' + title,\n  pinTextSystem: prompts.PinText || '',\n  pinTextUser: 'Topic: ' + (article.Topic || '') + '\\nDescription: ' + (article.Description || '') + '\\nArticle title: ' + title + '\\nArticle URL: ' + ghostUrl,\n  pinImageSystem: prompts.PinImage || '',\n  pinImageUser: 'Topic: ' + (article.Topic || '') + '\\nDescription: ' + (article.Description || '') + '\\nArticle title: ' + title,\n  ghostUrl: ghostUrl,\n}}];"
+      }
+    },
+    {
+      "name": "Generate Pin Title",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.4,
+      "position": [3250, 200],
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": { "__rl": true, "mode": "id", "value": "gpt-4o-mini" },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "={{ $json.pinNameSystem }}"
+            },
+            {
+              "role": "user",
+              "content": "={{ $json.pinNameUser }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "openAiApi": { "id": "", "name": "LLM API" }
+      }
+    },
+    {
+      "name": "Generate Pin Text",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.4,
+      "position": [3450, 200],
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": { "__rl": true, "mode": "id", "value": "gpt-4o-mini" },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "={{ $('Prepare Pin Prompts').item.json.pinTextSystem }}"
+            },
+            {
+              "role": "user",
+              "content": "={{ $('Prepare Pin Prompts').item.json.pinTextUser }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "openAiApi": { "id": "", "name": "LLM API" }
+      }
+    },
+    {
+      "name": "Generate & Upload Pin Image",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3650, 200],
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst https = require('https');\nconst http = require('http');\nconst { URL } = require('url');\n\nfunction httpPost(urlStr, headers, body) {\n  return new Promise((resolve, reject) => {\n    const u = new URL(urlStr);\n    const mod = u.protocol === 'https:' ? https : http;\n    const opts = { method: 'POST', hostname: u.hostname, port: u.port || (u.protocol === 'https:' ? 443 : 80), path: u.pathname + u.search, headers };\n    const req = mod.request(opts, (res) => {\n      const chunks = [];\n      res.on('data', (c) => chunks.push(c));\n      res.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString() }));\n    });\n    req.on('error', reject);\n    req.setTimeout(120000, () => { req.destroy(); reject(new Error('Timeout')); });\n    if (body) req.write(body);\n    req.end();\n  });\n}\n\nconst pinImageSystem = $('Prepare Pin Prompts').first().json.pinImageSystem || '';\nconst pinImageUser = $('Prepare Pin Prompts').first().json.pinImageUser || '';\nconst pinTitle = $('Generate Pin Title').first().json.message.content.trim();\nconst imagePrompt = pinImageUser + '\\n\\nPin title: ' + pinTitle;\nlet pinImageUrl = '';\ntry {\n  const apiUrl = '{{LLM_API_URL}}';\n  const apiKey = '{{LLM_API_KEY}}';\n  const imageModel = '{{LLM_IMAGE_MODEL}}';\n  if (!apiUrl || !apiKey || !imageModel) throw new Error('Missing LLM image config');\n  const llmBody = JSON.stringify({ model: imageModel, messages: [{ role: 'system', content: pinImageSystem }, { role: 'user', content: imagePrompt }], modalities: ['text', 'image'], image_config: { image_size: '0.5K' } });\n  const llmRes = await httpPost(apiUrl + '/chat/completions', {\n    'Content-Type': 'application/json',\n    'Authorization': 'Bearer ' + apiKey,\n    'Content-Length': Buffer.byteLength(llmBody),\n  }, llmBody);\n  if (llmRes.status !== 200) throw new Error('LLM API: ' + llmRes.status);\n  const llmData = JSON.parse(llmRes.body);\n  llmRes.body = null;\n  let base64Data = '';\n  let mimeType = 'image/png';\n  const msg = llmData.choices?.[0]?.message;\n  const images = msg?.images;\n  if (Array.isArray(images) && images.length > 0) {\n    const imgObj = images[0];\n    const imgUrl = typeof imgObj.image_url === 'object' ? imgObj.image_url.url : (typeof imgObj.image_url === 'string' ? imgObj.image_url : '');\n    if (imgUrl) {\n      const m = imgUrl.match(/^data:(image\\/[a-z]+);base64,(.+)/s);\n      if (m) { mimeType = m[1]; base64Data = m[2]; }\n    }\n  }\n  if (!base64Data) {\n    const content = msg?.content;\n    if (Array.isArray(content)) {\n      for (const part of content) {\n        if (part.type === 'image_url' && part.image_url?.url) {\n          const m = part.image_url.url.match(/^data:(image\\/[a-z]+);base64,(.+)/s);\n          if (m) { mimeType = m[1]; base64Data = m[2]; break; }\n        }\n      }\n    } else if (typeof content === 'string') {\n      const m = content.match(/data:(image\\/[a-z]+);base64,([A-Za-z0-9+\\/=]+)/);\n      if (m) { mimeType = m[1]; base64Data = m[2]; }\n    }\n  }\n  if (!base64Data) throw new Error('No image data in LLM response');\n  const ghostKey = '{{GHOST_ADMIN_API_KEY}}';\n  const [kid, secret] = ghostKey.split(':');\n  const hdr = Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT',kid})).toString('base64url');\n  const now = Math.floor(Date.now()/1000);\n  const pay = Buffer.from(JSON.stringify({iat:now,exp:now+300,aud:'/admin/'})).toString('base64url');\n  const hmac = crypto.createHmac('sha256', Buffer.from(secret, 'hex'));\n  hmac.update(hdr + '.' + pay);\n  const jwt = hdr + '.' + pay + '.' + hmac.digest('base64url');\n  const imageBuffer = Buffer.from(base64Data, 'base64');\n  base64Data = '';\n  const ext = mimeType === 'image/jpeg' ? 'jpg' : 'png';\n  const boundary = '----n8n' + Date.now();\n  const formBody = Buffer.concat([\n    Buffer.from('--' + boundary + '\\r\\nContent-Disposition: form-data; name=\"file\"; filename=\"pin.' + ext + '\"\\r\\nContent-Type: ' + mimeType + '\\r\\n\\r\\n'),\n    imageBuffer,\n    Buffer.from('\\r\\n--' + boundary + '\\r\\nContent-Disposition: form-data; name=\"purpose\"\\r\\nContent-Type: text/plain\\r\\n\\r\\nimage\\r\\n--' + boundary + '--\\r\\n'),\n  ]);\n  const ghostRes = await httpPost('{{GHOST_URL}}/ghost/api/admin/images/upload/', {\n    'Authorization': 'Ghost ' + jwt,\n    'Content-Type': 'multipart/form-data; boundary=' + boundary,\n    'Content-Length': formBody.length,\n  }, formBody);\n  if (ghostRes.status === 201 || ghostRes.status === 200) {\n    const gd = JSON.parse(ghostRes.body);\n    pinImageUrl = gd.images?.[0]?.url || '';\n  } else { throw new Error('Ghost upload: ' + ghostRes.status); }\n} catch (e) {\n  console.log('Pin image generation skipped:', e.message);\n}\nreturn [{ json: { pinImageUrl } }];"
+      }
+    },
+    {
+      "name": "Send to Make Webhook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [3850, 200],
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ board: '{{PINTEREST_BOARD}}', title: $('Generate Pin Title').item.json.message.content.trim(), description: $('Generate Pin Text').item.json.message.content.trim(), url: $('Prepare Pin Prompts').item.json.ghostUrl, imageUrl: $json.pinImageUrl || '' }) }}"
+      }
+    },
+    {
+      "name": "Update Status: completed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [4050, 200],
+      "parameters": {
+        "method": "PATCH",
+        "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "Id",
+              "value": "={{ $('Get Next Queued').first().json.list[0].Id }}"
+            },
+            {
+              "name": "Status",
+              "value": "completed"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "", "name": "NocoDB" }
+      }
+    },
+    {
+      "name": "Update Status: completed (pin error)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [3450, 500],
+      "parameters": {
+        "method": "PATCH",
+        "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "Id",
+              "value": "={{ $('Get Next Queued').first().json.list[0].Id }}"
+            },
+            {
+              "name": "Status",
+              "value": "completed"
+            },
+            {
+              "name": "Error",
+              "value": "Pinterest promotion failed"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "", "name": "NocoDB" }
+      }
     }
   ],
   "connections": {
@@ -357,6 +555,45 @@
       "main": [
         [{ "node": "Update Status: published", "type": "main", "index": 0 }],
         [{ "node": "Update Status: error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Update Status: published": {
+      "main": [[{ "node": "Check Pinterest", "type": "main", "index": 0 }]]
+    },
+    "Check Pinterest": {
+      "main": [
+        [{ "node": "Prepare Pin Prompts", "type": "main", "index": 0 }],
+        [{ "node": "Update Status: completed (no pin)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Prepare Pin Prompts": {
+      "main": [
+        [{ "node": "Generate Pin Title", "type": "main", "index": 0 }],
+        [{ "node": "Update Status: completed (pin error)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Generate Pin Title": {
+      "main": [
+        [{ "node": "Generate Pin Text", "type": "main", "index": 0 }],
+        [{ "node": "Update Status: completed (pin error)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Generate Pin Text": {
+      "main": [
+        [{ "node": "Generate & Upload Pin Image", "type": "main", "index": 0 }],
+        [{ "node": "Update Status: completed (pin error)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Generate & Upload Pin Image": {
+      "main": [
+        [{ "node": "Send to Make Webhook", "type": "main", "index": 0 }],
+        [{ "node": "Update Status: completed (pin error)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send to Make Webhook": {
+      "main": [
+        [{ "node": "Update Status: completed", "type": "main", "index": 0 }],
+        [{ "node": "Update Status: completed (pin error)", "type": "main", "index": 0 }]
       ]
     }
   }
