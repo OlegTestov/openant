@@ -1,6 +1,6 @@
 # openant — Architecture Overview
 
-> Last updated: 2026-03-05
+> Last updated: 2026-03-06
 
 ---
 
@@ -194,7 +194,20 @@ Two n8n workflow templates live in `n8n/workflows/`. They are imported into n8n 
 
 ### generate-article.template.json
 
-8-node pipeline: Schedule Trigger → Get Next Queued from NocoDB (blank status) → Has Records? → Update status: generating → Generate Article via LLM → Update status: publishing → Publish to Ghost → Update status: published.
+14-node pipeline with system/user prompt split and image generation:
+
+```
+Schedule Trigger → Get Next Queued (blank status) → Has Records?
+  → Update status: generating → Get Prompts (from NocoDB Prompts table)
+  → Prepare Prompts (split system/user) → Generate Title (LLM)
+  → Generate Article (LLM) → Generate & Upload Image (LLM + Ghost upload)
+  → Update status: publishing → Build Ghost JWT → POST to Ghost
+  → Update status: published
+```
+
+**System/user prompt split**: Each LLM call sends two messages — a `system` message (static instructions from NocoDB Prompts table) and a `user` message (only dynamic data: topic, description, link). System prompts are fully rendered at deploy time (language/tone baked in), so no runtime substitution is needed in n8n.
+
+**Image generation**: The "Generate & Upload Image" Code node calls the LLM API with `modalities: ['text', 'image']` to generate a cover image, then uploads the base64 PNG to Ghost's Admin API via multipart form. The image URL is passed to the Ghost post as `feature_image`. Errors are caught silently — the article publishes without an image if generation fails. HTTP timeout is 120 seconds.
 
 ### promote-article.template.json
 
@@ -202,18 +215,35 @@ Two n8n workflow templates live in `n8n/workflows/`. They are imported into n8n 
 
 ### Placeholder substitution
 
-Templates contain placeholders that the n8n adapter substitutes during import:
+Templates contain `{{PLACEHOLDER}}` markers that the n8n adapter substitutes during import:
 
 | Placeholder | Substitution type | Source |
 |---|---|---|
-| `{{BLOG_LANGUAGE}}` | String replacement | `WorkflowParams.blogLanguage` |
-| `{{BLOG_TONE}}` | String replacement | `WorkflowParams.blogTone` |
-| `{{NOCODB_BASE_ID}}` | String replacement | `WorkflowParams.nocodbBaseId` |
 | `{{NOCODB_TABLE_ID}}` | String replacement | `WorkflowParams.nocodbTableId` |
+| `{{NOCODB_PROMPTS_TABLE_ID}}` | String replacement | `WorkflowParams.nocodbPromptsTableId` |
+| `{{LLM_API_URL}}` | String replacement | `WorkflowParams.llmApiUrl` |
+| `{{LLM_API_KEY}}` | String replacement | `WorkflowParams.llmApiKey` |
+| `{{LLM_IMAGE_MODEL}}` | String replacement | `WorkflowParams.llmImageModel` |
+| `{{GHOST_ADMIN_API_KEY}}` | String replacement | `WorkflowParams.ghostAdminApiKey` |
+| `{{GHOST_URL}}` | String replacement | `WorkflowParams.ghostUrl` |
 | `minutesInterval` | Structured (schedule node) | `WorkflowParams.scheduleIntervalMinutes` |
 | `model` | Structured (OpenAI node) | `WorkflowParams.llmModel` |
 | `url` (Make node) | Structured (HTTP node named "Make") | `WorkflowParams.makeWebhookUrl` |
 | `credentials.*.id` | Structured (all nodes) | `WorkflowParams.credentialIds` |
+
+### NocoDB Prompts table
+
+During deploy, the NocoDB adapter creates a "Prompts" table with 7 system prompt columns. Language (`{language}`) and tone (`{tone}`) placeholders are substituted at deploy time from the wizard's blog settings, so the stored prompts are fully static.
+
+| Column | Purpose |
+|---|---|
+| `ArticleTitle` | System prompt for SEO headline generation |
+| `ArticleText` | System prompt for full article HTML generation |
+| `ArticleImage` | System prompt for blog cover image generation (instructs model to create image directly) |
+| `PinName` | System prompt for Pinterest pin title |
+| `PinText` | System prompt for Pinterest pin description |
+| `PinImage` | System prompt for Pinterest pin image generation |
+| `ThreadText` | System prompt for social media post |
 
 ---
 

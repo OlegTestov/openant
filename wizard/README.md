@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# openant Wizard
 
-## Getting Started
+Next.js application that serves as the Setup Wizard and Dashboard for the openant platform.
 
-First, run the development server:
+## Development
 
 ```bash
+# Install dependencies
+npm install
+
+# Start dev server (requires infra services running via docker-compose.dev.yml)
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# Run unit tests
+npm test
+
+# Run tests with coverage
+npm test -- --coverage
+
+# Type checking + lint + format check
+npm run check
+
+# Build for production
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Project structure
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+src/
+├── app/                    # Next.js App Router
+│   ├── page.tsx            # Root redirect (→ /setup or /dashboard)
+│   ├── api/setup/          # Wizard step API routes + deploy SSE endpoint
+│   ├── api/dashboard/      # Dashboard API routes (status, stats, reconfigure)
+│   ├── api/saas/           # SaaS health endpoint
+│   ├── dashboard/          # Dashboard page
+│   └── setup/              # Wizard page + step components
+├── components/             # Reusable React components
+├── lib/                    # Business logic
+│   ├── adapters/           # Service adapters (Ghost, NocoDB, n8n)
+│   │   ├── types.ts        # Adapter interfaces (central contract)
+│   │   ├── index.ts        # Adapter registry
+│   │   ├── ghost.ts        # Ghost BlogAdapter
+│   │   ├── nocodb.ts       # NocoDB TableAdapter (incl. Prompts table)
+│   │   ├── n8n.ts          # n8n AutomationAdapter
+│   │   ├── __mocks__/      # Mock adapters for testing
+│   │   └── __tests__/      # Adapter unit tests
+│   ├── caddy.ts            # Caddyfile generation
+│   ├── docker.ts           # Docker service management
+│   ├── state.ts            # state.json read/write
+│   ├── config.ts           # .env read/write
+│   ├── auth.ts             # Bearer token auth middleware
+│   └── sse.ts              # Server-Sent Events utilities
+└── types/                  # Shared TypeScript types
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Testing
 
-## Learn More
+350+ unit tests covering all adapters, API routes, and utilities. Tests use `vitest` with `jsdom` environment and mock `fetch` for HTTP interactions.
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm test                    # Run all tests
+npm test -- --watch         # Watch mode
+npm test -- --coverage      # Coverage report
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Adapters
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The adapter system is the core architectural pattern. Each external service (Ghost, NocoDB, n8n) communicates through a TypeScript interface. See `src/lib/adapters/types.ts` for contracts.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Key features:
+- **System/user prompt split**: NocoDB stores detailed system prompts. The n8n workflow sends them as `system` role messages, with dynamic data (topic, description) as `user` role.
+- **Image generation**: The n8n workflow generates cover images via LLM (`modalities: ['text', 'image']`) and uploads them to Ghost.
+- **Language/tone baking**: `{language}` and `{tone}` placeholders in prompt templates are substituted once at deploy time and stored in NocoDB.

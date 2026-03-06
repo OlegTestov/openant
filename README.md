@@ -9,9 +9,9 @@ One command to install. A visual wizard to configure. Zero coding required.
 ```
 You add topics to a spreadsheet
         |
-AI generates a full SEO article for each topic
+AI generates a full SEO article + cover image for each topic
         |
-Article is published to your blog
+Article with image is published to your blog
         |
 Pin / post is created on Pinterest & Threads
         |
@@ -25,6 +25,7 @@ Everything runs on your own server. You control the data.
 - **One-command install** -- single `curl | bash` sets up everything on a fresh server
 - **Visual setup wizard** -- step-by-step configuration, no terminal needed after install
 - **AI-powered writing** -- works with OpenAI, DeepSeek, OpenRouter, or any OpenAI-compatible API
+- **AI cover images** -- automatic blog cover image generation via LLM image models (e.g. Gemini)
 - **Auto-publishing** -- articles are published to a Ghost blog on a schedule you set
 - **Social promotion** -- automatic Pinterest pins and Threads posts via Make.com
 - **Topic queue** -- add 50 topics at once, the system processes them one by one (FIFO)
