@@ -186,10 +186,10 @@ describe('createNocoDBAdapter', () => {
       const body = JSON.parse(opts.body as string);
       expect(body.ArticleTitle).toContain('SEO headline copywriter');
       expect(body.ArticleText).toContain('expert content writer');
-      expect(body.ArticleImage).toContain('blog cover image generation');
+      expect(body.ArticleImage).toContain('blog cover image');
       expect(body.PinName).toContain('Pinterest copywriter');
       expect(body.PinText).toContain('Pinterest user psychology');
-      expect(body.PinImage).toContain('Pinterest prompt engineer');
+      expect(body.PinImage).toContain('Pinterest pin image');
       expect(body.ThreadText).toContain('social media content creator');
       // Verify {language} and {tone} were substituted (no raw placeholders)
       expect(body.ArticleTitle).not.toContain('{language}');
