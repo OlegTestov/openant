@@ -116,7 +116,6 @@ async function createArticlesTable(
   return tableId;
 }
 
-/* eslint-disable max-len */
 const DEFAULT_PROMPTS: Record<string, string> = {
   ArticleTitle: [
     '# ROLE',
@@ -285,7 +284,6 @@ const DEFAULT_PROMPTS: Record<string, string> = {
     '4. AVOID: Generic "Check out my new article!" openers. Sounding promotional or salesy. Repeating the article title word-for-word.',
   ].join('\n'),
 };
-/* eslint-enable max-len */
 
 async function createPromptsTable(
   baseUrl: string,
@@ -489,7 +487,13 @@ export function createNocoDBAdapter(): TableAdapter {
       const existingPrompts = existingTables.find((t) => t.title === 'Prompts');
       const promptsTableId = existingPrompts
         ? existingPrompts.id
-        : await createPromptsTable(baseUrl, authToken, baseId, config.blogLanguage, config.blogTone);
+        : await createPromptsTable(
+            baseUrl,
+            authToken,
+            baseId,
+            config.blogLanguage,
+            config.blogTone,
+          );
 
       return { authToken, projectId: baseId, tableId, promptsTableId };
     },
