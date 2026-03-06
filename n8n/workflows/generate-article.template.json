@@ -435,7 +435,7 @@
       "onError": "continueErrorOutput",
       "parameters": {
         "method": "POST",
-        "url": "",
+        "url": "{{MAKE_WEBHOOK_URL}}",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ board: '{{PINTEREST_BOARD}}', title: $('Generate Pin Title').item.json.message.content.trim(), description: $('Generate Pin Text').item.json.message.content.trim(), url: $('Prepare Pin Prompts').item.json.ghostUrl, imageUrl: $json.pinImageUrl || '' }) }}"

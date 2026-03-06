@@ -247,7 +247,7 @@ export function createN8nAdapter(): AutomationAdapter {
             node.name?.includes('Make') &&
             node.parameters
           ) {
-            node.parameters.url = params.makeWebhookUrl || '';
+            node.parameters.url = params.makeWebhookUrl || 'https://hook.placeholder.invalid';
           }
 
           // Substitute credential IDs by credential name
