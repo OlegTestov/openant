@@ -184,13 +184,18 @@ describe('createNocoDBAdapter', () => {
       expect(url).toBe('http://nocodb:8080/api/v2/tables/prompts-table-1/records');
       expect(opts.method).toBe('POST');
       const body = JSON.parse(opts.body as string);
-      expect(body.ArticleTitle).toContain('SEO-optimized article title');
-      expect(body.ArticleText).toContain('Write a detailed SEO article');
-      expect(body.ArticleImage).toContain('professional blog cover image');
-      expect(body.PinName).toContain('Pinterest pin title');
-      expect(body.PinText).toContain('Pinterest pin description');
-      expect(body.PinImage).toContain('vertical Pinterest pin image');
-      expect(body.ThreadText).toContain('social media thread post');
+      expect(body.ArticleTitle).toContain('SEO headline copywriter');
+      expect(body.ArticleText).toContain('expert content writer');
+      expect(body.ArticleImage).toContain('blog cover image generation');
+      expect(body.PinName).toContain('Pinterest copywriter');
+      expect(body.PinText).toContain('Pinterest user psychology');
+      expect(body.PinImage).toContain('Pinterest prompt engineer');
+      expect(body.ThreadText).toContain('social media content creator');
+      // Verify {language} and {tone} were substituted (no raw placeholders)
+      expect(body.ArticleTitle).not.toContain('{language}');
+      expect(body.ArticleTitle).not.toContain('{tone}');
+      expect(body.ArticleTitle).toContain('English');
+      expect(body.ArticleTitle).toContain('professional');
     });
 
     it('returns authToken, projectId, tableId, promptsTableId', async () => {

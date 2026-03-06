@@ -47,6 +47,8 @@ export interface TableAdapter {
 export interface TableConfig {
   adminEmail: string;
   adminPassword?: string;
+  blogLanguage?: string;
+  blogTone?: string;
 }
 
 export interface TableSetupResult {

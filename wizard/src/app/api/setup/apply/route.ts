@@ -187,6 +187,8 @@ async function executeDeployStep(
     case 8: {
       const nocoResult = await adapters.table.setup({
         adminEmail: `admin@${getEffectiveDomain(state) || 'openant.local'}`,
+        blogLanguage: state.blog?.language,
+        blogTone: state.blog?.tone,
       });
       ctx.nocoKeys = nocoResult;
 

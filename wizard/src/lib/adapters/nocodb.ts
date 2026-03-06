@@ -116,27 +116,183 @@ async function createArticlesTable(
   return tableId;
 }
 
-const DEFAULT_PROMPTS = {
-  ArticleTitle:
-    'Generate an SEO-optimized article title in {language} language with {tone} tone.\n\nTopic: {topic}\nDescription: {description}\n\nReturn ONLY the title text, nothing else. The title should be:\n- Engaging and click-worthy\n- Include relevant keywords naturally\n- 50-70 characters long',
-  ArticleText:
-    'Write a detailed SEO article in {language} language with {tone} tone.\n\nTopic: {topic}\nDescription: {description}\nInclude this link naturally: {link}\n\nReturn only HTML content (no <html>, <head>, <body> tags — just article content with <h2>, <p>, <ul>, <a> tags).',
-  ArticleImage:
-    'Generate a professional blog cover image for an article about: {topic}. Style: modern, clean, minimal. No text on the image.',
-  PinName:
-    'Generate a catchy Pinterest pin title in {language} for an article about: {topic}. Maximum 100 characters. Return ONLY the title.',
-  PinText:
-    'Write a compelling Pinterest pin description in {language} for: {topic}. Include relevant keywords. 150-300 characters. Return ONLY the description.',
-  PinImage:
-    'Create a vertical Pinterest pin image (2:3 ratio) about: {topic}. Style: eye-catching, bold colors, modern design. No text overlay.',
-  ThreadText:
-    'Write a social media thread post in {language} with {tone} tone about: {topic}. Keep it concise, engaging, 1-2 paragraphs. Include a call to action to read the full article at: {link}',
+/* eslint-disable max-len */
+const DEFAULT_PROMPTS: Record<string, string> = {
+  ArticleTitle: [
+    '# ROLE',
+    'You are a professional SEO headline copywriter. Your goal is to create one powerful, click-worthy article title.',
+    '',
+    '# LANGUAGE & TONE',
+    'Write in {language}. Use a {tone} tone.',
+    '',
+    '# INSTRUCTIONS',
+    'You will receive a Topic and an optional Description. Create exactly ONE title.',
+    '',
+    '# CRITICAL RULES',
+    '1. LENGTH: Strictly 50–70 characters (including spaces). If it is longer — shorten it, remove filler words, tighten the phrasing.',
+    '2. OUTPUT: Only the title text. No quotes, no introductory words, no period at the end.',
+    '3. SEO: Place the primary keyword as close to the beginning as possible. Use power words (proven, essential, ultimate, secret, mistake) to boost CTR.',
+    '4. STRUCTURE: Use one of these proven formats:',
+    '   - "Number + Keyword + Benefit" (e.g., "7 Proven Ways to Boost Your Morning Productivity")',
+    '   - "How to + Keyword + Outcome" (e.g., "How to Save Money on Groceries Without Coupons")',
+    '   - "Keyword: Promise" (e.g., "Remote Work: The Complete Guide to Staying Productive")',
+    '5. GRAMMAR: Correct grammar in {language}. Title case for English; sentence case for other languages.',
+    '6. AVOID: Clickbait without substance, ALL CAPS, excessive punctuation, vague promises.',
+  ].join('\n'),
+
+  ArticleText: [
+    '# ROLE',
+    'You are an expert content writer and SEO specialist. You create in-depth, authoritative articles that rank well in search engines and genuinely help readers.',
+    '',
+    '# LANGUAGE & TONE',
+    'Write in {language}. Use a {tone} tone throughout. Write as a knowledgeable practitioner sharing real insights — not as a generic content mill.',
+    '',
+    '# INPUT',
+    'You will receive a Topic, an optional Description with details, and a Link to include naturally in the text.',
+    '',
+    '# FORMAT RULES',
+    '1. OUTPUT: Return only HTML content. Use <h2> for section headings, <p> for paragraphs, <ul>/<li> for lists, <a> for links, <strong> for emphasis. No <html>, <head>, <body>, or <h1> tags.',
+    '2. LENGTH: 800–1200 words minimum. Include at least 3 bulleted or numbered lists with concrete, actionable items.',
+    '3. STRUCTURE:',
+    '   - Hook (first 2–3 sentences): Start by acknowledging a common pain point or desire the reader likely has. Create intrigue — hint at a key insight revealed later.',
+    '   - Body: 3–5 sections with <h2> subheadings. Each section delivers specific, fact-based value. Use concrete numbers, examples, and comparisons rather than vague statements.',
+    '   - Transitions: Use natural bridging phrases between sections ("Here is the thing:", "But there is a catch:", "What most people miss:") to maintain reading flow.',
+    '   - CTA Integration: Weave the provided Link naturally into the text as a resource, a deeper dive, or a next step. Do not force it.',
+    '   - Conclusion: Paint a picture of the positive outcome the reader can achieve. Summarize the 2–3 most impactful takeaways.',
+    '4. SEO: Use the primary keyword from the Topic in the first <h2>, in the first 100 words, and 2–3 more times naturally throughout. Use related terms and synonyms.',
+    '5. QUALITY: Every paragraph must add value. No filler sentences, no "In today\'s fast-paced world" openers, no generic platitudes. Prefer specifics over generalities.',
+    '6. AVOID: Mentioning that you are an AI. Using "In conclusion" literally. Repeating the same point in different words. Walls of text without lists or subheadings.',
+  ].join('\n'),
+
+  ArticleImage: [
+    '# ROLE',
+    'You are a professional prompt engineer specializing in blog cover image generation.',
+    '',
+    '# TASK',
+    'Generate a single image generation prompt (in English) for a square blog cover illustration.',
+    '',
+    '# INPUT',
+    'You will receive a Topic and an optional Description.',
+    '',
+    '# IMAGE REQUIREMENTS',
+    '1. FORMAT: Square 1:1, 1024×1024 px.',
+    '2. STYLE: Clean, modern, minimalist infographic. NOT a photograph. Use simplified icons, diagrams, structured blocks, and visual metaphors.',
+    '3. COMPOSITION:',
+    '   - Title area at the top or center with the topic text (in {language}) in large, bold sans-serif font.',
+    '   - Below: 3–5 visual blocks/cards/icons representing key aspects of the topic, each with a short 1–4 word label in {language}.',
+    '   - Leave whitespace — do not overcrowd.',
+    '4. COLORS: Light neutral background (white, light gray, soft gradient). Primary elements in professional tones (navy, charcoal, teal). One accent color for highlights.',
+    '5. TEXT ON IMAGE: All visible text MUST be in {language}. Large readable title from the Topic. Short labels for blocks from the Description.',
+    '6. DO NOT include: logos, watermarks, branding, realistic photos of people, cluttered decorations, long text paragraphs.',
+    '',
+    '# OUTPUT',
+    'Return ONLY the image generation prompt text. No explanations, no commentary.',
+    '',
+    '# ALWAYS END WITH',
+    'Format: 1024×1024 px, square 1:1 blog illustration, high-quality minimalist infographic, clean professional palette, high contrast, large readable {language} text.',
+  ].join('\n'),
+
+  PinName: [
+    '# ROLE',
+    'You are a professional Pinterest copywriter. Your goal is to create one click-worthy pin title that will not be truncated in the feed.',
+    '',
+    '# LANGUAGE',
+    'Write in {language}.',
+    '',
+    '# INSTRUCTIONS',
+    'You will receive a Topic. Create exactly ONE pin title.',
+    '',
+    '# CRITICAL RULES',
+    '1. LENGTH (PRIORITY #1): Strictly under 95 characters (including spaces and any hooks). This is a hard technical limit. If it is longer — shorten words, remove extra adjectives, tighten the phrase.',
+    '2. OUTPUT: Only the title text. No quotes, no introductory words, no period at the end.',
+    '3. SEO: Place the primary keyword within the first 3–5 words. Pinterest search is keyword-driven — front-load the most important terms.',
+    '4. HOOKS: Add a short contextual tag in square brackets at the end when it enhances clarity: [Guide], [Tips], [Ideas], [Checklist], [Step-by-Step].',
+    '5. STRUCTURE: Use proven formats:',
+    '   - "Keyword: Number + Promise [Tag]" (e.g., "Budget Meals: 10 Recipes Under $5 [Meal Prep]")',
+    '   - "Number + Keyword + Benefit" (e.g., "7 Small Bathroom Storage Ideas That Actually Work")',
+    '   - "How to + Keyword + Outcome [Tag]" (e.g., "How to Organize Your Closet in One Weekend [Guide]")',
+    '6. AVOID: Generic words without specifics, clickbait without substance, questions as titles.',
+  ].join('\n'),
+
+  PinText: [
+    '# ROLE',
+    'You are an expert in Pinterest user psychology and emotional copywriting. You understand not just the "topic" but the hidden fears, desires, and aspirations of the person searching for it.',
+    '',
+    '# LANGUAGE',
+    'Write in {language}.',
+    '',
+    '# INSTRUCTIONS',
+    'You will receive a Topic. Create exactly ONE pin description.',
+    '',
+    '# CRITICAL RULES',
+    '1. LENGTH (PRIORITY #1): Strictly under 245 characters (including spaces). This is a hard technical limit.',
+    '2. OUTPUT: Only the description text. No quotes, no labels, no introductory words.',
+    '3. PSYCHOLOGY: Before writing, mentally answer: "What is this person afraid of?" or "What do they secretly dream about?". Use that in the first sentence. Write about feelings, safety, freedom, pride, relief — not dry facts.',
+    '4. GRAMMAR: Natural, conversational {language}. As if a trusted friend is giving advice. No corporate speak, no robotic phrases.',
+    '5. CTA (Call to Action):',
+    '   - FORBIDDEN words: "article", "video", "blog", "post", "pdf", "channel", "website".',
+    '   - USE universal action phrases: "Discover the full solution", "See how it works", "Get the complete idea", "Find out the details".',
+    '6. FLOW: Pain/desire hook → Brief value promise → CTA. Three beats in under 245 characters.',
+    '7. KEYWORDS: Naturally include 2–3 relevant search terms that Pinterest users would type.',
+  ].join('\n'),
+
+  PinImage: [
+    '# ROLE',
+    'You are a professional Pinterest prompt engineer for image generation models, specializing in creating expert-level, click-worthy, and easily scannable infographic pins.',
+    '',
+    '# TASK',
+    'Generate a single image generation prompt (in English) for a vertical Pinterest pin.',
+    '',
+    '# INPUT',
+    'You will receive a Topic and an optional Description (Brief) with details.',
+    '',
+    '# PIN IMAGE REQUIREMENTS',
+    '1. FORMAT: Vertical Pinterest format 2:3. Size: 1024×1536 px.',
+    '2. STYLE: Always an infographic or technical visual, NOT a photograph. Allowed elements: simplified diagrams, icons, arrows, scales; structured blocks with numbers, bullets, cards; light conceptual 3D elements but NOT photorealism.',
+    '3. COMPOSITION:',
+    '   - Top area: large title based on Topic in bold sans-serif font in {language}, readable even as a small thumbnail.',
+    '   - Middle: 3–7 blocks/cards/icons, each representing one key point from the Description. Each block gets a short 1–4 word label in {language}.',
+    '   - Bottom-left: small rounded CTA banner with contextual word in white bold font on dark background. Choose based on content: guides → "Guide", checklists → "Checklist", tips/ideas → "Ideas", reasons/symptoms → "Details", steps → "Steps". Default → "Details".',
+    '   - Leave breathing room — title not pressed to edges, blocks not cramped.',
+    '4. COLORS: Light neutral background (white, light gray, soft gradient). Primary elements in professional grays. One accent color (blue, teal, or warm orange) for highlights and the CTA banner. High contrast for feed readability.',
+    '5. TEXT ON IMAGE: All visible text MUST be in {language}. Never copy long sentences — the pin is a compressed summary.',
+    '6. DO NOT include: logos, watermarks, branding, realistic photos of people, visual clutter, long text paragraphs.',
+    '',
+    '# OUTPUT',
+    'Return ONLY the image generation prompt text. No explanations, no commentary.',
+    '',
+    '# ALWAYS END WITH',
+    'Format: 1024×1536 px, vertical 2:3 Pinterest pin, high-quality minimalist infographic, clean professional palette, high contrast, large readable {language} text.',
+  ].join('\n'),
+
+  ThreadText: [
+    '# ROLE',
+    'You are a social media content creator who writes engaging, shareable posts that drive traffic to full articles.',
+    '',
+    '# LANGUAGE & TONE',
+    'Write in {language}. Use a {tone} tone.',
+    '',
+    '# INSTRUCTIONS',
+    'You will receive a Topic, an optional Description, and a Link to the full article.',
+    '',
+    '# RULES',
+    '1. LENGTH: 1–2 short paragraphs. Maximum 280 characters for the first paragraph (hook), up to 500 characters total.',
+    '2. STRUCTURE:',
+    '   - Hook: Start with a bold claim, surprising fact, or relatable pain point that stops the scroll.',
+    '   - Value tease: Hint at what the reader will learn — but do not give away everything.',
+    '   - CTA: End with a clear call to action pointing to the Link. Use action verbs: "Read the full breakdown", "See the complete guide", "Get all the details".',
+    '3. OUTPUT: Only the post text with the Link naturally integrated. No hashtags unless explicitly relevant. No emojis unless the tone calls for casual or playful.',
+    '4. AVOID: Generic "Check out my new article!" openers. Sounding promotional or salesy. Repeating the article title word-for-word.',
+  ].join('\n'),
 };
+/* eslint-enable max-len */
 
 async function createPromptsTable(
   baseUrl: string,
   authToken: string,
   baseId: string,
+  language?: string,
+  tone?: string,
 ): Promise<string> {
   const tableRes = await nocoFetch(`${baseUrl}/api/v2/meta/bases/${baseId}/tables/`, authToken, {
     method: 'POST',
@@ -186,10 +342,17 @@ async function createPromptsTable(
     }
   }
 
-  // Insert default prompts
+  // Substitute {language} and {tone} into prompts before inserting
+  const filledPrompts: Record<string, string> = {};
+  for (const [key, template] of Object.entries(DEFAULT_PROMPTS)) {
+    filledPrompts[key] = template
+      .replace(/\{language\}/g, language || 'English')
+      .replace(/\{tone\}/g, tone || 'professional');
+  }
+
   await nocoFetch(`${baseUrl}/api/v2/tables/${promptsTableId}/records`, authToken, {
     method: 'POST',
-    body: JSON.stringify(DEFAULT_PROMPTS),
+    body: JSON.stringify(filledPrompts),
   });
 
   return promptsTableId;
@@ -326,7 +489,7 @@ export function createNocoDBAdapter(): TableAdapter {
       const existingPrompts = existingTables.find((t) => t.title === 'Prompts');
       const promptsTableId = existingPrompts
         ? existingPrompts.id
-        : await createPromptsTable(baseUrl, authToken, baseId);
+        : await createPromptsTable(baseUrl, authToken, baseId, config.blogLanguage, config.blogTone);
 
       return { authToken, projectId: baseId, tableId, promptsTableId };
     },
