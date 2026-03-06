@@ -9,6 +9,8 @@
 
         <header class="gh-article-header gh-canvas">
 
+            {{> "feature-image"}}
+
             {{#if primary_tag}}
                 <a class="gh-article-tag" href="{{primary_tag.url}}">{{primary_tag.name}}</a>
             {{/if}}
@@ -41,8 +43,6 @@
                 </div>
             </div>
             {{/if}}
-
-            {{> "feature-image"}}
 
         </header>
 
