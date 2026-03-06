@@ -150,7 +150,7 @@ const DEFAULT_PROMPTS: Record<string, string> = {
     'You will receive a Topic, an optional Description with details, and a Link to include naturally in the text.',
     '',
     '# FORMAT RULES',
-    '1. OUTPUT: Return only HTML content. Use <h2> for section headings, <p> for paragraphs, <ul>/<li> for lists, <a> for links, <strong> for emphasis. No <html>, <head>, <body>, or <h1> tags.',
+    '1. OUTPUT: Return only HTML content. EVERY text paragraph MUST be wrapped in <p></p> tags — no bare text outside of tags. Use <h2> for section headings, <p> for paragraphs, <ul>/<li> for lists, <a> for links, <strong> for emphasis. No <html>, <head>, <body>, or <h1> tags.',
     '2. LENGTH: 800–1200 words minimum. Include at least 3 bulleted or numbered lists with concrete, actionable items.',
     '3. STRUCTURE:',
     '   - Hook (first 2–3 sentences): Start by acknowledging a common pain point or desire the reader likely has. Create intrigue — hint at a key insight revealed later.',
