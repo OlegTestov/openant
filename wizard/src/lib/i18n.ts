@@ -71,6 +71,8 @@ export interface Translations {
       boardHint: string;
       downloadTemplate: string;
       downloadHint: string;
+      webhookRequired: string;
+      boardRequired: string;
     };
     review: {
       title: string;
@@ -210,6 +212,8 @@ const en: Translations = {
       downloadTemplate: 'Download Make.com Template',
       downloadHint:
         '1. Download the template above\n2. Go to make.com → Scenarios → Create a new scenario → Import Blueprint → upload the file\n3. Click the Pinterest module → Add connection → authorize your Pinterest account\n4. Click the webhook module (first circle) → copy the URL\n5. Paste the URL into the field above\n6. Turn on the scenario in Make.com (toggle at the bottom left)',
+      webhookRequired: 'Webhook URL is required when Pinterest or Threads is enabled',
+      boardRequired: 'Board name is required when Pinterest is enabled',
     },
     review: {
       title: 'Review Configuration',
@@ -350,6 +354,8 @@ const ru: Translations = {
       downloadTemplate: 'Скачать шаблон Make.com',
       downloadHint:
         '1. Скачайте шаблон выше\n2. Откройте make.com → Scenarios → Create a new scenario → Import Blueprint → загрузите файл\n3. Нажмите на модуль Pinterest → Add connection → авторизуйте аккаунт Pinterest\n4. Нажмите на модуль вебхука (первый кружок) → скопируйте URL\n5. Вставьте URL в поле выше\n6. Включите сценарий в Make.com (переключатель внизу слева)',
+      webhookRequired: 'URL вебхука обязателен, если Pinterest или Threads включён',
+      boardRequired: 'Название доски обязательно, если Pinterest включён',
     },
     review: {
       title: 'Проверка конфигурации',

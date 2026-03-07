@@ -29,8 +29,18 @@ export default function Social({ onComplete, onBack, initialData }: StepProps) {
   const t = useTranslations();
 
   async function handleSubmit() {
-    setIsLoading(true);
     setError(null);
+
+    if ((pinterest || threads) && !webhookUrl.trim()) {
+      setError(t.steps.social.webhookRequired);
+      return;
+    }
+    if (pinterest && !board.trim()) {
+      setError(t.steps.social.boardRequired);
+      return;
+    }
+
+    setIsLoading(true);
 
     try {
       const token = localStorage.getItem('setup_token');
@@ -118,31 +128,34 @@ export default function Social({ onComplete, onBack, initialData }: StepProps) {
         </div>
 
         {(pinterest || threads) && (
-          <div>
-            <Label htmlFor="webhook-url">{t.steps.social.webhookUrl}</Label>
-            <Input
-              id="webhook-url"
-              className="mt-1"
-              value={webhookUrl}
-              onChange={(e) => setWebhookUrl(e.target.value)}
-              placeholder="https://hook.make.com/..."
-              aria-describedby="webhook-hint"
-            />
-            <p id="webhook-hint" className="text-muted-foreground mt-1 text-xs">
-              {t.steps.social.webhookHint}
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-2"
-              type="button"
-              onClick={downloadBlueprint}
-            >
-              {t.steps.social.downloadTemplate}
-            </Button>
-            <p className="text-muted-foreground mt-1 whitespace-pre-line text-xs">
-              {t.steps.social.downloadHint}
-            </p>
+          <div className="space-y-4">
+            <div>
+              <Button
+                variant="outline"
+                size="sm"
+                type="button"
+                onClick={downloadBlueprint}
+              >
+                {t.steps.social.downloadTemplate}
+              </Button>
+              <p className="text-muted-foreground mt-1 whitespace-pre-line text-xs">
+                {t.steps.social.downloadHint}
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="webhook-url">{t.steps.social.webhookUrl}</Label>
+              <Input
+                id="webhook-url"
+                className="mt-1"
+                value={webhookUrl}
+                onChange={(e) => setWebhookUrl(e.target.value)}
+                placeholder="https://hook.make.com/..."
+                aria-describedby="webhook-hint"
+              />
+              <p id="webhook-hint" className="text-muted-foreground mt-1 text-xs">
+                {t.steps.social.webhookHint}
+              </p>
+            </div>
           </div>
         )}
       </div>
