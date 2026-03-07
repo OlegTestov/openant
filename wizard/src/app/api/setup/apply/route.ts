@@ -91,14 +91,13 @@ function buildEnvVars(state: SetupState): Record<string, string> {
 function buildUrls(state: SetupState): Record<string, string> {
   const domains = getServiceDomains(state);
   const ip = process.env.SERVER_IP || 'localhost';
-  const managed = isManaged();
 
   const urls: Record<string, string> = {
     blog: domains ? `https://${domains.ghost}` : `http://${ip}`,
     table: domains ? `https://${domains.nocodb}` : `http://${ip}:8080`,
   };
 
-  if (!managed) {
+  if (!isManaged()) {
     urls.n8n = domains ? `https://${domains.n8n}` : `http://${ip}:5678`;
   }
 

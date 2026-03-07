@@ -13,7 +13,7 @@ function getCaddyfilePath(): string {
 
 export function generateCaddyfile(
   domains: ServiceDomains | null,
-  mode?: string,
+  _mode?: string,
   saas?: boolean,
 ): string {
   if (!domains) {
@@ -36,11 +36,9 @@ export function generateCaddyfile(
     reverse_proxy nocodb:8080
 }`);
 
-  if (mode !== 'managed') {
-    blocks.push(`${domains.n8n} {${tls}
+  blocks.push(`${domains.n8n} {${tls}
     reverse_proxy n8n:5678
 }`);
-  }
 
   blocks.push(`${domains.wizard} {${tls}
     reverse_proxy wizard:3000
