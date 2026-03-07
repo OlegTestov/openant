@@ -32,6 +32,7 @@ describe('generateCaddyfile', () => {
 
     expect(result).toContain(':80');
     expect(result).toContain('reverse_proxy ghost:2368');
+    expect(result).toContain('admin 0.0.0.0:2019');
   });
 
   it('IP-mode contains only :80 block with ghost reverse_proxy', () => {

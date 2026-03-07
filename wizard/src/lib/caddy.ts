@@ -18,7 +18,11 @@ export function generateCaddyfile(
   customDomain?: boolean,
 ): string {
   if (!domains) {
-    return `:80 {
+    return `{
+    admin 0.0.0.0:2019
+}
+
+:80 {
     reverse_proxy ghost:2368
 }
 `;
