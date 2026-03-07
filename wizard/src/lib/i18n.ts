@@ -211,7 +211,7 @@ const en: Translations = {
       boardHint: 'Name of the Pinterest board to publish pins to (must match exactly)',
       downloadTemplate: 'Download Make.com Template',
       downloadHint:
-        '1. Download the template above\n2. Go to make.com → Scenarios → Create a new scenario → Import Blueprint → upload the file\n3. Click the Pinterest module → Add connection → authorize your Pinterest account\n4. Click the webhook module (first circle) → copy the URL\n5. Paste the URL into the field above\n6. Turn on the scenario in Make.com (toggle at the bottom left)',
+        '1. Download the template above\n2. Go to make.com → Scenarios → Create a new scenario → Import Blueprint → upload the file\n3. Click the Pinterest module → Add connection → authorize your Pinterest account\n4. Click the webhook module (first circle) → Create a webhook → Save\n5. Copy address to clipboard → Save\n6. Paste the URL into the field below\n7. Save the scenario (floppy disk icon at the bottom)\n8. Turn on the scenario (ON/OFF toggle next to the floppy disk)\n9. In the scheduling dialog select "Immediately" → Save',
       webhookRequired: 'Webhook URL is required when Pinterest or Threads is enabled',
       boardRequired: 'Board name is required when Pinterest is enabled',
     },
@@ -353,7 +353,7 @@ const ru: Translations = {
       boardHint: 'Название доски Pinterest для публикации пинов (должно совпадать точно)',
       downloadTemplate: 'Скачать шаблон Make.com',
       downloadHint:
-        '1. Скачайте шаблон выше\n2. Откройте make.com → Scenarios → Create a new scenario → Import Blueprint → загрузите файл\n3. Нажмите на модуль Pinterest → Add connection → авторизуйте аккаунт Pinterest\n4. Нажмите на модуль вебхука (первый кружок) → скопируйте URL\n5. Вставьте URL в поле выше\n6. Включите сценарий в Make.com (переключатель внизу слева)',
+        '1. Скачайте шаблон выше\n2. Откройте make.com → Scenarios → Create a new scenario → Import Blueprint → загрузите файл\n3. Нажмите на модуль Pinterest → Add connection → авторизуйте аккаунт Pinterest\n4. Нажмите на модуль вебхука (первый кружок) → Create a webhook → Save\n5. Copy address to clipboard → Save\n6. Вставьте URL в поле ниже\n7. Сохраните сценарий (иконка дискеты внизу)\n8. Включите сценарий (переключатель ON/OFF рядом с дискетой)\n9. В диалоге расписания выберите «Immediately» → Save',
       webhookRequired: 'URL вебхука обязателен, если Pinterest или Threads включён',
       boardRequired: 'Название доски обязательно, если Pinterest включён',
     },
