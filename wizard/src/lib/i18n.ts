@@ -126,6 +126,7 @@ export interface Translations {
     managedBySaas: string;
     tools: string;
     downloadMakeTemplate: string;
+    makeTemplateHint: string;
   };
   services: {
     ghost: string;
@@ -201,14 +202,14 @@ const en: Translations = {
       optional: 'This step is optional',
       optionalHint: 'You can configure social distribution later.',
       webhookUrl: 'Make.com Webhook URL',
-      webhookHint: 'Create a scenario in Make.com and paste the webhook URL here',
+      webhookHint: 'Paste the webhook URL from your Make.com scenario here',
       pinterest: 'Pinterest',
       threads: 'Threads',
       board: 'Pinterest Board',
-      boardHint: 'Name of the Pinterest board to publish pins to',
+      boardHint: 'Name of the Pinterest board to publish pins to (must match exactly)',
       downloadTemplate: 'Download Make.com Template',
       downloadHint:
-        'Import this template into Make.com, connect Pinterest, and copy the webhook URL',
+        '1. Download the template above\n2. Go to make.com → Scenarios → Create a new scenario → Import Blueprint → upload the file\n3. Click the Pinterest module → Add connection → authorize your Pinterest account\n4. Click the webhook module (first circle) → copy the URL\n5. Paste the URL into the field above\n6. Turn on the scenario in Make.com (toggle at the bottom left)',
     },
     review: {
       title: 'Review Configuration',
@@ -264,6 +265,8 @@ const en: Translations = {
     managedBySaas: 'Managed by openant SaaS',
     tools: 'Tools',
     downloadMakeTemplate: 'Download Make.com Pinterest Template',
+    makeTemplateHint:
+      'Import this file into Make.com (Scenarios → Import Blueprint), connect your Pinterest account, and enable the scenario',
   },
   services: {
     ghost: 'Ghost',
@@ -339,13 +342,14 @@ const ru: Translations = {
       optional: 'Этот шаг необязателен',
       optionalHint: 'Вы можете настроить дистрибуцию позже.',
       webhookUrl: 'URL вебхука Make.com',
-      webhookHint: 'Создайте сценарий в Make.com и вставьте URL вебхука',
+      webhookHint: 'Вставьте URL вебхука из вашего сценария Make.com',
       pinterest: 'Pinterest',
       threads: 'Threads',
       board: 'Доска Pinterest',
-      boardHint: 'Название доски Pinterest для публикации пинов',
+      boardHint: 'Название доски Pinterest для публикации пинов (должно совпадать точно)',
       downloadTemplate: 'Скачать шаблон Make.com',
-      downloadHint: 'Импортируйте шаблон в Make.com, подключите Pinterest и скопируйте URL вебхука',
+      downloadHint:
+        '1. Скачайте шаблон выше\n2. Откройте make.com → Scenarios → Create a new scenario → Import Blueprint → загрузите файл\n3. Нажмите на модуль Pinterest → Add connection → авторизуйте аккаунт Pinterest\n4. Нажмите на модуль вебхука (первый кружок) → скопируйте URL\n5. Вставьте URL в поле выше\n6. Включите сценарий в Make.com (переключатель внизу слева)',
     },
     review: {
       title: 'Проверка конфигурации',
@@ -401,6 +405,8 @@ const ru: Translations = {
     managedBySaas: 'Управляется openant SaaS',
     tools: 'Инструменты',
     downloadMakeTemplate: 'Скачать шаблон Make.com для Pinterest',
+    makeTemplateHint:
+      'Импортируйте файл в Make.com (Scenarios → Import Blueprint), подключите аккаунт Pinterest и включите сценарий',
   },
   services: {
     ghost: 'Ghost',

@@ -112,7 +112,9 @@ export default function Social({ onComplete, onBack, initialData }: StepProps) {
           >
             {t.steps.social.downloadTemplate}
           </Button>
-          <p className="text-muted-foreground mt-1 text-xs">{t.steps.social.downloadHint}</p>
+          <p className="text-muted-foreground mt-1 whitespace-pre-line text-xs">
+            {t.steps.social.downloadHint}
+          </p>
         </div>
 
         <div className="space-y-3">

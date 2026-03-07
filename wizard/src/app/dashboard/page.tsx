@@ -230,6 +230,7 @@ export default function DashboardPage() {
           <Button variant="link" className="h-auto p-0 text-sm" onClick={downloadBlueprint}>
             {t.dashboard.downloadMakeTemplate} &rarr;
           </Button>
+          <p className="text-muted-foreground mt-1 text-xs">{t.dashboard.makeTemplateHint}</p>
         </CardContent>
       </Card>
 
