@@ -15,6 +15,7 @@ export function generateCaddyfile(
   domains: ServiceDomains | null,
   _mode?: string,
   saas?: boolean,
+  customDomain?: boolean,
 ): string {
   if (!domains) {
     return `:80 {
@@ -23,8 +24,9 @@ export function generateCaddyfile(
 `;
   }
 
-  // In SaaS mode, Cloudflare terminates TLS; Caddy uses internal certs.
-  const tls = saas ? '\n    tls internal' : '';
+  // SaaS with auto-assigned domain: Cloudflare terminates TLS, Caddy uses internal certs.
+  // Custom domain (even in SaaS): Caddy handles TLS via Let's Encrypt.
+  const tls = saas && !customDomain ? '\n    tls internal' : '';
 
   const blocks: string[] = [];
 

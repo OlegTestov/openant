@@ -48,34 +48,22 @@ export const GET = withAuth(
     const state = await readState();
     const effectiveDomain = getEffectiveDomain(state);
     const ip = process.env.SERVER_IP || 'localhost';
-
-    const isSaasMode = process.env.OPENANT_SAAS_MODE === 'true';
-    const saasDomain = process.env.DOMAIN;
-
     const managed = process.env.INSTANCE_MODE === 'managed';
+    const domains = getServiceDomains(state);
 
     let urls: { blog: string; table: string; n8n?: string };
-    if (isSaasMode && saasDomain) {
+    if (domains) {
       urls = {
-        blog: `https://${saasDomain}`,
-        table: `https://table.${saasDomain}`,
+        blog: `https://${domains.ghost}`,
+        table: `https://${domains.nocodb}`,
+        ...(!managed && { n8n: `https://${domains.n8n}` }),
       };
-      if (!managed) {
-        urls.n8n = `https://auto.${saasDomain}`;
-      }
     } else {
-      const domains = getServiceDomains(state);
-      urls = domains
-        ? {
-            blog: `https://${domains.ghost}`,
-            table: `https://${domains.nocodb}`,
-            ...(!managed && { n8n: `https://${domains.n8n}` }),
-          }
-        : {
-            blog: `http://${ip}`,
-            table: `http://${ip}:8080`,
-            ...(!managed && { n8n: `http://${ip}:5678` }),
-          };
+      urls = {
+        blog: `http://${ip}`,
+        table: `http://${ip}:8080`,
+        ...(!managed && { n8n: `http://${ip}:5678` }),
+      };
     }
 
     const credentials = getServiceCredentials(

@@ -245,7 +245,7 @@ describe('POST /api/setup/apply', () => {
     expect(completeEvent?.data.success).toBe(true);
 
     const urls = completeEvent?.data.urls as Record<string, string>;
-    expect(urls.blog).toBe('https://example.com');
+    expect(urls.blog).toBe('https://blog.example.com');
     expect(urls.table).toBe('https://table.example.com');
     expect(urls.n8n).toBe('https://auto.example.com');
     expect(urls.dashboard).toBeUndefined();
@@ -254,7 +254,7 @@ describe('POST /api/setup/apply', () => {
     expect(credentials).toBeDefined();
     expect(credentials.ghost).toHaveProperty('email');
     expect(credentials.ghost).toHaveProperty('password');
-    expect(credentials.ghost.adminUrl).toBe('https://example.com/ghost/');
+    expect(credentials.ghost.adminUrl).toBe('https://blog.example.com/ghost/');
     expect(credentials.nocodb).toHaveProperty('email');
     expect(credentials.n8n).toHaveProperty('email');
   });
@@ -318,7 +318,7 @@ describe('POST /api/setup/apply', () => {
       expect.any(String),
       expect.objectContaining({
         DOMAIN: 'example.com',
-        GHOST_URL: 'https://example.com',
+        GHOST_URL: 'https://blog.example.com',
         LLM_API_KEY: 'sk-test-key',
         LLM_MODEL: 'gpt-4o-mini',
         BLOG_TITLE: 'My Blog',
@@ -337,13 +337,14 @@ describe('POST /api/setup/apply', () => {
 
     expect(generateCaddyfile).toHaveBeenCalledWith(
       {
-        ghost: 'example.com',
+        ghost: 'blog.example.com',
         nocodb: 'table.example.com',
         n8n: 'auto.example.com',
         wizard: 'setup.example.com',
       },
       undefined,
       false,
+      true,
     );
   });
 
@@ -377,7 +378,7 @@ describe('POST /api/setup/apply', () => {
       title: 'My Blog',
       description: 'A great blog',
       language: 'en',
-      url: 'https://example.com',
+      url: 'https://blog.example.com',
       adminEmail: 'admin@example.com',
     });
   });

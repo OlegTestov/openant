@@ -104,6 +104,12 @@ describe('generateCaddyfile', () => {
     expect(result).not.toContain('tls internal');
   });
 
+  it('does not add tls internal in SaaS mode with custom domain', () => {
+    const result = generateCaddyfile(DEFAULT_DOMAINS, undefined, true, true);
+
+    expect(result).not.toContain('tls internal');
+  });
+
   it('supports custom prefixes (ghost on subdomain)', () => {
     const domains: ServiceDomains = {
       ghost: 'blog.example.com',

@@ -139,12 +139,12 @@ describe('GET /api/dashboard/status', () => {
     const res = await GET(createAuthRequest());
     const body = await res.json();
 
-    expect(body.data.urls.blog).toBe('https://slug.openant.app');
-    expect(body.data.urls.table).toBe('https://table.slug.openant.app');
-    expect(body.data.urls.n8n).toBe('https://auto.slug.openant.app');
+    expect(body.data.urls.blog).toBe('https://slug-blog.openant.app');
+    expect(body.data.urls.table).toBe('https://slug-table.openant.app');
+    expect(body.data.urls.n8n).toBe('https://slug-auto.openant.app');
   });
 
-  it('returns SaaS auto-subdomains in SaaS mode even with custom domain', async () => {
+  it('returns custom domain URLs in SaaS mode when user sets custom domain', async () => {
     vi.stubEnv('OPENANT_SAAS_MODE', 'true');
     vi.stubEnv('DOMAIN', 'slug.app.openant.app');
     mockReadState.mockResolvedValueOnce({
@@ -156,11 +156,10 @@ describe('GET /api/dashboard/status', () => {
     const res = await GET(createAuthRequest());
     const body = await res.json();
 
-    // URLs use SaaS auto-subdomains (always reachable), not custom domain
-    expect(body.data.urls.blog).toBe('https://slug.app.openant.app');
-    expect(body.data.urls.table).toBe('https://table.slug.app.openant.app');
-    expect(body.data.urls.n8n).toBe('https://auto.slug.app.openant.app');
-    // Credentials still use the custom domain
+    // Custom domain takes priority over SaaS auto-subdomains
+    expect(body.data.urls.blog).toBe('https://blog.example.com');
+    expect(body.data.urls.table).toBe('https://table.example.com');
+    expect(body.data.urls.n8n).toBe('https://auto.example.com');
     expect(body.data.credentials.ghost.email).toBe('admin@example.com');
   });
 

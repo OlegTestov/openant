@@ -20,6 +20,9 @@ const setupStateSchema = z.object({
     .object({
       use_domain: z.boolean(),
       domain: z.string().optional(),
+      ghost_prefix: z.string().optional(),
+      nocodb_prefix: z.string().optional(),
+      n8n_prefix: z.string().optional(),
     })
     .optional(),
   llm: z

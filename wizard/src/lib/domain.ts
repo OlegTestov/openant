@@ -13,35 +13,34 @@ export function isSaasMode(): boolean {
   return process.env.OPENANT_SAAS_MODE === 'true';
 }
 
-/** Build per-service domain map from state prefixes */
+/** Build per-service domain map from state */
 export function getServiceDomains(state: SetupState): ServiceDomains | null {
-  const domain = getEffectiveDomain(state);
-  if (!domain) return null;
-
-  // SaaS mode: DOMAIN = "slug.openant.app", use flat subdomains like "slug-blog.openant.app"
-  if (isSaasMode()) {
-    const dotIndex = domain.indexOf('.');
-    if (dotIndex === -1) return null;
-    const slug = domain.slice(0, dotIndex);
-    const baseDomain = domain.slice(dotIndex + 1);
+  // Case 1: User configured a custom domain — nested subdomains
+  if (state.domain?.use_domain && state.domain?.domain) {
+    const domain = state.domain.domain;
+    const ghostPrefix = state.domain.ghost_prefix ?? 'blog';
+    const nocodbPrefix = state.domain.nocodb_prefix ?? 'table';
+    const n8nPrefix = state.domain.n8n_prefix ?? 'auto';
     return {
-      ghost: `${slug}-blog.${baseDomain}`,
-      nocodb: `${slug}-table.${baseDomain}`,
-      n8n: `${slug}-auto.${baseDomain}`,
-      wizard: `${slug}-setup.${baseDomain}`,
+      ghost: ghostPrefix ? `${ghostPrefix}.${domain}` : domain,
+      nocodb: `${nocodbPrefix}.${domain}`,
+      n8n: `${n8nPrefix}.${domain}`,
+      wizard: `setup.${domain}`,
     };
   }
 
-  // Self-hosted mode: nested subdomains like "table.mydomain.com"
-  function resolve(prefix: string | undefined, fallback: string): string {
-    const p = prefix ?? fallback;
-    return p ? `${p}.${domain}` : domain!;
-  }
+  // Case 2: Auto-assigned domain from env (e.g. slug.openant.app) — flat subdomains
+  const envDomain = process.env.DOMAIN;
+  if (!envDomain) return null;
 
+  const dotIndex = envDomain.indexOf('.');
+  if (dotIndex === -1) return null;
+  const slug = envDomain.slice(0, dotIndex);
+  const baseDomain = envDomain.slice(dotIndex + 1);
   return {
-    ghost: resolve(state.domain?.ghost_prefix, ''),
-    nocodb: resolve(state.domain?.nocodb_prefix, 'table'),
-    n8n: resolve(state.domain?.n8n_prefix, 'auto'),
-    wizard: `setup.${domain}`,
+    ghost: `${slug}-blog.${baseDomain}`,
+    nocodb: `${slug}-table.${baseDomain}`,
+    n8n: `${slug}-auto.${baseDomain}`,
+    wizard: `${slug}-setup.${baseDomain}`,
   };
 }

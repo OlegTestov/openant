@@ -121,7 +121,13 @@ async function executeDeployStep(
 
     case 2: {
       const domains = getServiceDomains(state);
-      const caddyfile = generateCaddyfile(domains, process.env.INSTANCE_MODE, isSaasMode());
+      const hasCustomDomain = !!(state.domain?.use_domain && state.domain?.domain);
+      const caddyfile = generateCaddyfile(
+        domains,
+        process.env.INSTANCE_MODE,
+        isSaasMode(),
+        hasCustomDomain,
+      );
       await writeCaddyfile(caddyfile);
       break;
     }
