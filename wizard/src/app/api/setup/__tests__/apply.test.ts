@@ -318,7 +318,7 @@ describe('POST /api/setup/apply', () => {
     expect(writeEnv).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({
-        DOMAIN: 'example.com',
+        DOMAIN: 'slug.openant.app',
         GHOST_URL: 'https://slug-blog.openant.app',
         LLM_API_KEY: 'sk-test-key',
         LLM_MODEL: 'gpt-4o-mini',
@@ -385,7 +385,7 @@ describe('POST /api/setup/apply', () => {
       description: 'A great blog',
       language: 'en',
       url: 'https://slug-blog.openant.app',
-      adminEmail: 'admin@example.com',
+      adminEmail: 'admin@slug.openant.app',
     });
   });
 
@@ -397,7 +397,7 @@ describe('POST /api/setup/apply', () => {
 
     expect(mockTableSetup).toHaveBeenCalledWith(
       expect.objectContaining({
-        adminEmail: 'admin@example.com',
+        adminEmail: 'admin@slug.openant.app',
       }),
     );
   });
@@ -410,7 +410,7 @@ describe('POST /api/setup/apply', () => {
 
     expect(mockAutomationSetup).toHaveBeenCalledWith(
       expect.objectContaining({
-        adminEmail: 'admin@example.com',
+        adminEmail: 'admin@slug.openant.app',
       }),
     );
   });

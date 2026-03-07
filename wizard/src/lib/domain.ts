@@ -1,12 +1,14 @@
 import type { SetupState } from '@/types/setup';
 import type { ServiceDomains } from '@/lib/caddy';
 
-/** Resolve domain from wizard state, falling back to DOMAIN env var (set by cloud-init in SaaS mode) */
+/** Resolve domain for admin emails, .env, and credentials.
+ *  Prefers SaaS auto-assigned domain (stable slug) over custom domain.
+ *  Custom domain is only for Caddy blocks and Pinterest links (via getCustomDomains). */
 export function getEffectiveDomain(state: SetupState): string | null {
-  if (state.domain?.use_domain) {
-    return state.domain.domain ?? null;
-  }
-  return process.env.DOMAIN || null;
+  if (process.env.DOMAIN) return process.env.DOMAIN;
+  // BYOK mode: use domain from wizard state if configured
+  if (state.domain?.use_domain) return state.domain.domain ?? null;
+  return null;
 }
 
 export function isSaasMode(): boolean {

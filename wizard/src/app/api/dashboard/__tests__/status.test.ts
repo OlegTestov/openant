@@ -162,8 +162,8 @@ describe('GET /api/dashboard/status', () => {
     expect(body.data.urls.blog).toBe('https://slug-blog.app.openant.app');
     expect(body.data.urls.table).toBe('https://slug-table.app.openant.app');
     expect(body.data.urls.n8n).toBe('https://slug-auto.app.openant.app');
-    // Credentials still use the effective domain (custom domain for email)
-    expect(body.data.credentials.ghost.email).toBe('admin@example.com');
+    // Credentials use SaaS domain, not custom domain
+    expect(body.data.credentials.ghost.email).toBe('admin@slug.app.openant.app');
   });
 
   it('returns IP-based URLs when no DOMAIN', async () => {
