@@ -16,8 +16,11 @@ interface N8nWorkflowNode {
 }
 
 interface N8nWorkflow {
+  name?: string;
   nodes?: N8nWorkflowNode[];
+  connections?: unknown;
   settings?: Record<string, unknown>;
+  staticData?: unknown;
   [key: string]: unknown;
 }
 
@@ -282,14 +285,60 @@ export function createN8nAdapter(): AutomationAdapter {
         finalWorkflow.settings = {};
       }
 
-      const res = await fetch(`${getN8nUrl()}/api/v1/workflows`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-N8N-API-KEY': apiKey,
-        },
-        body: JSON.stringify(finalWorkflow),
+      // Check if a workflow with the same name already exists → update instead of create
+      const workflowName = finalWorkflow.name || 'Generate & Publish Article';
+      const listRes = await fetch(`${getN8nUrl()}/api/v1/workflows`, {
+        headers: { 'X-N8N-API-KEY': apiKey },
       });
+      let existingId: string | null = null;
+      if (listRes.ok) {
+        const listData = (await listRes.json()) as {
+          data?: Array<{ id: string; name: string; active: boolean }>;
+        };
+        const existing = listData.data?.find((w) => w.name === workflowName);
+        if (existing) {
+          existingId = existing.id;
+          if (existing.active) {
+            const deactivateRes = await fetch(
+              `${getN8nUrl()}/api/v1/workflows/${existing.id}/deactivate`,
+              {
+                method: 'POST',
+                headers: { 'X-N8N-API-KEY': apiKey },
+              },
+            );
+            if (!deactivateRes.ok) {
+              console.warn(`Failed to deactivate workflow ${existing.id}: ${deactivateRes.status}`);
+            }
+          }
+        }
+      }
+
+      let res: Response;
+      if (existingId) {
+        res = await fetch(`${getN8nUrl()}/api/v1/workflows/${existingId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-N8N-API-KEY': apiKey,
+          },
+          body: JSON.stringify({
+            name: finalWorkflow.name,
+            nodes: finalWorkflow.nodes,
+            connections: finalWorkflow.connections,
+            settings: finalWorkflow.settings,
+            staticData: finalWorkflow.staticData,
+          }),
+        });
+      } else {
+        res = await fetch(`${getN8nUrl()}/api/v1/workflows`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-N8N-API-KEY': apiKey,
+          },
+          body: JSON.stringify(finalWorkflow),
+        });
+      }
 
       if (!res.ok) {
         const error = await res.text();

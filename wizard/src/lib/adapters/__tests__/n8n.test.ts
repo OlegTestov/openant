@@ -340,7 +340,13 @@ describe('createN8nAdapter', () => {
       makeWebhookUrl: 'https://hook.make.com/test',
     };
 
+    // Helper: mock the list-workflows call that importWorkflow now makes first
+    function mockListWorkflows(data: Array<{ id: string; name: string; active: boolean }> = []) {
+      mockFetch.mockResolvedValueOnce(mockResponse({ data }));
+    }
+
     it('does not mutate original template', async () => {
+      mockListWorkflows();
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'wf-1' }));
       const adapter = createN8nAdapter();
       const originalJson = JSON.stringify(template);
@@ -351,12 +357,13 @@ describe('createN8nAdapter', () => {
     });
 
     it('substitutes scheduleIntervalMinutes in Schedule Trigger', async () => {
+      mockListWorkflows();
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'wf-1' }));
       const adapter = createN8nAdapter();
 
       await adapter.importWorkflow(template, params);
 
-      const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+      const body = JSON.parse(mockFetch.mock.calls[1][1].body as string);
       const scheduleNode = body.nodes.find(
         (n: { type: string }) => n.type === 'n8n-nodes-base.scheduleTrigger',
       );
@@ -364,12 +371,13 @@ describe('createN8nAdapter', () => {
     });
 
     it('substitutes llmModel in OpenAI node', async () => {
+      mockListWorkflows();
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'wf-1' }));
       const adapter = createN8nAdapter();
 
       await adapter.importWorkflow(template, params);
 
-      const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+      const body = JSON.parse(mockFetch.mock.calls[1][1].body as string);
       const openAiNode = body.nodes.find(
         (n: { type: string }) => n.type === 'n8n-nodes-base.openAi',
       );
@@ -377,12 +385,13 @@ describe('createN8nAdapter', () => {
     });
 
     it('substitutes makeWebhookUrl in HTTP Request node', async () => {
+      mockListWorkflows();
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'wf-1' }));
       const adapter = createN8nAdapter();
 
       await adapter.importWorkflow(template, params);
 
-      const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+      const body = JSON.parse(mockFetch.mock.calls[1][1].body as string);
       const httpNode = body.nodes.find(
         (n: { type: string }) => n.type === 'n8n-nodes-base.httpRequest',
       );
@@ -390,12 +399,13 @@ describe('createN8nAdapter', () => {
     });
 
     it('substitutes credentialIds in node.credentials', async () => {
+      mockListWorkflows();
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'wf-1' }));
       const adapter = createN8nAdapter();
 
       await adapter.importWorkflow(template, params);
 
-      const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+      const body = JSON.parse(mockFetch.mock.calls[1][1].body as string);
       const openAiNode = body.nodes.find(
         (n: { type: string }) => n.type === 'n8n-nodes-base.openAi',
       );
@@ -417,6 +427,7 @@ describe('createN8nAdapter', () => {
         ],
       };
 
+      mockListWorkflows();
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'wf-1' }));
       const adapter = createN8nAdapter();
 
@@ -425,7 +436,7 @@ describe('createN8nAdapter', () => {
         nocodbPromptsTableId: 'prompts-table-xyz',
       });
 
-      const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+      const body = JSON.parse(mockFetch.mock.calls[1][1].body as string);
       const promptsNode = body.nodes.find((n: { name: string }) => n.name === 'Get Prompts');
       expect(promptsNode.parameters.url).toBe(
         'http://nocodb:8080/api/v2/tables/prompts-table-xyz/records',
@@ -454,6 +465,7 @@ describe('createN8nAdapter', () => {
         ],
       };
 
+      mockListWorkflows();
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'wf-1' }));
       const adapter = createN8nAdapter();
 
@@ -462,7 +474,7 @@ describe('createN8nAdapter', () => {
         pinterestBoard: 'Travel Ideas',
       });
 
-      const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+      const body = JSON.parse(mockFetch.mock.calls[1][1].body as string);
       const ifNode = body.nodes.find((n: { name: string }) => n.name === 'Check Pinterest');
       expect(ifNode.parameters.value1).toBe('https://hook.make.com/test');
 
@@ -471,17 +483,19 @@ describe('createN8nAdapter', () => {
     });
 
     it('substitutes blogLanguage and blogTone markers', async () => {
+      mockListWorkflows();
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'wf-1' }));
       const adapter = createN8nAdapter();
 
       await adapter.importWorkflow(template, params);
 
-      const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+      const body = JSON.parse(mockFetch.mock.calls[1][1].body as string);
       const codeNode = body.nodes.find((n: { type: string }) => n.type === 'n8n-nodes-base.code');
       expect(codeNode.parameters.code).toBe('Write in English with professional tone');
     });
 
-    it('sends POST with modified workflow JSON', async () => {
+    it('sends POST when no existing workflow found', async () => {
+      mockListWorkflows();
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'wf-1' }));
       const adapter = createN8nAdapter();
 
@@ -498,7 +512,40 @@ describe('createN8nAdapter', () => {
       );
     });
 
+    it('sends PUT when existing workflow found', async () => {
+      mockListWorkflows([{ id: 'wf-existing', name: 'Test Workflow', active: false }]);
+      mockFetch.mockResolvedValueOnce(mockResponse({ id: 'wf-existing' }));
+      const adapter = createN8nAdapter();
+
+      await adapter.importWorkflow(template, params);
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://n8n:5678/api/v1/workflows/wf-existing',
+        expect.objectContaining({
+          method: 'PUT',
+        }),
+      );
+    });
+
+    it('deactivates active workflow before updating', async () => {
+      mockListWorkflows([{ id: 'wf-active', name: 'Test Workflow', active: true }]);
+      // deactivate call
+      mockFetch.mockResolvedValueOnce(mockResponse({}));
+      // PUT update call
+      mockFetch.mockResolvedValueOnce(mockResponse({ id: 'wf-active' }));
+      const adapter = createN8nAdapter();
+
+      await adapter.importWorkflow(template, params);
+
+      // call[0] = list, call[1] = deactivate, call[2] = PUT
+      expect(mockFetch.mock.calls[1][0]).toBe(
+        'http://n8n:5678/api/v1/workflows/wf-active/deactivate',
+      );
+      expect(mockFetch.mock.calls[2][1]).toEqual(expect.objectContaining({ method: 'PUT' }));
+    });
+
     it('returns workflow ID', async () => {
+      mockListWorkflows();
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'wf-42' }));
       const adapter = createN8nAdapter();
 

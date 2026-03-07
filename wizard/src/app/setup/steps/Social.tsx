@@ -130,12 +130,7 @@ export default function Social({ onComplete, onBack, initialData }: StepProps) {
         {(pinterest || threads) && (
           <div className="space-y-4">
             <div>
-              <Button
-                variant="outline"
-                size="sm"
-                type="button"
-                onClick={downloadBlueprint}
-              >
+              <Button variant="outline" size="sm" type="button" onClick={downloadBlueprint}>
                 {t.steps.social.downloadTemplate}
               </Button>
               <p className="text-muted-foreground mt-1 whitespace-pre-line text-xs">
