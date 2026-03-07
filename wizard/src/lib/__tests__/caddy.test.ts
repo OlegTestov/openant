@@ -52,6 +52,12 @@ describe('generateCaddyfile', () => {
     expect(result).not.toContain(':80 {');
   });
 
+  it('domain-mode includes admin API global option', () => {
+    const result = generateCaddyfile(DEFAULT_DOMAINS);
+
+    expect(result).toContain('admin 0.0.0.0:2019');
+  });
+
   it('domain-mode contains 4 server blocks', () => {
     const result = generateCaddyfile(DEFAULT_DOMAINS);
 
@@ -63,10 +69,10 @@ describe('generateCaddyfile', () => {
 
   it('domain-mode: ghost domain routes to ghost:2368', () => {
     const result = generateCaddyfile(DEFAULT_DOMAINS);
-    const mainBlock = result.split('\n\n')[0];
+    const ghostBlock = result.split('\n\n')[1];
 
-    expect(mainBlock).toContain('example.com {');
-    expect(mainBlock).toContain('reverse_proxy ghost:2368');
+    expect(ghostBlock).toContain('example.com {');
+    expect(ghostBlock).toContain('reverse_proxy ghost:2368');
   });
 
   it('domain-mode: nocodb domain routes to nocodb:8080', () => {
@@ -91,8 +97,8 @@ describe('generateCaddyfile', () => {
     const result = generateCaddyfile(DEFAULT_DOMAINS, undefined, true);
 
     expect(result).toContain('tls internal');
-    // Every block should have tls internal
-    const blocks = result.split('\n\n');
+    // Every server block should have tls internal (skip global options block)
+    const blocks = result.split('\n\n').slice(1);
     for (const block of blocks) {
       expect(block).toContain('tls internal');
     }

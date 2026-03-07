@@ -30,6 +30,11 @@ export function generateCaddyfile(
 
   const blocks: string[] = [];
 
+  // Global options: expose Admin API on all interfaces for hot reload from wizard
+  blocks.push(`{
+    admin 0.0.0.0:2019
+}`);
+
   blocks.push(`${domains.ghost} {${tls}
     reverse_proxy ghost:2368
 }`);

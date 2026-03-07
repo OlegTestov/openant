@@ -64,11 +64,36 @@ export async function startServices(): Promise<void> {
   ]);
 }
 
+/**
+ * Reload Caddy config via its Admin API (POST /load with Caddyfile).
+ * Caddy must have `admin 0.0.0.0:2019` in its global options block.
+ * Falls back to docker exec CLI for environments without Admin API access.
+ */
 export async function reloadCaddy(): Promise<void> {
+  const caddyAdminUrl = process.env.CADDY_ADMIN_URL || 'http://caddy:2019';
+
+  // Method 1: Caddy Admin API — graceful hot reload, no Docker access needed
+  try {
+    const { readFile } = await import('fs/promises');
+    const caddyfilePath = process.env.CADDYFILE_PATH || '/app/Caddyfile';
+    const caddyfile = await readFile(caddyfilePath, 'utf-8');
+
+    const res = await fetch(`${caddyAdminUrl}/load`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/caddyfile' },
+      body: caddyfile,
+      signal: AbortSignal.timeout(10000),
+    });
+    if (res.ok) return;
+    console.warn(`[caddy] Admin API returned ${res.status}, falling back to docker exec`);
+  } catch {
+    // Admin API not available — fall through
+  }
+
+  // Method 2: docker exec CLI (works on host with Docker installed)
   try {
     await execAsync('docker exec openant-caddy caddy reload --config /etc/caddy/Caddyfile');
   } catch (error) {
-    // In local dev, the Caddy container may not exist — skip gracefully
     const msg = error instanceof Error ? error.message : '';
     if (msg.includes('No such container') || msg.includes('not found')) {
       console.warn('[caddy] Container not found, skipping reload (local dev mode)');
