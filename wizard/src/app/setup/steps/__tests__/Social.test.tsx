@@ -45,6 +45,12 @@ describe('Social', () => {
     expect(screen.getByPlaceholderText('My Board Name')).toBeInTheDocument();
   });
 
+  it('shows download Make template button', () => {
+    render(<Social onComplete={vi.fn()} onBack={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: 'Download Make.com Template' })).toBeInTheDocument();
+  });
+
   it('can submit with empty form', async () => {
     const user = userEvent.setup();
     const onComplete = vi.fn();

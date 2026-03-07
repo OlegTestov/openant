@@ -69,6 +69,8 @@ export interface Translations {
       threads: string;
       board: string;
       boardHint: string;
+      downloadTemplate: string;
+      downloadHint: string;
     };
     review: {
       title: string;
@@ -122,6 +124,8 @@ export interface Translations {
     openTable: string;
     openAutomation: string;
     managedBySaas: string;
+    tools: string;
+    downloadMakeTemplate: string;
   };
   services: {
     ghost: string;
@@ -202,6 +206,9 @@ const en: Translations = {
       threads: 'Threads',
       board: 'Pinterest Board',
       boardHint: 'Name of the Pinterest board to publish pins to',
+      downloadTemplate: 'Download Make.com Template',
+      downloadHint:
+        'Import this template into Make.com, connect Pinterest, and copy the webhook URL',
     },
     review: {
       title: 'Review Configuration',
@@ -255,6 +262,8 @@ const en: Translations = {
     openTable: 'Open articles table',
     openAutomation: 'Open automations',
     managedBySaas: 'Managed by openant SaaS',
+    tools: 'Tools',
+    downloadMakeTemplate: 'Download Make.com Pinterest Template',
   },
   services: {
     ghost: 'Ghost',
@@ -335,6 +344,8 @@ const ru: Translations = {
       threads: 'Threads',
       board: 'Доска Pinterest',
       boardHint: 'Название доски Pinterest для публикации пинов',
+      downloadTemplate: 'Скачать шаблон Make.com',
+      downloadHint: 'Импортируйте шаблон в Make.com, подключите Pinterest и скопируйте URL вебхука',
     },
     review: {
       title: 'Проверка конфигурации',
@@ -388,6 +399,8 @@ const ru: Translations = {
     openTable: 'Открыть таблицу статей',
     openAutomation: 'Открыть автоматизации',
     managedBySaas: 'Управляется openant SaaS',
+    tools: 'Инструменты',
+    downloadMakeTemplate: 'Скачать шаблон Make.com для Pinterest',
   },
   services: {
     ghost: 'Ghost',

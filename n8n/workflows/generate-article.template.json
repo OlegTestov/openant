@@ -442,10 +442,20 @@
       }
     },
     {
+      "name": "Save Pin URL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [4050, 200],
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst pinUrl = response?.pin_url || '';\nreturn [{ json: { pinUrl } }];"
+      }
+    },
+    {
       "name": "Update Status: completed",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [4050, 200],
+      "position": [4250, 200],
       "parameters": {
         "method": "PATCH",
         "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
@@ -459,6 +469,10 @@
             {
               "name": "Status",
               "value": "completed"
+            },
+            {
+              "name": "PinURL",
+              "value": "={{ $('Save Pin URL').first().json.pinUrl || '' }}"
             }
           ]
         },
@@ -591,6 +605,12 @@
       ]
     },
     "Send to Make Webhook": {
+      "main": [
+        [{ "node": "Save Pin URL", "type": "main", "index": 0 }],
+        [{ "node": "Update Status: completed (pin error)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Save Pin URL": {
       "main": [
         [{ "node": "Update Status: completed", "type": "main", "index": 0 }],
         [{ "node": "Update Status: completed (pin error)", "type": "main", "index": 0 }]

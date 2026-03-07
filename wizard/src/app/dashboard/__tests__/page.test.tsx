@@ -84,6 +84,18 @@ describe('DashboardPage', () => {
     expect(screen.getByText('Caddy')).toBeInTheDocument();
   });
 
+  it('renders tools card with Make template download', async () => {
+    render(<DashboardPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Tools')).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByText((content) => content.includes('Download Make.com Pinterest Template')),
+    ).toBeInTheDocument();
+  });
+
   it('renders article statistics', async () => {
     render(<DashboardPage />);
 

@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ServiceStatus } from '@/components/ServiceStatus';
+import { downloadBlueprint } from '@/lib/download';
 import { useTranslations } from '@/lib/i18n';
 
 interface CredentialInfo {
@@ -219,6 +220,18 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Tools */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>{t.dashboard.tools}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Button variant="link" className="h-auto p-0 text-sm" onClick={downloadBlueprint}>
+            {t.dashboard.downloadMakeTemplate} &rarr;
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Article Statistics */}
       <Card className="mb-6">

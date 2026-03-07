@@ -2,10 +2,12 @@
 
 import { useState } from 'react';
 import { StepLayout } from '@/components/StepLayout';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
+import { downloadBlueprint } from '@/lib/download';
 import { useTranslations } from '@/lib/i18n';
 import type { StepProps } from '@/types/step-props';
 
@@ -101,6 +103,16 @@ export default function Social({ onComplete, onBack, initialData }: StepProps) {
           <p id="webhook-hint" className="text-muted-foreground mt-1 text-xs">
             {t.steps.social.webhookHint}
           </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-2"
+            type="button"
+            onClick={downloadBlueprint}
+          >
+            {t.steps.social.downloadTemplate}
+          </Button>
+          <p className="text-muted-foreground mt-1 text-xs">{t.steps.social.downloadHint}</p>
         </div>
 
         <div className="space-y-3">

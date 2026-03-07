@@ -196,7 +196,7 @@ One n8n workflow template lives in `n8n/workflows/`. It is imported into n8n dur
 
 ### generate-article.template.json
 
-22-node pipeline with system/user prompt split, image generation, and optional Pinterest promotion:
+23-node pipeline with system/user prompt split, image generation, and optional Pinterest promotion:
 
 ```
 Schedule Trigger → Get Next Queued (blank status) → Has Records?
@@ -208,7 +208,7 @@ Schedule Trigger → Get Next Queued (blank status) → Has Records?
     → false: Update Status: completed (no pin)
     → true:  Prepare Pin Prompts → Generate Pin Title → Generate Pin Text
              → Generate & Upload Pin Image → Send to Make Webhook
-             → Update Status: completed
+             → Save Pin URL → Update Status: completed (writes PinURL)
     → any pin error: Update Status: completed (pin error)
 ```
 
@@ -218,7 +218,9 @@ Schedule Trigger → Get Next Queued (blank status) → Has Records?
 
 **HTML sanitization**: The "Build Ghost JWT" Code node post-processes article HTML before publishing. Two regex passes wrap any bare text (not inside block-level tags) in `<p>` tags — this prevents Ghost's Source theme from rendering loose text in broken multi-column layout. The article prompt also explicitly requires all paragraphs to be wrapped in `<p>` tags.
 
-**Pinterest promotion**: After publishing, the workflow checks if `{{MAKE_WEBHOOK_URL}}` is configured. If yes, it generates pin title, text, and image (2:3 vertical) via LLM using system prompts from the NocoDB Prompts table (`PinName`, `PinText`, `PinImage`), then sends a webhook to Make.com with `{ board, title, description, url, imageUrl }`. Pin errors do NOT affect article status — all pin error paths set `Status: completed` with an `Error` field, preventing queue stalling.
+**Pinterest promotion**: After publishing, the workflow checks if `{{MAKE_WEBHOOK_URL}}` is configured. If yes, it generates pin title, text, and image (2:3 vertical) via LLM using system prompts from the NocoDB Prompts table (`PinName`, `PinText`, `PinImage`), then sends a webhook to Make.com with `{ board, title, description, url, imageUrl }`. Make.com responds synchronously with `{ success, pin_id, pin_url }` — the "Save Pin URL" node parses this response and the "Update Status: completed" node writes `PinURL` to NocoDB. Pin errors do NOT affect article status — all pin error paths set `Status: completed` with an `Error` field, preventing queue stalling.
+
+**Make.com blueprint** (`make/blueprint.json`): 7-module scenario — Webhook → List Boards → Aggregator → Set Variable (find board ID by name) → Create Pin → Webhook Response (success/error). Uses `gateway:WebhookRespond` for synchronous response. Board lookup uses `get(map(array; "id"; "name"; trim(board)))` to find board ID by name. Download available via `/api/make-blueprint` (auth required), with buttons on the Social wizard step and Dashboard.
 
 ### Placeholder substitution
 
@@ -568,7 +570,7 @@ All step UI components follow the same pattern:
 | **Domain**  | Switch (domain/IP mode), domain input, DNS result           | `POST /api/setup/domain`         | `dns.resolve4()` check. Returns `server_ip` + `dns_check`. Domain optional if IP mode.                    |
 | **LLM**     | Preset selector, URL/Key/Model inputs, "Test Connection"    | `POST /api/setup/llm`            | Tests LLM via `POST {api_url}/chat/completions` with 10s timeout. Result returned but doesn't block save. |
 | **Blog**    | Title, description, language, tone, interval + live preview | `POST /api/setup/blog`           | Title max 100 chars, interval min 10 minutes. Client converts hours→minutes.                              |
-| **Social**  | Webhook URL, Pinterest/Threads toggles                      | `POST /api/setup/social`         | All fields optional. Empty webhook URL allowed via `z.literal('')`.                                       |
+| **Social**  | Webhook URL, Pinterest/Threads toggles, Make template download | `POST /api/setup/social`       | All fields optional. Empty webhook URL allowed via `z.literal('')`. Download button serves `make/blueprint.json` via `/api/make-blueprint`. |
 | **Review**  | Read-only config cards with Edit buttons                    | None (reads `/api/setup/status`) | `onGoToStep()` for navigation. API key masked as `•••••`.                                                 |
 | **Deploy**  | Deploy button → SSE progress → success/retry                | `POST /api/setup/apply` (SSE)    | 12-step pipeline with real-time progress. Retry from failed step. Shows service URLs on success.          |
 
@@ -607,6 +609,7 @@ Defined in **`src/lib/llm-presets.ts`**. All LLM providers are OpenAI-compatible
 | `POST /api/setup/llm`             | Yes  | Validates LLM config, tests connection (non-blocking), advances to `blog`.                                                                                                           |
 | `POST /api/setup/blog`            | Yes  | Validates blog config (title, language, tone, interval), advances to `social`.                                                                                                       |
 | `POST /api/setup/social`          | Yes  | Validates social config (all optional), advances to `review`.                                                                                                                        |
+| `GET /api/make-blueprint`         | Yes  | Serves `make/blueprint.json` as download (`Content-Disposition: attachment`). Used by Social step and Dashboard.                                                                      |
 | `POST /api/setup/apply`           | Yes  | SSE deploy pipeline. Executes 12 steps, streams progress. Supports `?startFrom=N` for retry.                                                                                         |
 | `GET /api/dashboard/status`       | Yes  | Returns health status for all 4 services (Ghost, NocoDB, n8n, Caddy), service URLs, admin credentials, and `saas_mode` flag. Managed mode: n8n URL and credentials hidden from user. |
 | `GET /api/dashboard/stats`        | Yes  | Returns article counts by status from NocoDB `table.getStats()`.                                                                                                                     |
@@ -669,6 +672,7 @@ These are copy-pasted components (not a library dependency), styled with Tailwin
 | `lib/__tests__/auth.test.ts`                      | 5     | Valid token passthrough, missing/wrong/malformed header → 401                                                                                                                                                                                                                            |
 | `lib/__tests__/api-handler.test.ts`               | 7     | ZodError → 400, AdapterError → 500, unknown → 500, no detail leaks, console logging                                                                                                                                                                                                      |
 | `app/api/health/__tests__/route.test.ts`          | 2     | Health endpoint returns 200 + `{ status: "ok" }`                                                                                                                                                                                                                                         |
+| `app/api/make-blueprint/__tests__/route.test.ts`  | 2     | Auth required (401), returns blueprint JSON with Content-Disposition header                                                                                                                                                                                                               |
 | `app/api/setup/__tests__/schemas.test.ts`         | 23    | Zod schemas for all 5 step routes: valid/invalid inputs, edge cases                                                                                                                                                                                                                      |
 | `app/api/setup/__tests__/routes.test.ts`          | 20    | All 5 POST routes: 200 on valid, 400 on invalid, 401 without auth, correct state updates, DNS/LLM mocking                                                                                                                                                                                |
 | `components/__tests__/Stepper.test.tsx`           | 5     | Renders all labels, highlights current step, shows checkmarks for completed, step numbers, connector lines                                                                                                                                                                               |
@@ -679,7 +683,7 @@ These are copy-pasted components (not a library dependency), styled with Tailwin
 | `app/setup/steps/__tests__/Domain.test.tsx`       | 4     | Toggle domain/IP mode, domain input visibility, IP mode info, submit success                                                                                                                                                                                                             |
 | `app/setup/steps/__tests__/LLM.test.tsx`          | 4     | Provider selector, Test Connection success/error, submit                                                                                                                                                                                                                                 |
 | `app/setup/steps/__tests__/Blog.test.tsx`         | 3     | Live preview update, hours→minutes conversion, API error display                                                                                                                                                                                                                         |
-| `app/setup/steps/__tests__/Social.test.tsx`       | 3     | Optional step alert, Pinterest/Threads toggles, empty form submit                                                                                                                                                                                                                        |
+| `app/setup/steps/__tests__/Social.test.tsx`       | 4     | Optional step alert, Pinterest/Threads toggles, Make template download button, empty form submit                                                                                                                                                                                         |
 | `app/setup/steps/__tests__/Review.test.tsx`       | 3     | All config sections displayed, Edit button navigation, API key masking                                                                                                                                                                                                                   |
 | `app/setup/steps/__tests__/Deploy.test.tsx`       | 7     | Deploy button, progress bar, checkmarks, error/retry, success URLs, Go to Dashboard                                                                                                                                                                                                      |
 | `app/api/setup/__tests__/apply.test.ts`           | 24    | SSE stream format, all 12 pipeline steps, error handling, startFrom retry, auth, URL generation (domain + IP mode), managed mode Caddyfile                                                                                                                                               |
@@ -692,7 +696,7 @@ These are copy-pasted components (not a library dependency), styled with Tailwin
 | `app/api/dashboard/__tests__/stats.test.ts`       | 3     | Article counts, auth, AdapterError handling                                                                                                                                                                                                                                              |
 | `app/api/dashboard/__tests__/reconfigure.test.ts` | 5     | Reset deployed/steps, preserve config, auth                                                                                                                                                                                                                                              |
 | `app/api/saas/__tests__/health.test.ts`           | 5     | 404 when SaaS off, combined health+stats, adapter failures, no auth required                                                                                                                                                                                                             |
-| `app/dashboard/__tests__/page.test.tsx`           | 11    | Service statuses, article stats, quick links, SaaS badge, reconfigure confirm, auto-refresh                                                                                                                                                                                              |
+| `app/dashboard/__tests__/page.test.tsx`           | 12    | Service statuses, article stats, tools card with Make download, quick links, SaaS badge, reconfigure confirm, auto-refresh                                                                                                                                                               |
 
 ### Integration tests
 
