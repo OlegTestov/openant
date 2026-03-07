@@ -90,33 +90,6 @@ export default function Social({ onComplete, onBack, initialData }: StepProps) {
           </AlertDescription>
         </Alert>
 
-        <div>
-          <Label htmlFor="webhook-url">{t.steps.social.webhookUrl}</Label>
-          <Input
-            id="webhook-url"
-            className="mt-1"
-            value={webhookUrl}
-            onChange={(e) => setWebhookUrl(e.target.value)}
-            placeholder="https://hook.make.com/..."
-            aria-describedby="webhook-hint"
-          />
-          <p id="webhook-hint" className="text-muted-foreground mt-1 text-xs">
-            {t.steps.social.webhookHint}
-          </p>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-2"
-            type="button"
-            onClick={downloadBlueprint}
-          >
-            {t.steps.social.downloadTemplate}
-          </Button>
-          <p className="text-muted-foreground mt-1 whitespace-pre-line text-xs">
-            {t.steps.social.downloadHint}
-          </p>
-        </div>
-
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <Label htmlFor="pinterest-toggle">{t.steps.social.pinterest}</Label>
@@ -143,6 +116,35 @@ export default function Social({ onComplete, onBack, initialData }: StepProps) {
             <Switch id="threads-toggle" checked={threads} onCheckedChange={setThreads} />
           </div>
         </div>
+
+        {(pinterest || threads) && (
+          <div>
+            <Label htmlFor="webhook-url">{t.steps.social.webhookUrl}</Label>
+            <Input
+              id="webhook-url"
+              className="mt-1"
+              value={webhookUrl}
+              onChange={(e) => setWebhookUrl(e.target.value)}
+              placeholder="https://hook.make.com/..."
+              aria-describedby="webhook-hint"
+            />
+            <p id="webhook-hint" className="text-muted-foreground mt-1 text-xs">
+              {t.steps.social.webhookHint}
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2"
+              type="button"
+              onClick={downloadBlueprint}
+            >
+              {t.steps.social.downloadTemplate}
+            </Button>
+            <p className="text-muted-foreground mt-1 whitespace-pre-line text-xs">
+              {t.steps.social.downloadHint}
+            </p>
+          </div>
+        )}
       </div>
     </StepLayout>
   );

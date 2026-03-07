@@ -45,8 +45,18 @@ describe('Social', () => {
     expect(screen.getByPlaceholderText('My Board Name')).toBeInTheDocument();
   });
 
-  it('shows download Make template button', () => {
+  it('shows download Make template button when a toggle is enabled', async () => {
+    const user = userEvent.setup();
     render(<Social onComplete={vi.fn()} onBack={vi.fn()} />);
+
+    // Hidden by default
+    expect(
+      screen.queryByRole('button', { name: 'Download Make.com Template' }),
+    ).not.toBeInTheDocument();
+
+    // Enable Pinterest
+    const switches = screen.getAllByRole('switch');
+    await user.click(switches[0]);
 
     expect(screen.getByRole('button', { name: 'Download Make.com Template' })).toBeInTheDocument();
   });
