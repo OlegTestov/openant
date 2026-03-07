@@ -45,6 +45,7 @@ const setupStateSchema = z.object({
       make_webhook_url: z.string().optional(),
       pinterest_enabled: z.boolean(),
       threads_enabled: z.boolean(),
+      board: z.string().optional(),
     })
     .optional(),
 });
