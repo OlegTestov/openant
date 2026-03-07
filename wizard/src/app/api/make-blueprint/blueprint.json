@@ -1,0 +1,444 @@
+{
+  "name": "OpenAnt Pinterest",
+  "flow": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebHook",
+      "version": 1,
+      "parameters": {
+        "hook": "webhook-url-placeholder",
+        "maxResults": 1
+      },
+      "mapper": {},
+      "metadata": {
+        "designer": {
+          "x": 0,
+          "y": 0
+        },
+        "restore": {
+          "parameters": {
+            "hook": {
+              "data": {
+                "editable": "true"
+              },
+              "label": "OpenAnt webhook"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "hook",
+            "type": "hook:gateway-webhook",
+            "label": "Webhook",
+            "required": true
+          },
+          {
+            "name": "maxResults",
+            "type": "number",
+            "label": "Maximum number of results"
+          }
+        ],
+        "advanced": true
+      }
+    },
+    {
+      "id": 2,
+      "module": "pinterest:listBoards",
+      "version": 2,
+      "parameters": {
+        "__IMTCONN__": 0
+      },
+      "mapper": {
+        "limit": "100"
+      },
+      "metadata": {
+        "designer": {
+          "x": 300,
+          "y": 0
+        },
+        "restore": {
+          "expect": {
+            "privacy": {
+              "mode": "chose",
+              "label": "Empty"
+            }
+          },
+          "parameters": {
+            "__IMTCONN__": {
+              "data": {
+                "scoped": "true",
+                "connection": "pinterest2"
+              },
+              "label": "My Pinterest connection"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "__IMTCONN__",
+            "type": "account:pinterest2",
+            "label": "Connection",
+            "required": true
+          }
+        ],
+        "expect": [
+          {
+            "name": "privacy",
+            "type": "select",
+            "label": "Privacy",
+            "validate": {
+              "enum": ["ALL", "PUBLIC", "PROTECTED", "SECRET", "PUBLIC_AND_SECRET"]
+            }
+          },
+          {
+            "name": "limit",
+            "type": "uinteger",
+            "label": "Limit"
+          }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "module": "builtin:BasicAggregator",
+      "version": 1,
+      "parameters": {
+        "feeder": 2
+      },
+      "mapper": {
+        "id": "{{2.id}}",
+        "name": "{{2.name}}"
+      },
+      "metadata": {
+        "designer": {
+          "x": 600,
+          "y": 0
+        },
+        "restore": {
+          "extra": {
+            "feeder": {
+              "label": "Pinterest - List Boards [2]"
+            },
+            "target": {
+              "label": "Custom"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "module": "util:SetVariable2",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "name": "FoundBoardID",
+        "scope": "roundtrip",
+        "value": "{{get(map(3.array; \"id\"; \"name\"; trim(1.board)); 1)}}"
+      },
+      "metadata": {
+        "designer": {
+          "x": 900,
+          "y": 0
+        },
+        "restore": {
+          "expect": {
+            "scope": {
+              "label": "One cycle"
+            }
+          }
+        },
+        "expect": [
+          {
+            "name": "name",
+            "type": "text",
+            "label": "Variable name",
+            "required": true
+          },
+          {
+            "name": "scope",
+            "type": "select",
+            "label": "Variable lifetime",
+            "required": true,
+            "validate": {
+              "enum": ["roundtrip", "execution"]
+            }
+          },
+          {
+            "name": "value",
+            "type": "any",
+            "label": "Variable value"
+          }
+        ],
+        "interface": [
+          {
+            "name": "FoundBoardID",
+            "type": "any",
+            "label": "FoundBoardID"
+          }
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "module": "pinterest:createPin",
+      "version": 2,
+      "parameters": {
+        "__IMTCONN__": 0
+      },
+      "mapper": {
+        "board_id": "{{4.FoundBoardID}}",
+        "title": "{{1.title}}",
+        "description": "{{1.description}}",
+        "link": "{{1.url}}",
+        "media_source": {
+          "source_type": "image_url",
+          "url": "{{1.imageUrl}}"
+        }
+      },
+      "metadata": {
+        "designer": {
+          "x": 1200,
+          "y": 0
+        },
+        "restore": {
+          "expect": {
+            "board_id": {
+              "mode": "edit"
+            },
+            "media_source": {
+              "nested": {
+                "source_type": {
+                  "mode": "chose",
+                  "label": "Image URL"
+                }
+              }
+            }
+          },
+          "parameters": {
+            "__IMTCONN__": {
+              "data": {
+                "scoped": "true",
+                "connection": "pinterest2"
+              },
+              "label": "My Pinterest connection"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "__IMTCONN__",
+            "type": "account:pinterest2",
+            "label": "Connection",
+            "required": true
+          }
+        ],
+        "expect": [
+          {
+            "name": "media_source",
+            "spec": [
+              {
+                "name": "source_type",
+                "type": "select",
+                "label": "Source Type",
+                "required": true,
+                "validate": {
+                  "enum": [
+                    "video_id",
+                    "image_url",
+                    "multiple_image_urls",
+                    "image_base64",
+                    "multiple_image_base64"
+                  ]
+                }
+              },
+              {
+                "name": "url",
+                "type": "url",
+                "label": "Image URL",
+                "required": true
+              }
+            ],
+            "type": "collection",
+            "label": "Media Source",
+            "required": true
+          },
+          {
+            "name": "board_id",
+            "type": "select",
+            "label": "Board",
+            "required": true
+          },
+          {
+            "name": "title",
+            "type": "text",
+            "label": "Pin Name"
+          },
+          {
+            "name": "description",
+            "type": "text",
+            "label": "Description",
+            "validate": {
+              "max": 800
+            }
+          },
+          {
+            "name": "link",
+            "type": "url",
+            "label": "Link"
+          }
+        ]
+      },
+      "onerror": [
+        {
+          "id": 7,
+          "module": "gateway:WebhookRespond",
+          "version": 1,
+          "parameters": {},
+          "mapper": {
+            "status": "400",
+            "body": "{\"success\": false, \"error\": \"Board not found or pin creation failed\"}",
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "metadata": {
+            "designer": {
+              "x": 1500,
+              "y": 300
+            },
+            "restore": {
+              "expect": {
+                "headers": {
+                  "mode": "chose",
+                  "items": [null]
+                }
+              }
+            },
+            "expect": [
+              {
+                "name": "status",
+                "type": "uinteger",
+                "label": "Status",
+                "required": true,
+                "validate": {
+                  "min": 100
+                }
+              },
+              {
+                "name": "body",
+                "type": "any",
+                "label": "Body"
+              },
+              {
+                "name": "headers",
+                "type": "array",
+                "label": "Custom headers",
+                "spec": [
+                  {
+                    "name": "key",
+                    "type": "text",
+                    "label": "Key",
+                    "required": true
+                  },
+                  {
+                    "name": "value",
+                    "type": "text",
+                    "label": "Value"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "module": "gateway:WebhookRespond",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "status": "200",
+        "body": "{\"success\": true, \"pin_id\": \"{{5.id}}\", \"pin_url\": \"https://pinterest.com/pin/{{5.id}}\"}",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ]
+      },
+      "metadata": {
+        "designer": {
+          "x": 1500,
+          "y": 0
+        },
+        "restore": {
+          "expect": {
+            "headers": {
+              "mode": "chose",
+              "items": [null]
+            }
+          }
+        },
+        "expect": [
+          {
+            "name": "status",
+            "type": "uinteger",
+            "label": "Status",
+            "required": true,
+            "validate": {
+              "min": 100
+            }
+          },
+          {
+            "name": "body",
+            "type": "any",
+            "label": "Body"
+          },
+          {
+            "name": "headers",
+            "type": "array",
+            "label": "Custom headers",
+            "spec": [
+              {
+                "name": "key",
+                "type": "text",
+                "label": "Key",
+                "required": true
+              },
+              {
+                "name": "value",
+                "type": "text",
+                "label": "Value"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "instant": true,
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "autoCommitTriggerLast": true,
+      "sequential": false,
+      "slots": null,
+      "confidential": false,
+      "dataloss": false,
+      "dlq": false,
+      "freshVariables": false
+    },
+    "designer": {
+      "orphans": []
+    },
+    "zone": "eu2.make.com"
+  }
+}

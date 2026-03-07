@@ -1,19 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const MOCK_TOKEN = 'test-token-123';
-const MOCK_BLUEPRINT = '{"name":"OpenAnt Pinterest","flow":[]}';
-
-const mockReadFile = vi.fn().mockResolvedValue(MOCK_BLUEPRINT);
-
-vi.mock('node:fs/promises', () => ({
-  default: { readFile: mockReadFile },
-  readFile: mockReadFile,
-}));
-
-vi.mock('fs/promises', () => ({
-  default: { readFile: mockReadFile },
-  readFile: mockReadFile,
-}));
 
 beforeEach(() => {
   vi.stubEnv('SETUP_TOKEN', MOCK_TOKEN);
@@ -43,6 +30,7 @@ describe('GET /api/make-blueprint', () => {
     );
 
     const body = await res.text();
-    expect(body).toBe(MOCK_BLUEPRINT);
+    const parsed = JSON.parse(body);
+    expect(parsed.name).toBe('OpenAnt Pinterest');
   });
 });
