@@ -80,7 +80,7 @@ export async function reloadCaddy(): Promise<void> {
 
     const res = await fetch(`${caddyAdminUrl}/load`, {
       method: 'POST',
-      headers: { 'Content-Type': 'text/caddyfile' },
+      headers: { 'Content-Type': 'text/caddyfile', Origin: 'http://0.0.0.0:2019' },
       body: caddyfile,
       signal: AbortSignal.timeout(10000),
     });
