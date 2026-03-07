@@ -116,6 +116,10 @@ async function executeDeployStep(
       // Merge with existing .env to preserve adapter keys from previous runs
       const existingEnv = await readEnv(getEnvPath());
       await writeEnv(getEnvPath(), { ...existingEnv, ...envVars });
+      // Update process.env so subsequent steps (e.g. Ghost auth) use new URLs
+      if (envVars.GHOST_URL) process.env.GHOST_URL = envVars.GHOST_URL;
+      if (envVars.N8N_HOST) process.env.N8N_HOST = envVars.N8N_HOST;
+      if (envVars.N8N_WEBHOOK_URL) process.env.N8N_WEBHOOK_URL = envVars.N8N_WEBHOOK_URL;
       break;
     }
 
