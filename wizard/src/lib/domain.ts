@@ -18,23 +18,8 @@ export function hasCustomDomain(state: SetupState): boolean {
   return !!(state.domain?.use_domain && state.domain?.domain);
 }
 
-/** Build per-service domain map from state */
-export function getServiceDomains(state: SetupState): ServiceDomains | null {
-  // Case 1: User configured a custom domain — nested subdomains
-  if (state.domain?.use_domain && state.domain?.domain) {
-    const domain = state.domain.domain;
-    const ghostPrefix = state.domain.ghost_prefix ?? 'blog';
-    const nocodbPrefix = state.domain.nocodb_prefix ?? 'table';
-    const n8nPrefix = state.domain.n8n_prefix ?? 'auto';
-    return {
-      ghost: ghostPrefix ? `${ghostPrefix}.${domain}` : domain,
-      nocodb: `${nocodbPrefix}.${domain}`,
-      n8n: `${n8nPrefix}.${domain}`,
-      wizard: `setup.${domain}`,
-    };
-  }
-
-  // Case 2: Auto-assigned domain from env (e.g. slug.openant.app) — flat subdomains
+/** Build per-service domain map — always uses SaaS flat subdomains from DOMAIN env */
+export function getServiceDomains(_state: SetupState): ServiceDomains | null {
   const envDomain = process.env.DOMAIN;
   if (!envDomain) return null;
 
@@ -47,5 +32,20 @@ export function getServiceDomains(state: SetupState): ServiceDomains | null {
     nocodb: `${slug}-table.${baseDomain}`,
     n8n: `${slug}-auto.${baseDomain}`,
     wizard: `${slug}-setup.${baseDomain}`,
+  };
+}
+
+/** Build custom domain map if user configured one (for Caddy + Pinterest links) */
+export function getCustomDomains(state: SetupState): ServiceDomains | null {
+  if (!state.domain?.use_domain || !state.domain?.domain) return null;
+  const domain = state.domain.domain;
+  const ghostPrefix = state.domain.ghost_prefix ?? 'blog';
+  const nocodbPrefix = state.domain.nocodb_prefix ?? 'table';
+  const n8nPrefix = state.domain.n8n_prefix ?? 'auto';
+  return {
+    ghost: ghostPrefix ? `${ghostPrefix}.${domain}` : domain,
+    nocodb: `${nocodbPrefix}.${domain}`,
+    n8n: `${n8nPrefix}.${domain}`,
+    wizard: `setup.${domain}`,
   };
 }

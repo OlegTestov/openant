@@ -111,10 +111,52 @@ describe('generateCaddyfile', () => {
     expect(result).not.toContain('tls internal');
   });
 
-  it('does not add tls internal in SaaS mode with custom domain', () => {
-    const result = generateCaddyfile(DEFAULT_DOMAINS, undefined, true, true);
+  it('generates both SaaS and custom domain blocks when customDomains provided', () => {
+    const customDomains: ServiceDomains = {
+      ghost: 'blog.mysite.com',
+      nocodb: 'table.mysite.com',
+      n8n: 'auto.mysite.com',
+      wizard: 'setup.mysite.com',
+    };
+    const result = generateCaddyfile(DEFAULT_DOMAINS, undefined, true, customDomains);
 
-    expect(result).not.toContain('tls internal');
+    // SaaS blocks present
+    expect(result).toContain('example.com {');
+    expect(result).toContain('table.example.com {');
+    // Custom domain blocks present
+    expect(result).toContain('blog.mysite.com {');
+    expect(result).toContain('table.mysite.com {');
+    expect(result).toContain('auto.mysite.com {');
+    expect(result).toContain('setup.mysite.com {');
+  });
+
+  it('SaaS blocks have tls internal, custom domain blocks do not', () => {
+    const customDomains: ServiceDomains = {
+      ghost: 'blog.mysite.com',
+      nocodb: 'table.mysite.com',
+      n8n: 'auto.mysite.com',
+      wizard: 'setup.mysite.com',
+    };
+    const result = generateCaddyfile(DEFAULT_DOMAINS, undefined, true, customDomains);
+    const blocks = result.split('\n\n').slice(1); // skip global options
+
+    // First 4 blocks = SaaS (tls internal), last 4 = custom (no tls internal)
+    const saasBlocks = blocks.slice(0, 4);
+    const customBlocks = blocks.slice(4);
+
+    for (const block of saasBlocks) {
+      expect(block).toContain('tls internal');
+    }
+    for (const block of customBlocks) {
+      expect(block).not.toContain('tls internal');
+    }
+  });
+
+  it('does not add custom domain blocks when customDomains is null', () => {
+    const result = generateCaddyfile(DEFAULT_DOMAINS, undefined, true, null);
+    const blocks = result.split('\n\n').slice(1);
+
+    expect(blocks).toHaveLength(4);
   });
 
   it('supports custom prefixes (ghost on subdomain)', () => {

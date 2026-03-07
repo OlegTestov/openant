@@ -152,6 +152,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.stubEnv('SETUP_TOKEN', MOCK_TOKEN);
   vi.stubEnv('SERVER_IP', '1.2.3.4');
+  vi.stubEnv('DOMAIN', 'slug.openant.app');
   mockState = JSON.parse(JSON.stringify(FULL_STATE)) as SetupState;
   mockReadFile.mockImplementation(() => Promise.resolve('{}'));
 });
@@ -245,16 +246,16 @@ describe('POST /api/setup/apply', () => {
     expect(completeEvent?.data.success).toBe(true);
 
     const urls = completeEvent?.data.urls as Record<string, string>;
-    expect(urls.blog).toBe('https://blog.example.com');
-    expect(urls.table).toBe('https://table.example.com');
-    expect(urls.n8n).toBe('https://auto.example.com');
+    expect(urls.blog).toBe('https://slug-blog.openant.app');
+    expect(urls.table).toBe('https://slug-table.openant.app');
+    expect(urls.n8n).toBe('https://slug-auto.openant.app');
     expect(urls.dashboard).toBeUndefined();
 
     const credentials = completeEvent?.data.credentials as Record<string, Record<string, string>>;
     expect(credentials).toBeDefined();
     expect(credentials.ghost).toHaveProperty('email');
     expect(credentials.ghost).toHaveProperty('password');
-    expect(credentials.ghost.adminUrl).toBe('https://blog.example.com/ghost/');
+    expect(credentials.ghost.adminUrl).toBe('https://slug-blog.openant.app/ghost/');
     expect(credentials.nocodb).toHaveProperty('email');
     expect(credentials.n8n).toHaveProperty('email');
   });
@@ -318,7 +319,7 @@ describe('POST /api/setup/apply', () => {
       expect.any(String),
       expect.objectContaining({
         DOMAIN: 'example.com',
-        GHOST_URL: 'https://blog.example.com',
+        GHOST_URL: 'https://slug-blog.openant.app',
         LLM_API_KEY: 'sk-test-key',
         LLM_MODEL: 'gpt-4o-mini',
         BLOG_TITLE: 'My Blog',
@@ -337,14 +338,19 @@ describe('POST /api/setup/apply', () => {
 
     expect(generateCaddyfile).toHaveBeenCalledWith(
       {
+        ghost: 'slug-blog.openant.app',
+        nocodb: 'slug-table.openant.app',
+        n8n: 'slug-auto.openant.app',
+        wizard: 'slug-setup.openant.app',
+      },
+      undefined,
+      false,
+      {
         ghost: 'blog.example.com',
         nocodb: 'table.example.com',
         n8n: 'auto.example.com',
         wizard: 'setup.example.com',
       },
-      undefined,
-      false,
-      true,
     );
   });
 
@@ -378,7 +384,7 @@ describe('POST /api/setup/apply', () => {
       title: 'My Blog',
       description: 'A great blog',
       language: 'en',
-      url: 'https://blog.example.com',
+      url: 'https://slug-blog.openant.app',
       adminEmail: 'admin@example.com',
     });
   });
@@ -518,6 +524,7 @@ describe('POST /api/setup/apply', () => {
 
   it('builds correct URLs for IP mode', async () => {
     mockState.domain = { use_domain: false };
+    vi.stubEnv('DOMAIN', '');
 
     const { POST } = await import('../apply/route');
     const res = await POST(createRequest());

@@ -15,7 +15,7 @@ export function generateCaddyfile(
   domains: ServiceDomains | null,
   _mode?: string,
   saas?: boolean,
-  customDomain?: boolean,
+  customDomains?: ServiceDomains | null,
 ): string {
   if (!domains) {
     return `{
@@ -28,9 +28,7 @@ export function generateCaddyfile(
 `;
   }
 
-  // SaaS with auto-assigned domain: Cloudflare terminates TLS, Caddy uses internal certs.
-  // Custom domain (even in SaaS): Caddy handles TLS via Let's Encrypt.
-  const tls = saas && !customDomain ? '\n    tls internal' : '';
+  const tls = saas ? '\n    tls internal' : '';
 
   const blocks: string[] = [];
 
@@ -39,6 +37,7 @@ export function generateCaddyfile(
     admin 0.0.0.0:2019
 }`);
 
+  // SaaS domain blocks (tls internal when SaaS — Cloudflare terminates TLS)
   blocks.push(`${domains.ghost} {${tls}
     reverse_proxy ghost:2368
 }`);
@@ -54,6 +53,25 @@ export function generateCaddyfile(
   blocks.push(`${domains.wizard} {${tls}
     reverse_proxy wizard:3000
 }`);
+
+  // Custom domain blocks — Let's Encrypt handles TLS
+  if (customDomains) {
+    blocks.push(`${customDomains.ghost} {
+    reverse_proxy ghost:2368
+}`);
+
+    blocks.push(`${customDomains.nocodb} {
+    reverse_proxy nocodb:8080
+}`);
+
+    blocks.push(`${customDomains.n8n} {
+    reverse_proxy n8n:5678
+}`);
+
+    blocks.push(`${customDomains.wizard} {
+    reverse_proxy wizard:3000
+}`);
+  }
 
   return blocks.join('\n\n') + '\n';
 }

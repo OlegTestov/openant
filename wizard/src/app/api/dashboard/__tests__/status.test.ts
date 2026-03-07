@@ -110,7 +110,8 @@ describe('GET /api/dashboard/status', () => {
     expect(body.data.caddy).toBe('unhealthy');
   });
 
-  it('returns domain-based URLs when user configured a domain', async () => {
+  it('returns SaaS domain URLs even when user configured a custom domain', async () => {
+    vi.stubEnv('DOMAIN', 'slug.openant.app');
     mockReadState.mockResolvedValueOnce({
       ...defaultState,
       domain: {
@@ -126,9 +127,10 @@ describe('GET /api/dashboard/status', () => {
     const res = await GET(createAuthRequest());
     const body = await res.json();
 
-    expect(body.data.urls.blog).toBe('https://blog.example.com');
-    expect(body.data.urls.table).toBe('https://table.example.com');
-    expect(body.data.urls.n8n).toBe('https://n8n.example.com');
+    // Dashboard always uses SaaS domains, not custom domains
+    expect(body.data.urls.blog).toBe('https://slug-blog.openant.app');
+    expect(body.data.urls.table).toBe('https://slug-table.openant.app');
+    expect(body.data.urls.n8n).toBe('https://slug-auto.openant.app');
   });
 
   it('returns domain-based URLs from DOMAIN env when use_domain is false', async () => {
@@ -144,7 +146,7 @@ describe('GET /api/dashboard/status', () => {
     expect(body.data.urls.n8n).toBe('https://slug-auto.openant.app');
   });
 
-  it('returns custom domain URLs in SaaS mode when user sets custom domain', async () => {
+  it('returns SaaS domain URLs in SaaS mode even when user sets custom domain', async () => {
     vi.stubEnv('OPENANT_SAAS_MODE', 'true');
     vi.stubEnv('DOMAIN', 'slug.app.openant.app');
     mockReadState.mockResolvedValueOnce({
@@ -156,10 +158,11 @@ describe('GET /api/dashboard/status', () => {
     const res = await GET(createAuthRequest());
     const body = await res.json();
 
-    // Custom domain takes priority over SaaS auto-subdomains
-    expect(body.data.urls.blog).toBe('https://blog.example.com');
-    expect(body.data.urls.table).toBe('https://table.example.com');
-    expect(body.data.urls.n8n).toBe('https://auto.example.com');
+    // Dashboard always uses SaaS flat subdomains
+    expect(body.data.urls.blog).toBe('https://slug-blog.app.openant.app');
+    expect(body.data.urls.table).toBe('https://slug-table.app.openant.app');
+    expect(body.data.urls.n8n).toBe('https://slug-auto.app.openant.app');
+    // Credentials still use the effective domain (custom domain for email)
     expect(body.data.credentials.ghost.email).toBe('admin@example.com');
   });
 

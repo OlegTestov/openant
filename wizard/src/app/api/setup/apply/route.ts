@@ -7,7 +7,7 @@ import { startServices, reloadCaddy } from '@/lib/docker';
 import { createAdapters } from '@/lib/adapters';
 import { createSSEStream, sendSSEEvent, closeSSE } from '@/lib/sse';
 import { getServiceCredentials } from '@/lib/credentials';
-import { getEffectiveDomain, getServiceDomains, hasCustomDomain, isSaasMode } from '@/lib/domain';
+import { getEffectiveDomain, getServiceDomains, getCustomDomains, isSaasMode } from '@/lib/domain';
 import type { SetupState } from '@/types/setup';
 import type { Adapters } from '@/lib/adapters';
 import type {
@@ -116,20 +116,17 @@ async function executeDeployStep(
       // Merge with existing .env to preserve adapter keys from previous runs
       const existingEnv = await readEnv(getEnvPath());
       await writeEnv(getEnvPath(), { ...existingEnv, ...envVars });
-      // Update process.env so subsequent steps (e.g. Ghost auth) use new URLs
-      if (envVars.GHOST_URL) process.env.GHOST_URL = envVars.GHOST_URL;
-      if (envVars.N8N_HOST) process.env.N8N_HOST = envVars.N8N_HOST;
-      if (envVars.N8N_WEBHOOK_URL) process.env.N8N_WEBHOOK_URL = envVars.N8N_WEBHOOK_URL;
       break;
     }
 
     case 2: {
       const domains = getServiceDomains(state);
+      const customDomains = getCustomDomains(state);
       const caddyfile = generateCaddyfile(
         domains,
         process.env.INSTANCE_MODE,
         isSaasMode(),
-        hasCustomDomain(state),
+        customDomains,
       );
       await writeCaddyfile(caddyfile);
       break;
@@ -263,6 +260,12 @@ async function executeDeployStep(
     case 11: {
       const generateTemplate = await readWorkflowTemplate('generate-article');
 
+      // Use custom domain for ghostUrl (Pinterest links) if available, else SaaS domain
+      const customDomains = getCustomDomains(state);
+      const saasDomains = getServiceDomains(state);
+      const ghostDomain = customDomains?.ghost ?? saasDomains?.ghost;
+      const ghostUrl = ghostDomain ? `https://${ghostDomain}` : buildEnvVars(state).GHOST_URL;
+
       const workflowParams: WorkflowParams = {
         credentialIds: ctx.credentialIds ?? {},
         scheduleIntervalMinutes: state.blog?.publish_interval_minutes ?? 60,
@@ -280,7 +283,7 @@ async function executeDeployStep(
         nocodbTableId: ctx.nocoKeys?.tableId,
         nocodbPromptsTableId: ctx.nocoKeys?.promptsTableId,
         ghostAdminApiKey: ctx.ghostKeys?.adminApiKey,
-        ghostUrl: buildEnvVars(state).GHOST_URL,
+        ghostUrl,
       };
 
       const genId = await adapters.automation.importWorkflow(generateTemplate, workflowParams);
