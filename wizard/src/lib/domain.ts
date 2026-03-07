@@ -13,6 +13,11 @@ export function isSaasMode(): boolean {
   return process.env.OPENANT_SAAS_MODE === 'true';
 }
 
+/** Whether the user has configured a custom domain */
+export function hasCustomDomain(state: SetupState): boolean {
+  return !!(state.domain?.use_domain && state.domain?.domain);
+}
+
 /** Build per-service domain map from state */
 export function getServiceDomains(state: SetupState): ServiceDomains | null {
   // Case 1: User configured a custom domain — nested subdomains

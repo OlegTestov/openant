@@ -7,7 +7,7 @@ export interface ServiceDomains {
   wizard: string;
 }
 
-function getCaddyfilePath(): string {
+export function getCaddyfilePath(): string {
   return process.env.CADDYFILE_PATH || '/app/Caddyfile';
 }
 

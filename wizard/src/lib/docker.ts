@@ -1,6 +1,8 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { readFile } from 'fs/promises';
 import { AdapterError } from '@/lib/errors';
+import { getCaddyfilePath } from '@/lib/caddy';
 
 const execAsync = promisify(exec);
 
@@ -74,9 +76,7 @@ export async function reloadCaddy(): Promise<void> {
 
   // Method 1: Caddy Admin API — graceful hot reload, no Docker access needed
   try {
-    const { readFile } = await import('fs/promises');
-    const caddyfilePath = process.env.CADDYFILE_PATH || '/app/Caddyfile';
-    const caddyfile = await readFile(caddyfilePath, 'utf-8');
+    const caddyfile = await readFile(getCaddyfilePath(), 'utf-8');
 
     const res = await fetch(`${caddyAdminUrl}/load`, {
       method: 'POST',

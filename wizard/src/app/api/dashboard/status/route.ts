@@ -3,7 +3,7 @@ import { apiHandler } from '@/lib/api-handler';
 import { createAdapters } from '@/lib/adapters';
 import { readState } from '@/lib/state';
 import { getServiceCredentials } from '@/lib/credentials';
-import { getEffectiveDomain, getServiceDomains } from '@/lib/domain';
+import { getEffectiveDomain, getServiceDomains, isSaasMode } from '@/lib/domain';
 
 async function checkCaddy(): Promise<boolean> {
   try {
@@ -22,7 +22,7 @@ export const GET = withAuth(
   apiHandler(async () => {
     const adapters = createAdapters();
 
-    const [ghost, nocodb, n8n] = await Promise.all([
+    const [ghost, nocodb, n8n, caddy, state] = await Promise.all([
       adapters.blog
         .healthCheck()
         .then((ok) => (ok ? 'healthy' : 'unhealthy'))
@@ -35,17 +35,11 @@ export const GET = withAuth(
         .healthCheck()
         .then((ok) => (ok ? 'healthy' : 'unhealthy'))
         .catch(() => 'unhealthy' as const),
+      checkCaddy()
+        .then((ok): 'healthy' | 'unhealthy' => (ok ? 'healthy' : 'unhealthy'))
+        .catch((): 'unhealthy' => 'unhealthy'),
+      readState(),
     ]);
-
-    let caddy: 'healthy' | 'unhealthy';
-    try {
-      const ok = await checkCaddy();
-      caddy = ok ? 'healthy' : 'unhealthy';
-    } catch {
-      caddy = 'unhealthy';
-    }
-
-    const state = await readState();
     const effectiveDomain = getEffectiveDomain(state);
     const ip = process.env.SERVER_IP || 'localhost';
     const managed = process.env.INSTANCE_MODE === 'managed';
@@ -88,7 +82,7 @@ export const GET = withAuth(
         caddy,
         urls,
         credentials: credentialsResult,
-        saas_mode: process.env.OPENANT_SAAS_MODE === 'true',
+        saas_mode: isSaasMode(),
       },
     });
   }),
