@@ -391,15 +391,6 @@ export function createGhostAdapter(): BlogAdapter {
 
       const headers: Record<string, string> = { Cookie: sessionCookie, Origin: authUrl };
 
-      // Skip upload if the theme is already installed and active
-      const listRes = await fetch(`${authUrl}/ghost/api/admin/themes/`, { headers });
-      if (listRes.ok) {
-        const data = (await listRes.json()) as {
-          themes: Array<{ name: string; active: boolean }>;
-        };
-        if (data.themes.some((t) => t.name === 'openant-source' && t.active)) return;
-      }
-
       const fileBuffer = await fs.readFile(themePath);
       const formData = new FormData();
       formData.append(

@@ -494,8 +494,6 @@ describe('createGhostAdapter', () => {
       vi.spyOn(mockFs, 'readFile').mockResolvedValueOnce(Buffer.from('fake-zip'));
 
       mockSignIn();
-      // GET /themes/ — theme not installed yet
-      mockFetch.mockResolvedValueOnce(mockResponse({ themes: [{ name: 'source', active: true }] }));
       // POST /themes/upload/ — upload succeeds
       mockFetch.mockResolvedValueOnce(
         mockResponse({ themes: [{ name: 'openant-source', active: false }] }),
@@ -519,41 +517,25 @@ describe('createGhostAdapter', () => {
       const adapter = createGhostAdapter();
       await adapter.uploadTheme('/app/themes/openant-source.zip');
 
-      expect(mockFetch).toHaveBeenCalledTimes(6);
+      expect(mockFetch).toHaveBeenCalledTimes(5);
       // Call 0: sign-in
       expect(mockFetch.mock.calls[0][0]).toContain('/ghost/api/admin/session/');
-      // Call 1: list themes
-      expect(mockFetch.mock.calls[1][0]).toContain('/ghost/api/admin/themes/');
-      expect(mockFetch.mock.calls[1][1].headers.Cookie).toBe(sessionCookie);
-      // Call 2: upload
-      const [url, opts] = mockFetch.mock.calls[2];
+      // Call 1: upload
+      const [url, opts] = mockFetch.mock.calls[1];
       expect(url).toContain('/ghost/api/admin/themes/upload/');
       expect(opts.method).toBe('POST');
       expect(opts.headers.Cookie).toBe(sessionCookie);
       expect(opts.body).toBeInstanceOf(FormData);
-      // Call 3: activate
-      expect(mockFetch.mock.calls[3][0]).toContain(
+      // Call 2: activate
+      expect(mockFetch.mock.calls[2][0]).toContain(
         '/ghost/api/admin/themes/openant-source/activate/',
       );
-      expect(mockFetch.mock.calls[3][1].method).toBe('PUT');
-      // Call 4: get custom theme settings
+      expect(mockFetch.mock.calls[2][1].method).toBe('PUT');
+      // Call 3: get custom theme settings
+      expect(mockFetch.mock.calls[3][0]).toContain('/ghost/api/admin/custom_theme_settings/');
+      // Call 4: put custom theme settings
       expect(mockFetch.mock.calls[4][0]).toContain('/ghost/api/admin/custom_theme_settings/');
-      // Call 5: put custom theme settings
-      expect(mockFetch.mock.calls[5][0]).toContain('/ghost/api/admin/custom_theme_settings/');
-      expect(mockFetch.mock.calls[5][1].method).toBe('PUT');
-    });
-
-    it('skips upload when theme is already active', async () => {
-      mockSignIn();
-      // GET /themes/ — openant-source already active
-      mockFetch.mockResolvedValueOnce(
-        mockResponse({ themes: [{ name: 'openant-source', active: true }] }),
-      );
-
-      const adapter = createGhostAdapter();
-      await adapter.uploadTheme('/app/themes/openant-source.zip');
-
-      expect(mockFetch).toHaveBeenCalledTimes(2); // sign-in + list
+      expect(mockFetch.mock.calls[4][1].method).toBe('PUT');
     });
 
     it('throws AdapterError when sign-in fails', async () => {
@@ -573,8 +555,6 @@ describe('createGhostAdapter', () => {
       vi.spyOn(mockFs, 'readFile').mockResolvedValueOnce(Buffer.from('fake-zip'));
 
       mockSignIn();
-      // GET /themes/ — theme not installed
-      mockFetch.mockResolvedValueOnce(mockResponse({ themes: [] }));
       // POST /themes/upload/ — fails
       mockFetch.mockResolvedValueOnce(mockResponse('Server Error', { ok: false, status: 500 }));
 
