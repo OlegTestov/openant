@@ -2735,6 +2735,10 @@ body[class*=" gh-font-heading"]:not(.gh-font-heading-fira-sans):not(.gh-font-hea
     color: var(--color-darker-gray);
 }
 
+.home-template .gh-footer {
+    margin-top: 10vw;
+}
+
 .gh-footer a:not(.gh-button) {
     color: inherit;
 }
