@@ -78,7 +78,7 @@ export const GET = withAuth(
       data: {
         ghost,
         nocodb,
-        ...(managed ? {} : { n8n }),
+        n8n,
         caddy,
         urls,
         credentials: credentialsResult,
