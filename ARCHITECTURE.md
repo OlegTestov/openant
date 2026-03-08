@@ -196,21 +196,30 @@ One n8n workflow template lives in `n8n/workflows/`. It is imported into n8n dur
 
 ### generate-article.template.json
 
-23-node pipeline with system/user prompt split, image generation, and optional Pinterest promotion:
+Pipeline with system/user prompt split, image generation, optional Pinterest promotion, and automatic error retry:
 
 ```
-Schedule Trigger → Get Next Queued (blank status) → Has Records?
-  → Update status: generating → Get Prompts (from NocoDB Prompts table)
-  → Prepare Prompts (split system/user) → Generate Title (LLM)
-  → Generate Article (LLM) → Generate & Upload Image (LLM + Ghost upload)
-  → Update status: publishing → Build Ghost JWT → POST to Ghost
-  → Update status: published → Check Pinterest (If: MAKE_WEBHOOK_URL not empty)
-    → false: Update Status: completed (no pin)
-    → true:  Prepare Pin Prompts → Generate Pin Title → Generate Pin Text
-             → Generate & Upload Pin Image → Send to Make Webhook
-             → Save Pin URL → Update Status: completed (writes PinURL)
-    → any pin error: Update Status: completed (pin error)
+Schedule Trigger → Get Next Queued (blank/publishing/error status) → Has Records?
+  → Is Pin Retry? (Status=error AND GhostURL not empty)
+    → true (pin retry):
+       Update Status: promoting → Get Prompts (retry) → Check Pinterest (retry)
+       → Prepare Pin Retry → Pin Prompt Data → [pin generation flow below]
+    → false (normal):
+       Update status: generating → Get Prompts (from NocoDB Prompts table)
+       → Prepare Prompts (split system/user) → Generate Title (LLM)
+       → Generate Article (LLM) → Generate & Upload Image (LLM + Ghost upload)
+       → Update status: publishing → Build Ghost JWT → POST to Ghost
+       → Update status: published → Check Pinterest (If: MAKE_WEBHOOK_URL not empty)
+         → false: Update Status: completed (no pin)
+         → true:  Prepare Pin Prompts → Pin Prompt Data → Generate Pin Title
+                   → Generate Pin Text → Generate & Upload Pin Image
+                   → Send to Make Webhook → Save Pin URL
+                   → Update Status: completed (writes PinURL)
+  → article-stage errors: Update Status: error (no GhostURL → full retry next cycle)
+  → pin-stage errors: Update Status: error (GhostURL present → pin-only retry next cycle)
 ```
+
+**Error retry**: Records with `error` status are automatically picked up on the next schedule cycle. The "Is Pin Retry?" node distinguishes between article errors (no GhostURL → full pipeline retry) and pin errors (GhostURL present → skip article generation, retry only pin). Pin errors clear the Error field and set status to `promoting` before retrying.
 
 **System/user prompt split**: Each LLM call sends two messages — a `system` message (static instructions from NocoDB Prompts table) and a `user` message (only dynamic data: topic, description, link). System prompts are fully rendered at deploy time (language/tone baked in), so no runtime substitution is needed in n8n.
 
@@ -218,7 +227,7 @@ Schedule Trigger → Get Next Queued (blank status) → Has Records?
 
 **HTML sanitization**: The "Build Ghost JWT" Code node post-processes article HTML before publishing. Two regex passes wrap any bare text (not inside block-level tags) in `<p>` tags — this prevents Ghost's Source theme from rendering loose text in broken multi-column layout. The article prompt also explicitly requires all paragraphs to be wrapped in `<p>` tags.
 
-**Pinterest promotion**: After publishing, the workflow checks if `{{MAKE_WEBHOOK_URL}}` is configured. If yes, it generates pin title, text, and image (2:3 vertical) via LLM using system prompts from the NocoDB Prompts table (`PinName`, `PinText`, `PinImage`), then sends a webhook to Make.com with `{ board, title, description, url, imageUrl }`. Make.com responds synchronously with `{ success, pin_id, pin_url }` — the "Save Pin URL" node parses this response and the "Update Status: completed" node writes `PinURL` to NocoDB. Pin errors do NOT affect article status — all pin error paths set `Status: completed` with an `Error` field, preventing queue stalling.
+**Pinterest promotion**: After publishing, the workflow checks if `{{MAKE_WEBHOOK_URL}}` is configured. If yes, it generates pin title, text, and image (2:3 vertical) via LLM using system prompts from the NocoDB Prompts table (`PinName`, `PinText`, `PinImage`), then sends a webhook to Make.com with `{ board, title, description, url, imageUrl }`. Make.com responds synchronously with `{ success, pin_id, pin_url }` — the "Save Pin URL" node parses this response and the "Update Status: completed" node writes `PinURL` to NocoDB. Pin errors set `Status: error` with an `Error` field — these are automatically retried on the next schedule cycle (pin-only retry path skips article generation since GhostURL is already present).
 
 **Make.com blueprint** (`make/blueprint.json`): 7-module scenario — Webhook → List Boards → Aggregator → Set Variable (find board ID by name) → Create Pin → Webhook Response (success/error). Uses `gateway:WebhookRespond` for synchronous response. Board lookup uses `get(map(array; "id"; "name"; trim(board)))` to find board ID by name. Download available via `/api/make-blueprint` (auth required), with buttons on the Social wizard step and Dashboard.
 
