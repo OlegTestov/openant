@@ -5,6 +5,9 @@ import type {
   TableSetupResult,
   ArticleRow,
   ArticleStatus,
+  ArticleCreateInput,
+  ArticleUpdateInput,
+  PromptRow,
 } from './types';
 import { AdapterError } from '@/lib/errors';
 
@@ -586,6 +589,183 @@ export function createNocoDBAdapter(): TableAdapter {
         ...Object.fromEntries(results),
         queue: queueData.pageInfo?.totalRows ?? 0,
       } as Record<ArticleStatus, number>;
+    },
+
+    async listArticles(): Promise<ArticleRow[]> {
+      const authToken = getEnvOrThrow('NOCODB_AUTH_TOKEN', 'listArticles');
+      const tableId = getEnvOrThrow('NOCODB_TABLE_ID', 'listArticles');
+      const baseUrl = getNocoDbUrl();
+
+      const res = await nocoFetch(
+        `${baseUrl}/api/v2/tables/${tableId}/records?sort=-CreatedAt&limit=200`,
+        authToken,
+        { method: 'GET' },
+      );
+
+      if (!res.ok) {
+        throw new AdapterError('nocodb', 'listArticles', `NocoDB error: ${res.status}`);
+      }
+
+      const data = (await res.json()) as {
+        list?: Array<Record<string, unknown>>;
+      };
+
+      return (data.list ?? []).map((row) => ({
+        id: String(row.Id),
+        topic: row.Topic as string,
+        description: (row.Description as string) || undefined,
+        link: (row.Link as string) || undefined,
+        status: (row.Status as ArticleStatus) || 'queue',
+        ghostUrl: (row.GhostURL as string) || undefined,
+        pinUrl: (row.PinURL as string) || undefined,
+        error: (row.Error as string) || undefined,
+        createdAt: row.CreatedAt as string,
+      }));
+    },
+
+    async createArticle(input: ArticleCreateInput): Promise<ArticleRow> {
+      const authToken = getEnvOrThrow('NOCODB_AUTH_TOKEN', 'createArticle');
+      const tableId = getEnvOrThrow('NOCODB_TABLE_ID', 'createArticle');
+      const baseUrl = getNocoDbUrl();
+
+      const body: Record<string, unknown> = { Topic: input.topic };
+      if (input.description) body.Description = input.description;
+      if (input.link) body.Link = input.link;
+
+      const res = await nocoFetch(`${baseUrl}/api/v2/tables/${tableId}/records`, authToken, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        throw new AdapterError('nocodb', 'createArticle', `NocoDB error: ${res.status}`);
+      }
+
+      const row = (await res.json()) as Record<string, unknown>;
+      return {
+        id: String(row.Id),
+        topic: row.Topic as string,
+        description: (row.Description as string) || undefined,
+        link: (row.Link as string) || undefined,
+        status: (row.Status as ArticleStatus) || 'queue',
+        ghostUrl: (row.GhostURL as string) || undefined,
+        pinUrl: (row.PinURL as string) || undefined,
+        error: (row.Error as string) || undefined,
+        createdAt: row.CreatedAt as string,
+      };
+    },
+
+    async updateArticle(rowId: string, input: ArticleUpdateInput): Promise<void> {
+      const authToken = getEnvOrThrow('NOCODB_AUTH_TOKEN', 'updateArticle');
+      const tableId = getEnvOrThrow('NOCODB_TABLE_ID', 'updateArticle');
+      const baseUrl = getNocoDbUrl();
+
+      const body: Record<string, unknown> = { Id: Number(rowId) };
+      if (input.topic !== undefined) body.Topic = input.topic;
+      if (input.description !== undefined) body.Description = input.description;
+      if (input.link !== undefined) body.Link = input.link;
+
+      const res = await nocoFetch(`${baseUrl}/api/v2/tables/${tableId}/records`, authToken, {
+        method: 'PATCH',
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        throw new AdapterError('nocodb', 'updateArticle', `NocoDB PATCH error: ${res.status}`);
+      }
+    },
+
+    async deleteArticle(rowId: string): Promise<void> {
+      const authToken = getEnvOrThrow('NOCODB_AUTH_TOKEN', 'deleteArticle');
+      const tableId = getEnvOrThrow('NOCODB_TABLE_ID', 'deleteArticle');
+      const baseUrl = getNocoDbUrl();
+
+      const res = await nocoFetch(`${baseUrl}/api/v2/tables/${tableId}/records`, authToken, {
+        method: 'DELETE',
+        body: JSON.stringify({ Id: Number(rowId) }),
+      });
+
+      if (!res.ok) {
+        throw new AdapterError('nocodb', 'deleteArticle', `NocoDB DELETE error: ${res.status}`);
+      }
+    },
+
+    async getPrompts(): Promise<PromptRow | null> {
+      const authToken = getEnvOrThrow('NOCODB_AUTH_TOKEN', 'getPrompts');
+      const promptsTableId = getEnvOrThrow('NOCODB_PROMPTS_TABLE_ID', 'getPrompts');
+      const baseUrl = getNocoDbUrl();
+
+      const res = await nocoFetch(
+        `${baseUrl}/api/v2/tables/${promptsTableId}/records?limit=1`,
+        authToken,
+        { method: 'GET' },
+      );
+
+      if (!res.ok) {
+        throw new AdapterError('nocodb', 'getPrompts', `NocoDB error: ${res.status}`);
+      }
+
+      const data = (await res.json()) as {
+        list?: Array<Record<string, unknown>>;
+      };
+
+      if (!data.list || data.list.length === 0) return null;
+
+      const row = data.list[0];
+      return {
+        id: String(row.Id),
+        articleTitle: (row.ArticleTitle as string) || '',
+        articleText: (row.ArticleText as string) || '',
+        articleImage: (row.ArticleImage as string) || '',
+        pinName: (row.PinName as string) || '',
+        pinText: (row.PinText as string) || '',
+        pinImage: (row.PinImage as string) || '',
+        threadText: (row.ThreadText as string) || '',
+      };
+    },
+
+    async updatePrompts(prompts: Partial<Omit<PromptRow, 'id'>>): Promise<void> {
+      const authToken = getEnvOrThrow('NOCODB_AUTH_TOKEN', 'updatePrompts');
+      const promptsTableId = getEnvOrThrow('NOCODB_PROMPTS_TABLE_ID', 'updatePrompts');
+      const baseUrl = getNocoDbUrl();
+
+      // Get the existing row ID first
+      const getRes = await nocoFetch(
+        `${baseUrl}/api/v2/tables/${promptsTableId}/records?limit=1&fields=Id`,
+        authToken,
+        { method: 'GET' },
+      );
+
+      if (!getRes.ok) {
+        throw new AdapterError('nocodb', 'updatePrompts', `NocoDB error: ${getRes.status}`);
+      }
+
+      const getData = (await getRes.json()) as {
+        list?: Array<Record<string, unknown>>;
+      };
+
+      if (!getData.list || getData.list.length === 0) {
+        throw new AdapterError('nocodb', 'updatePrompts', 'No prompts row found');
+      }
+
+      const rowId = getData.list[0].Id;
+      const body: Record<string, unknown> = { Id: Number(rowId) };
+      if (prompts.articleTitle !== undefined) body.ArticleTitle = prompts.articleTitle;
+      if (prompts.articleText !== undefined) body.ArticleText = prompts.articleText;
+      if (prompts.articleImage !== undefined) body.ArticleImage = prompts.articleImage;
+      if (prompts.pinName !== undefined) body.PinName = prompts.pinName;
+      if (prompts.pinText !== undefined) body.PinText = prompts.pinText;
+      if (prompts.pinImage !== undefined) body.PinImage = prompts.pinImage;
+      if (prompts.threadText !== undefined) body.ThreadText = prompts.threadText;
+
+      const res = await nocoFetch(`${baseUrl}/api/v2/tables/${promptsTableId}/records`, authToken, {
+        method: 'PATCH',
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        throw new AdapterError('nocodb', 'updatePrompts', `NocoDB PATCH error: ${res.status}`);
+      }
     },
   };
 }

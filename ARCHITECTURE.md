@@ -1,6 +1,6 @@
 # openant — Architecture Overview
 
-> Last updated: 2026-03-06
+> Last updated: 2026-03-08
 
 ---
 
@@ -276,7 +276,7 @@ The core architectural pattern is the **adapter system**. Each external service 
 | Interface             | Responsibility                    | Current implementation                |
 | --------------------- | --------------------------------- | ------------------------------------- |
 | `BlogAdapter`         | Publish articles, manage blog     | Ghost (`src/lib/adapters/ghost.ts`)   |
-| `TableAdapter`        | FIFO topic queue, status tracking | NocoDB (`src/lib/adapters/nocodb.ts`) |
+| `TableAdapter`        | FIFO topic queue, status tracking, articles CRUD, prompts management | NocoDB (`src/lib/adapters/nocodb.ts`) |
 | `AutomationAdapter`   | Workflow orchestration            | n8n (`src/lib/adapters/n8n.ts`)       |
 | `DistributionAdapter` | Social media posting              | Interface only (→ Make.com)           |
 
@@ -285,7 +285,7 @@ The core architectural pattern is the **adapter system**. Each external service 
 - **`src/lib/adapters/types.ts`** — All adapter interfaces. This is the central contract that the entire system depends on. Treat as read-only after creation; changes require review since they affect all consumers.
 - **`src/lib/adapters/index.ts`** — Registry. `createAdapters()` returns an `Adapters` object with all three adapters. Wired to real implementations (Ghost, NocoDB, n8n).
 - **`src/lib/adapters/ghost.ts`** — Ghost BlogAdapter. **Fast path**: if `GHOST_ADMIN_API_KEY` and `GHOST_CONTENT_API_KEY` exist, verifies via JWT against `/ghost/api/admin/site/` and returns immediately (avoids login, which fails with 500 EmailError on re-deploy when mail is not configured). **Full setup**: admin account → extract session cookie from setup response → Custom Integration → settings via session cookie. `uploadTheme()` uploads the custom `openant-source` theme zip via Admin API using session cookie auth (skips if already active). JWT auth via hand-rolled HMAC-SHA256 for publish/get. Internal helpers `requireAdminJwt()`, `assertOk()`, and `getAdminEmail()` deduplicate common operations across methods.
-- **`src/lib/adapters/nocodb.ts`** — NocoDB TableAdapter. Multi-step setup (signup → signin → base → table → columns → sample row), removes default bases (e.g. "Getting Started"), FIFO queue via blank-status filter, parallel stats queries.
+- **`src/lib/adapters/nocodb.ts`** — NocoDB TableAdapter. Multi-step setup (signup → signin → base → table → columns → sample row), removes default bases (e.g. "Getting Started"), FIFO queue via blank-status filter, parallel stats queries. Also provides CRUD for articles (listArticles, createArticle, updateArticle, deleteArticle) and prompts (getPrompts, updatePrompts) used by the SaaS dashboard.
 - **`src/lib/adapters/n8n.ts`** — n8n AutomationAdapter. **Fast path**: if `N8N_API_KEY` exists, verifies against `/api/v1/workflows` and returns immediately. **Full setup**: deterministic password (`N<hex>!` format to satisfy n8n's uppercase+number requirements), create owner → login → list API keys (skips masked keys containing `*`, deletes them) → create fresh key. Credential management, workflow import with parameter substitution, workflow activation.
 - **`src/lib/adapters/__mocks__/`** — Mock adapters (`ghost.ts`, `nocodb.ts`, `n8n.ts`). Return deterministic data, no external calls. Used for tests and UI development without Docker.
 
@@ -624,6 +624,8 @@ Defined in **`src/lib/llm-presets.ts`**. All LLM providers are OpenAI-compatible
 | `GET /api/dashboard/stats`        | Yes  | Returns article counts by status from NocoDB `table.getStats()`.                                                                                                                     |
 | `POST /api/dashboard/reconfigure` | Yes  | Resets `deployed` to false, clears deploy+review steps, sets `currentStep` to review. Preserves all config data.                                                                     |
 | `GET /api/saas/health`            | No   | Returns 404 if `OPENANT_SAAS_MODE !== 'true'`. Otherwise returns combined health + article stats for Control Plane.                                                                  |
+| `GET/POST/PATCH/DELETE /api/saas/articles` | Yes | CRUD operations for articles table via NocoDB adapter. DELETE is guarded: only articles in queue/error status. Used by SaaS dashboard proxy. |
+| `GET/PATCH /api/saas/prompts`     | Yes  | Read and update LLM prompts in the NocoDB Prompts table. Used by SaaS dashboard proxy.                                                                                              |
 
 ---
 

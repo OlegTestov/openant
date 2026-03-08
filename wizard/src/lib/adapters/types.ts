@@ -42,6 +42,12 @@ export interface TableAdapter {
   getNextQueued(): Promise<ArticleRow | null>;
   updateStatus(rowId: string, status: ArticleStatus, extra?: Partial<ArticleRow>): Promise<void>;
   getStats(): Promise<Record<ArticleStatus, number>>;
+  listArticles(): Promise<ArticleRow[]>;
+  createArticle(input: ArticleCreateInput): Promise<ArticleRow>;
+  updateArticle(rowId: string, input: ArticleUpdateInput): Promise<void>;
+  deleteArticle(rowId: string): Promise<void>;
+  getPrompts(): Promise<PromptRow | null>;
+  updatePrompts(prompts: Partial<Omit<PromptRow, 'id'>>): Promise<void>;
 }
 
 export interface TableConfig {
@@ -78,6 +84,29 @@ export type ArticleStatus =
   | 'promoting'
   | 'completed'
   | 'error';
+
+export interface ArticleCreateInput {
+  topic: string;
+  description?: string;
+  link?: string;
+}
+
+export interface ArticleUpdateInput {
+  topic?: string;
+  description?: string;
+  link?: string;
+}
+
+export interface PromptRow {
+  id: string;
+  articleTitle: string;
+  articleText: string;
+  articleImage: string;
+  pinName: string;
+  pinText: string;
+  pinImage: string;
+  threadText: string;
+}
 
 // ── Automation ────────────────────────────────────
 export interface AutomationAdapter {

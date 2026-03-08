@@ -1,0 +1,87 @@
+import { z } from 'zod';
+import { apiHandler } from '@/lib/api-handler';
+import { withAuth } from '@/lib/auth';
+import { createAdapters } from '@/lib/adapters';
+
+function saasGuard(): Response | null {
+  if (process.env.OPENANT_SAAS_MODE !== 'true') {
+    return Response.json({ error: 'SaaS mode not enabled' }, { status: 404 });
+  }
+  return null;
+}
+
+const createSchema = z.object({
+  topic: z.string().min(1),
+  description: z.string().optional(),
+  link: z.string().optional(),
+});
+
+const updateSchema = z.object({
+  id: z.string().min(1),
+  topic: z.string().min(1).optional(),
+  description: z.string().optional(),
+  link: z.string().optional(),
+});
+
+const deleteSchema = z.object({
+  id: z.string().min(1),
+});
+
+export const GET = withAuth(
+  apiHandler(async () => {
+    const guard = saasGuard();
+    if (guard) return guard;
+
+    const adapters = createAdapters();
+    const articles = await adapters.table.listArticles();
+    return Response.json({ success: true, data: articles });
+  }),
+);
+
+export const POST = withAuth(
+  apiHandler(async (req) => {
+    const guard = saasGuard();
+    if (guard) return guard;
+
+    const body = createSchema.parse(await req.json());
+    const adapters = createAdapters();
+    const article = await adapters.table.createArticle(body);
+    return Response.json({ success: true, data: article });
+  }),
+);
+
+export const PATCH = withAuth(
+  apiHandler(async (req) => {
+    const guard = saasGuard();
+    if (guard) return guard;
+
+    const body = updateSchema.parse(await req.json());
+    const { id, ...input } = body;
+    const adapters = createAdapters();
+    await adapters.table.updateArticle(id, input);
+    return Response.json({ success: true });
+  }),
+);
+
+export const DELETE = withAuth(
+  apiHandler(async (req) => {
+    const guard = saasGuard();
+    if (guard) return guard;
+
+    const body = deleteSchema.parse(await req.json());
+    const adapters = createAdapters();
+
+    // Only allow deletion of articles in queue or error status
+    const articles = await adapters.table.listArticles();
+    const article = articles.find((a) => a.id === body.id);
+    if (article && article.status !== 'queue' && article.status !== 'error') {
+      return Response.json(
+        { success: false, error: 'Cannot delete article in progress', code: 'DELETE_NOT_ALLOWED' },
+        { status: 400 },
+      );
+    }
+
+    await adapters.table.deleteArticle(body.id);
+    return Response.json({ success: true });
+  }),
+);
