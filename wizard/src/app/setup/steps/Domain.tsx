@@ -30,7 +30,7 @@ export default function Domain({ onComplete, onBack, initialData }: StepProps) {
   const [domain, setDomain] = useState(initial?.domain ?? '');
   const [ghostPrefix, setGhostPrefix] = useState(initial?.ghost_prefix ?? 'blog');
   const [nocodbPrefix, setNocodbPrefix] = useState(initial?.nocodb_prefix ?? 'table');
-  const [n8nPrefix, setN8nPrefix] = useState(initial?.n8n_prefix ?? 'n8n');
+  const [n8nPrefix, setN8nPrefix] = useState(initial?.n8n_prefix ?? 'auto');
   const [serverIp, setServerIp] = useState<string | null>(null);
   const [dnsResult, setDnsResult] = useState<DnsCheck | null>(null);
   const [isLoading, setIsLoading] = useState(false);
