@@ -41,6 +41,16 @@ export function createMockNocoDBAdapter(): TableAdapter {
         createdAt: new Date().toISOString(),
       };
     },
+    async createArticlesBulk(inputs) {
+      return inputs.map((input, i) => ({
+        id: String(i + 1),
+        topic: input.topic,
+        description: input.description,
+        link: input.link,
+        status: 'queue' as ArticleStatus,
+        createdAt: new Date().toISOString(),
+      }));
+    },
     async updateArticle() {},
     async deleteArticle() {},
     async getPrompts() {

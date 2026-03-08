@@ -16,6 +16,10 @@ const createSchema = z.object({
   link: z.string().optional(),
 });
 
+const bulkCreateSchema = z.object({
+  articles: z.array(createSchema).min(1).max(100),
+});
+
 const updateSchema = z.object({
   id: z.string().min(1),
   topic: z.string().min(1).optional(),
@@ -43,8 +47,18 @@ export const POST = withAuth(
     const guard = saasGuard();
     if (guard) return guard;
 
-    const body = createSchema.parse(await req.json());
+    const raw = await req.json();
     const adapters = createAdapters();
+
+    // Bulk create: { articles: [...] }
+    if ('articles' in raw) {
+      const { articles } = bulkCreateSchema.parse(raw);
+      const created = await adapters.table.createArticlesBulk(articles);
+      return Response.json({ success: true, data: created });
+    }
+
+    // Single create: { topic, description?, link? }
+    const body = createSchema.parse(raw);
     const article = await adapters.table.createArticle(body);
     return Response.json({ success: true, data: article });
   }),

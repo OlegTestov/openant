@@ -44,6 +44,7 @@ export interface TableAdapter {
   getStats(): Promise<Record<ArticleStatus, number>>;
   listArticles(): Promise<ArticleRow[]>;
   createArticle(input: ArticleCreateInput): Promise<ArticleRow>;
+  createArticlesBulk(inputs: ArticleCreateInput[]): Promise<ArticleRow[]>;
   updateArticle(rowId: string, input: ArticleUpdateInput): Promise<void>;
   deleteArticle(rowId: string): Promise<void>;
   getPrompts(): Promise<PromptRow | null>;

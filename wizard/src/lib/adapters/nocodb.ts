@@ -347,6 +347,27 @@ async function createPromptsTable(
   return promptsTableId;
 }
 
+function mapRowToArticle(row: Record<string, unknown>): ArticleRow {
+  return {
+    id: String(row.Id),
+    topic: row.Topic as string,
+    description: (row.Description as string) || undefined,
+    link: (row.Link as string) || undefined,
+    status: (row.Status as ArticleStatus) || 'queue',
+    ghostUrl: (row.GhostURL as string) || undefined,
+    pinUrl: (row.PinURL as string) || undefined,
+    error: (row.Error as string) || undefined,
+    createdAt: row.CreatedAt as string,
+  };
+}
+
+function mapArticleInputToRow(input: ArticleCreateInput): Record<string, unknown> {
+  const body: Record<string, unknown> = { Topic: input.topic };
+  if (input.description) body.Description = input.description;
+  if (input.link) body.Link = input.link;
+  return body;
+}
+
 export function createNocoDBAdapter(): TableAdapter {
   return {
     async healthCheck() {
@@ -610,17 +631,7 @@ export function createNocoDBAdapter(): TableAdapter {
         list?: Array<Record<string, unknown>>;
       };
 
-      return (data.list ?? []).map((row) => ({
-        id: String(row.Id),
-        topic: row.Topic as string,
-        description: (row.Description as string) || undefined,
-        link: (row.Link as string) || undefined,
-        status: (row.Status as ArticleStatus) || 'queue',
-        ghostUrl: (row.GhostURL as string) || undefined,
-        pinUrl: (row.PinURL as string) || undefined,
-        error: (row.Error as string) || undefined,
-        createdAt: row.CreatedAt as string,
-      }));
+      return (data.list ?? []).map(mapRowToArticle);
     },
 
     async createArticle(input: ArticleCreateInput): Promise<ArticleRow> {
@@ -628,31 +639,34 @@ export function createNocoDBAdapter(): TableAdapter {
       const tableId = getEnvOrThrow('NOCODB_TABLE_ID', 'createArticle');
       const baseUrl = getNocoDbUrl();
 
-      const body: Record<string, unknown> = { Topic: input.topic };
-      if (input.description) body.Description = input.description;
-      if (input.link) body.Link = input.link;
-
       const res = await nocoFetch(`${baseUrl}/api/v2/tables/${tableId}/records`, authToken, {
         method: 'POST',
-        body: JSON.stringify(body),
+        body: JSON.stringify(mapArticleInputToRow(input)),
       });
 
       if (!res.ok) {
         throw new AdapterError('nocodb', 'createArticle', `NocoDB error: ${res.status}`);
       }
 
-      const row = (await res.json()) as Record<string, unknown>;
-      return {
-        id: String(row.Id),
-        topic: row.Topic as string,
-        description: (row.Description as string) || undefined,
-        link: (row.Link as string) || undefined,
-        status: (row.Status as ArticleStatus) || 'queue',
-        ghostUrl: (row.GhostURL as string) || undefined,
-        pinUrl: (row.PinURL as string) || undefined,
-        error: (row.Error as string) || undefined,
-        createdAt: row.CreatedAt as string,
-      };
+      return mapRowToArticle((await res.json()) as Record<string, unknown>);
+    },
+
+    async createArticlesBulk(inputs: ArticleCreateInput[]): Promise<ArticleRow[]> {
+      const authToken = getEnvOrThrow('NOCODB_AUTH_TOKEN', 'createArticlesBulk');
+      const tableId = getEnvOrThrow('NOCODB_TABLE_ID', 'createArticlesBulk');
+      const baseUrl = getNocoDbUrl();
+
+      const res = await nocoFetch(`${baseUrl}/api/v2/tables/${tableId}/records`, authToken, {
+        method: 'POST',
+        body: JSON.stringify(inputs.map(mapArticleInputToRow)),
+      });
+
+      if (!res.ok) {
+        throw new AdapterError('nocodb', 'createArticlesBulk', `NocoDB error: ${res.status}`);
+      }
+
+      const rows = (await res.json()) as Record<string, unknown>[];
+      return rows.map(mapRowToArticle);
     },
 
     async updateArticle(rowId: string, input: ArticleUpdateInput): Promise<void> {
