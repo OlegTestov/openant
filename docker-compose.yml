@@ -13,7 +13,9 @@ services:
     container_name: openant-wizard
     restart: unless-stopped
     logging: *default-logging
-    env_file: .env
+    env_file:
+      - path: .env
+        required: false
     ports:
       - "3000:3000"
     volumes:
