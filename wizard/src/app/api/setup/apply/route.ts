@@ -201,6 +201,7 @@ async function executeDeployStep(
       process.env.NOCODB_AUTH_TOKEN = nocoResult.authToken;
       process.env.NOCODB_BASE_ID = nocoResult.projectId;
       process.env.NOCODB_TABLE_ID = nocoResult.tableId;
+      process.env.NOCODB_PROMPTS_TABLE_ID = nocoResult.promptsTableId;
 
       // Persist keys immediately so retries can recover
       const curEnv = await readEnv(getEnvPath());
@@ -209,6 +210,7 @@ async function executeDeployStep(
         NOCODB_AUTH_TOKEN: nocoResult.authToken,
         NOCODB_BASE_ID: nocoResult.projectId,
         NOCODB_TABLE_ID: nocoResult.tableId,
+        NOCODB_PROMPTS_TABLE_ID: nocoResult.promptsTableId,
       });
       break;
     }
