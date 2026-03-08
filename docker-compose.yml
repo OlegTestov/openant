@@ -20,7 +20,7 @@ services:
       - "3000:3000"
     volumes:
       - ./data/wizard:/app/data
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/run/docker.sock:/var/run/docker.sock
       - ./.env:/app/.env
       - ./caddy/Caddyfile:/app/Caddyfile
       - ./n8n/workflows:/app/n8n/workflows:ro

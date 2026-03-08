@@ -21,8 +21,8 @@ RUN addgroup --system --gid 1001 nodejs && \
     fi && \
     addgroup nextjs "$DOCKER_GROUP"
 
-# Install curl for healthcheck
-RUN apk add --no-cache curl
+# Install curl for healthcheck, docker-cli for service restart
+RUN apk add --no-cache curl docker-cli
 
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./

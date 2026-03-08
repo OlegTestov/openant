@@ -87,7 +87,7 @@ Each external service has a TypeScript adapter in `wizard/src/lib/adapters/`. Th
 
 - `domain.ts` — domain resolution: `getServiceDomains()` (SaaS flat subdomains), `getCustomDomains()` (user custom domains), `isSaasMode()`
 - `credentials.ts` — deterministic service credential generation (SHA256 of token+service)
-- `docker.ts` — Docker service management, `startServices()`, `reloadCaddy()` via Admin API with docker exec fallback
+- `docker.ts` — Docker service management, `startServices()`, `restartServices()`, `reloadCaddy()` via Admin API with docker exec fallback
 - `caddy.ts` — Caddyfile generation. `generateCaddyfile(services, mode, domain, customDomains?)` — 4th param is optional custom domain map
 - `sse.ts` — Server-Sent Events stream helpers for the deploy pipeline
 - `config.ts` — `.env` file read/write (`readEnv()`, `writeEnv()`)

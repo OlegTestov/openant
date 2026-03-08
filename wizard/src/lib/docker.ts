@@ -34,12 +34,41 @@ async function waitForUrl(
   throw new AdapterError('docker', 'waitForService', `${name} did not become ready at ${url}`);
 }
 
+const RESTART_CONTAINERS = [
+  'openant-ghost',
+  'openant-ghost-db',
+  'openant-nocodb',
+  'openant-db',
+  'openant-n8n',
+  'openant-caddy',
+];
+
+/**
+ * Restart all Docker containers except wizard (which handles the request).
+ * Preserves volumes — no data loss.
+ */
+export async function restartServices(): Promise<void> {
+  const urls = getServiceUrls();
+
+  try {
+    await execAsync(`docker restart ${RESTART_CONTAINERS.join(' ')}`, { timeout: 60_000 });
+  } catch (error) {
+    throw new AdapterError('docker', 'restart', 'Failed to restart containers', error);
+  }
+
+  // Wait for services to become healthy again
+  await Promise.all([
+    waitForUrl(urls.ghost + '/ghost/api/admin/site/', 'Ghost'),
+    waitForUrl(urls.nocodb + '/api/v1/health', 'NocoDB'),
+    waitForUrl(urls.n8n + '/healthz', 'n8n'),
+  ]);
+}
+
 export async function startServices(): Promise<void> {
   const urls = getServiceUrls();
 
   // Services are started by install-dev.sh before the wizard runs.
-  // The wizard container does not have docker CLI, so we can only
-  // verify that services are healthy, not start them.
+  // We verify that services are healthy.
   try {
     const checks = await Promise.all([
       fetch(urls.ghost + '/ghost/api/admin/site/', {
