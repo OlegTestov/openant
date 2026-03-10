@@ -99,7 +99,7 @@ Each external service has a TypeScript adapter in `wizard/src/lib/adapters/`. Th
 
 **Dashboard routes** (`/api/dashboard/*`): status, stats, reconfigure
 
-**SaaS integration** (`/api/saas/*`): health, articles, prompts — called by SaaS control plane proxy
+**SaaS integration** (`/api/saas/*`): health, articles, prompts, restart — called by SaaS control plane proxy
 
 **Other**: `/api/health`, `/api/make-blueprint`
 
