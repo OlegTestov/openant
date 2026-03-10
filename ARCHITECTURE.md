@@ -353,6 +353,11 @@ Each adapter also reads its own env var with the same fallback pattern:
 - **NocoDB** (`src/lib/adapters/nocodb.ts`): `process.env.NOCODB_ADMIN_PASSWORD` → SHA-256 fallback
 - **n8n** (`src/lib/adapters/n8n.ts`): `process.env.N8N_ADMIN_PASSWORD` → `N<hex>!` fallback
 
+### Other utilities
+
+- **`src/lib/utils.ts`** — `cn()` helper (clsx + tailwind-merge) for conditional Tailwind classes
+- **`src/lib/download.ts`** — Client-side helper that downloads `make/blueprint.json` via `/api/make-blueprint` as a file
+
 ### Environment variable strategy
 
 Adapters read env vars at call time (inside each method), not at module load or adapter creation. This is critical because env vars like `GHOST_ADMIN_API_KEY`, `NOCODB_AUTH_TOKEN` etc. do not exist when `createAdapters()` runs at startup — they are written to `.env` during the deploy step. Base URLs (`GHOST_INTERNAL_URL`, `NOCODB_INTERNAL_URL`, `N8N_INTERNAL_URL`) have sensible Docker-internal defaults.
@@ -549,7 +554,7 @@ Defined in **`src/lib/steps.ts`** as a `STEPS` array:
 | 4   | `blog`    | Blog    | Yes      |
 | 5   | `social`  | Social  | No       |
 | 6   | `review`  | Review  | Yes      |
-| 7   | `deploy`  | Deploy  | Yes      |
+| 7   | `deploy`  | Apply Configuration | Yes      |
 
 ### Step anatomy
 
@@ -589,12 +594,12 @@ All step UI components follow the same pattern:
 
 Defined in **`src/lib/llm-presets.ts`**. All LLM providers are OpenAI-compatible, so no adapter is needed — just a preset with `apiUrl` and `defaultModel`:
 
-| Provider   | Default model        |
-| ---------- | -------------------- |
-| OpenAI     | `gpt-4o-mini`        |
-| OpenRouter | `openai/gpt-4o-mini` |
-| DeepSeek   | `deepseek-chat`      |
-| Custom     | (user-provided)      |
+| Provider   | Default model                   | Default image model                     |
+| ---------- | ------------------------------- | --------------------------------------- |
+| OpenRouter | `google/gemini-3-flash-preview` | `google/gemini-3.1-flash-image-preview` |
+| OpenAI     | `gpt-4o-mini`                   | `gpt-4o-mini`                           |
+| DeepSeek   | `deepseek-chat`                 | `deepseek-chat`                         |
+| Custom     | (user-provided)                 | (user-provided)                         |
 
 ---
 
