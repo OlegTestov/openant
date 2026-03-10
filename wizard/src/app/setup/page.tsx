@@ -8,11 +8,12 @@ import Welcome from './steps/Welcome';
 import Domain from './steps/Domain';
 import LLM from './steps/LLM';
 import Blog from './steps/Blog';
+import Telegram from './steps/Telegram';
 import Social from './steps/Social';
 import Review from './steps/Review';
 import Deploy from './steps/Deploy';
 
-const STEP_COMPONENTS = [Welcome, Domain, LLM, Blog, Social, Review, Deploy];
+const STEP_COMPONENTS = [Welcome, Domain, LLM, Blog, Telegram, Social, Review, Deploy];
 
 export default function SetupPage() {
   const [currentStep, setCurrentStep] = useState(0);
@@ -66,6 +67,7 @@ export default function SetupPage() {
             ...(data.data.domain && { domain: data.data.domain }),
             ...(data.data.llm && { llm: data.data.llm }),
             ...(data.data.blog && { blog: data.data.blog }),
+            ...(data.data.telegram && { telegram: data.data.telegram }),
             ...(data.data.social && { social: data.data.social }),
           });
 

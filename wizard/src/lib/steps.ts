@@ -9,6 +9,7 @@ export const STEPS: StepDefinition[] = [
   { id: 'domain', label: 'Domain', required: true },
   { id: 'llm', label: 'LLM', required: true },
   { id: 'blog', label: 'Blog', required: true },
+  { id: 'telegram', label: 'Telegram', required: false },
   { id: 'social', label: 'Social', required: false },
   { id: 'review', label: 'Review', required: true },
   { id: 'deploy', label: 'Apply Configuration', required: true },

@@ -58,6 +58,18 @@ export interface Translations {
       hours: string;
       preview: string;
     };
+    telegram: {
+      title: string;
+      description: string;
+      optional: string;
+      optionalHint: string;
+      botToken: string;
+      botTokenHint: string;
+      botTokenPlaceholder: string;
+      chatId: string;
+      chatIdHint: string;
+      chatIdPlaceholder: string;
+    };
     social: {
       title: string;
       description: string;
@@ -80,6 +92,8 @@ export interface Translations {
       domain: string;
       llm: string;
       blog: string;
+      telegram: string;
+      telegramAutoDetect: string;
       social: string;
       ipMode: string;
       notConfigured: string;
@@ -198,6 +212,18 @@ const en: Translations = {
       hours: 'hours',
       preview: 'Preview',
     },
+    telegram: {
+      title: 'Telegram Bot',
+      description: 'Optional: get notifications and create content via Telegram',
+      optional: 'This step is optional',
+      optionalHint: 'You can configure Telegram notifications later.',
+      botToken: 'Bot Token',
+      botTokenHint: 'Create a bot via @BotFather on Telegram and paste the token here',
+      botTokenPlaceholder: '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11',
+      chatId: 'Chat ID',
+      chatIdHint: 'Leave empty to auto-detect when you send /start to the bot',
+      chatIdPlaceholder: '123456789',
+    },
     social: {
       title: 'Social Distribution',
       description: 'Optional: automate social media posting',
@@ -221,6 +247,8 @@ const en: Translations = {
       domain: 'Domain',
       llm: 'LLM',
       blog: 'Blog',
+      telegram: 'Telegram',
+      telegramAutoDetect: 'Auto-detect from /start',
       social: 'Social',
       ipMode: 'IP mode',
       notConfigured: 'Not configured',
@@ -340,6 +368,18 @@ const ru: Translations = {
       hours: 'часы',
       preview: 'Предпросмотр',
     },
+    telegram: {
+      title: 'Telegram-бот',
+      description: 'Опционально: уведомления и создание контента через Telegram',
+      optional: 'Этот шаг необязателен',
+      optionalHint: 'Вы можете настроить Telegram-уведомления позже.',
+      botToken: 'Токен бота',
+      botTokenHint: 'Создайте бота через @BotFather в Telegram и вставьте токен сюда',
+      botTokenPlaceholder: '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11',
+      chatId: 'ID чата',
+      chatIdHint: 'Оставьте пустым для автоопределения при отправке /start боту',
+      chatIdPlaceholder: '123456789',
+    },
     social: {
       title: 'Дистрибуция в соцсетях',
       description: 'Опционально: автоматизация постинга',
@@ -363,6 +403,8 @@ const ru: Translations = {
       domain: 'Домен',
       llm: 'LLM',
       blog: 'Блог',
+      telegram: 'Telegram',
+      telegramAutoDetect: 'Автоопределение по /start',
       social: 'Соцсети',
       ipMode: 'Режим IP',
       notConfigured: 'Не настроено',

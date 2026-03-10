@@ -3,6 +3,7 @@ import { welcomeSchema } from '../welcome/route';
 import { domainSchema } from '../domain/route';
 import { llmSchema } from '../llm/route';
 import { blogSchema } from '../blog/route';
+import { telegramSchema } from '../telegram/route';
 import { socialSchema } from '../social/route';
 
 describe('welcomeSchema', () => {
@@ -185,6 +186,28 @@ describe('blogSchema', () => {
       publish_interval_minutes: 60,
     });
     expect(result.description).toBe('A great blog');
+  });
+});
+
+describe('telegramSchema', () => {
+  it('accepts empty (skip step)', () => {
+    expect(() => telegramSchema.parse({ bot_token: '', chat_id: '' })).not.toThrow();
+  });
+
+  it('accepts bot token only', () => {
+    expect(() => telegramSchema.parse({ bot_token: '123:ABC', chat_id: '' })).not.toThrow();
+  });
+
+  it('accepts bot token and chat id', () => {
+    expect(() => telegramSchema.parse({ bot_token: '123:ABC', chat_id: '999' })).not.toThrow();
+  });
+
+  it('accepts missing fields (all optional)', () => {
+    expect(() => telegramSchema.parse({})).not.toThrow();
+  });
+
+  it('accepts undefined values', () => {
+    expect(() => telegramSchema.parse({ bot_token: undefined, chat_id: undefined })).not.toThrow();
   });
 });
 

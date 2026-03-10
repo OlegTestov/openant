@@ -34,7 +34,8 @@ openant/
 │
 ├── n8n/
 │   └── workflows/
-│       └── generate-article.template.json   # Article generation + Pinterest promotion workflow
+│       ├── generate-article.template.json   # Article generation + Pinterest promotion + Telegram notifications
+│       └── telegram-bot.template.json      # Telegram bot for content creation via forwarded messages
 │
 ├── make/
 │   └── blueprint.json             # Make.com scenario template (Pinterest)
@@ -192,7 +193,7 @@ To rebuild the zip after modifying theme files: `bash ghost/themes/build-theme.s
 
 ## n8n workflow templates
 
-One n8n workflow template lives in `n8n/workflows/`. It is imported into n8n during deploy step 11, with placeholder substitution.
+Two n8n workflow templates live in `n8n/workflows/`. They are imported into n8n during deploy step 11, with placeholder substitution.
 
 ### generate-article.template.json
 
@@ -229,7 +230,24 @@ Schedule Trigger → Get Next Queued (blank/publishing/error status) → Has Rec
 
 **Pinterest promotion**: After publishing, the workflow checks if `{{MAKE_WEBHOOK_URL}}` is configured. If yes, it generates pin title, text, and image (2:3 vertical) via LLM using system prompts from the NocoDB Prompts table (`PinName`, `PinText`, `PinImage`), then sends a webhook to Make.com with `{ board, title, description, url, imageUrl }`. Make.com responds synchronously with `{ success, pin_id, pin_url }` — the "Save Pin URL" node parses this response and the "Update Status: completed" node writes `PinURL` to NocoDB. Pin errors set `Status: error` with an `Error` field — these are automatically retried on the next schedule cycle (pin-only retry path skips article generation since GhostURL is already present).
 
+**Telegram notifications**: After "Update Status: published" and "Update Status: error", parallel notification Code nodes check if `{{TELEGRAM_BOT_TOKEN}}` is configured. If yes, they resolve `chat_id` from `{{TELEGRAM_CHAT_ID}}` env var (fallback: NocoDB Prompts table `TelegramChatId` column). Notifications include all article fields. Errors use `onError: continueRegularOutput` so notification failures don't break the pipeline.
+
 **Make.com blueprint** (`make/blueprint.json`): 7-module scenario — Webhook → List Boards → Aggregator → Set Variable (find board ID by name) → Create Pin → Webhook Response (success/error). Uses `gateway:WebhookRespond` for synchronous response. Board lookup uses `get(map(array; "id"; "name"; trim(board)))` to find board ID by name. Download available via `/api/make-blueprint` (auth required), with buttons on the Social wizard step and Dashboard.
+
+### telegram-bot.template.json
+
+Conversational workflow for creating content plan entries via Telegram:
+
+```
+Telegram Trigger → Route Message (5-branch Code node)
+  → /start: Save chat_id to NocoDB Prompts.TelegramChatId → reply "Bot connected!"
+  → Forwarded message: Save description to static data → reply "Send Topic"
+  → Topic (awaiting_topic state): Save topic → reply "Send Link or /skip"
+  → Link (awaiting_link state): Create NocoDB article row → reply "✅ Added"
+  → Fallback: reply "Forward a message to start"
+```
+
+State management uses n8n `$getWorkflowStaticData('global')` keyed by `chat_id` with 1-hour TTL cleanup on each message.
 
 ### Placeholder substitution
 
@@ -246,6 +264,9 @@ Templates contain `{{PLACEHOLDER}}` markers that the n8n adapter substitutes dur
 | `{{GHOST_URL}}`               | String replacement                  | `WorkflowParams.ghostUrl`                |
 | `{{MAKE_WEBHOOK_URL}}`        | String replacement                  | `WorkflowParams.makeWebhookUrl`          |
 | `{{PINTEREST_BOARD}}`         | String replacement                  | `WorkflowParams.pinterestBoard`          |
+| `{{TELEGRAM_BOT_TOKEN}}`     | String replacement                  | `WorkflowParams.telegramBotToken`        |
+| `{{TELEGRAM_CHAT_ID}}`       | String replacement                  | `WorkflowParams.telegramChatId`          |
+| `{{NOCODB_AUTH_TOKEN}}`       | String replacement                  | `WorkflowParams.nocodbAuthToken`         |
 | `minutesInterval`             | Structured (schedule node)          | `WorkflowParams.scheduleIntervalMinutes` |
 | `model`                       | Structured (OpenAI node)            | `WorkflowParams.llmModel`                |
 | `url` (Make node)             | Structured (HTTP node named "Make") | `WorkflowParams.makeWebhookUrl`          |
@@ -264,6 +285,7 @@ During deploy, the NocoDB adapter creates a "Prompts" table with 7 system prompt
 | `PinText`      | System prompt for Pinterest pin description                                              |
 | `PinImage`     | System prompt for Pinterest pin image generation                                         |
 | `ThreadText`   | System prompt for social media post                                                      |
+| `TelegramChatId` | Auto-detected chat ID from Telegram bot `/start` command (populated by telegram-bot workflow) |
 
 ---
 
@@ -551,10 +573,11 @@ Defined in **`src/lib/steps.ts`** as a `STEPS` array:
 | 1   | `welcome` | Welcome | Yes      |
 | 2   | `domain`  | Domain  | Yes      |
 | 3   | `llm`     | LLM     | Yes      |
-| 4   | `blog`    | Blog    | Yes      |
-| 5   | `social`  | Social  | No       |
-| 6   | `review`  | Review  | Yes      |
-| 7   | `deploy`  | Apply Configuration | Yes      |
+| 4   | `blog`     | Blog    | Yes      |
+| 5   | `telegram` | Telegram | No      |
+| 6   | `social`   | Social  | No       |
+| 7   | `review`   | Review  | Yes      |
+| 8   | `deploy`   | Apply Configuration | Yes      |
 
 ### Step anatomy
 
@@ -584,6 +607,7 @@ All step UI components follow the same pattern:
 | **Domain**  | Switch (domain/IP mode), domain input, DNS result           | `POST /api/setup/domain`         | `dns.resolve4()` check. Returns `server_ip` + `dns_check`. Domain optional if IP mode.                    |
 | **LLM**     | Preset selector, URL/Key/Model inputs, "Test Connection"    | `POST /api/setup/llm`            | Tests LLM via `POST {api_url}/chat/completions` with 10s timeout. Result returned but doesn't block save. |
 | **Blog**    | Title, description, language, tone, interval + live preview | `POST /api/setup/blog`           | Title max 100 chars, interval min 10 minutes. Client converts hours→minutes.                              |
+| **Telegram** | Bot token, optional chat ID                                   | `POST /api/setup/telegram`     | Optional step. Chat ID auto-detected from `/start` if not provided. Token validated as non-empty if present. |
 | **Social**  | Webhook URL, Pinterest/Threads toggles, Make template download | `POST /api/setup/social`       | All fields optional. Empty webhook URL allowed via `z.literal('')`. Download button serves `make/blueprint.json` via `/api/make-blueprint`. |
 | **Review**  | Read-only config cards with Edit buttons                    | None (reads `/api/setup/status`) | `onGoToStep()` for navigation. API key masked as `•••••`.                                                 |
 | **Deploy**  | Deploy button → SSE progress → success/retry                | `POST /api/setup/apply` (SSE)    | 12-step pipeline with real-time progress. Retry from failed step. Shows service URLs on success.          |
@@ -672,16 +696,16 @@ These are copy-pasted components (not a library dependency), styled with Tailwin
 
 ### Unit tests
 
-363 tests across 38 test files, all passing:
+376 tests across 39 test files, all passing:
 
 | File                                              | Tests | What it verifies                                                                                                                                                                                                                                                                         |
 | ------------------------------------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `lib/adapters/__tests__/ghost.test.ts`            | 34    | Ghost JWT creation, healthCheck, setup (fast path via JWT, full setup with cookie extraction, EmailError handling, "already configured" recovery, env var password), uploadTheme (POST with JWT, skip-if-active, missing key, upload failure), publishPost, getPostUrl, error cases      |
-| `lib/adapters/__tests__/nocodb.test.ts`           | 24    | healthCheck, setup (signup → signin → base → table → columns → sample row, default base deletion, env var password), getNextQueued (empty/non-empty, FIFO sort, blank-status filter, field mapping), updateStatus (status + extra fields), getStats (parallel queries, missing pageInfo) |
-| `lib/adapters/__tests__/n8n.test.ts`              | 28    | healthCheck, setup (fast path with valid key, fallback on invalid key, masked key handling, owner creation, password format, env var password), createCredential, importWorkflow (template immutability, all 5 substitution types), activateWorkflow                                     |
+| `lib/adapters/__tests__/nocodb.test.ts`           | 24    | healthCheck, setup (signup → signin → base → table → columns + TelegramChatId → sample row, default base deletion, env var password), getNextQueued (empty/non-empty, FIFO sort, blank-status filter, field mapping), updateStatus (status + extra fields), getStats (parallel queries, missing pageInfo) |
+| `lib/adapters/__tests__/n8n.test.ts`              | 31    | healthCheck, setup (fast path with valid key, fallback on invalid key, masked key handling, owner creation, password format, env var password), createCredential, importWorkflow (template immutability, all 5 substitution types), activateWorkflow                                     |
 | `lib/__tests__/docker.test.ts`                    | 3     | reloadCaddy exec command, AdapterError on failure, container-not-found skip                                                                                                                                                                                                              |
 | `lib/__tests__/adapters-mock.test.ts`             | 15    | All mock adapters implement correct interfaces and return expected shapes                                                                                                                                                                                                                |
-| `lib/__tests__/steps.test.ts`                     | 5     | 7 steps, correct order, `social` is the only optional step                                                                                                                                                                                                                               |
+| `lib/__tests__/steps.test.ts`                     | 5     | 8 steps, correct order, `telegram` and `social` are the optional steps                                                                                                                                                                                                                   |
 | `lib/__tests__/llm-presets.test.ts`               | 4     | 4 presets, correct shape, `custom` has empty defaults                                                                                                                                                                                                                                    |
 | `lib/__tests__/errors.test.ts`                    | 5     | `AdapterError` message format, name, instanceof, cause                                                                                                                                                                                                                                   |
 | `lib/__tests__/state.test.ts`                     | 8     | readState/writeState round-trip, atomic write, corrupted file fallback, resetState                                                                                                                                                                                                       |
@@ -690,7 +714,7 @@ These are copy-pasted components (not a library dependency), styled with Tailwin
 | `lib/__tests__/api-handler.test.ts`               | 7     | ZodError → 400, AdapterError → 500, unknown → 500, no detail leaks, console logging                                                                                                                                                                                                      |
 | `app/api/health/__tests__/route.test.ts`          | 2     | Health endpoint returns 200 + `{ status: "ok" }`                                                                                                                                                                                                                                         |
 | `app/api/make-blueprint/__tests__/route.test.ts`  | 2     | Auth required (401), returns blueprint JSON with Content-Disposition header                                                                                                                                                                                                               |
-| `app/api/setup/__tests__/schemas.test.ts`         | 23    | Zod schemas for all 5 step routes: valid/invalid inputs, edge cases                                                                                                                                                                                                                      |
+| `app/api/setup/__tests__/schemas.test.ts`         | 32    | Zod schemas for all 6 step routes: valid/invalid inputs, edge cases                                                                                                                                                                                                                      |
 | `app/api/setup/__tests__/routes.test.ts`          | 20    | All 5 POST routes: 200 on valid, 400 on invalid, 401 without auth, correct state updates, DNS/LLM mocking                                                                                                                                                                                |
 | `components/__tests__/Stepper.test.tsx`           | 5     | Renders all labels, highlights current step, shows checkmarks for completed, step numbers, connector lines                                                                                                                                                                               |
 | `components/__tests__/StepLayout.test.tsx`        | 9     | Title/description, children, buttons, hide Back, disable Next, spinner, click handlers, custom label                                                                                                                                                                                     |
@@ -700,6 +724,7 @@ These are copy-pasted components (not a library dependency), styled with Tailwin
 | `app/setup/steps/__tests__/Domain.test.tsx`       | 4     | Toggle domain/IP mode, domain input visibility, IP mode info, submit success                                                                                                                                                                                                             |
 | `app/setup/steps/__tests__/LLM.test.tsx`          | 4     | Provider selector, Test Connection success/error, submit                                                                                                                                                                                                                                 |
 | `app/setup/steps/__tests__/Blog.test.tsx`         | 3     | Live preview update, hours→minutes conversion, API error display                                                                                                                                                                                                                         |
+| `app/setup/steps/__tests__/Telegram.test.tsx`     | 7     | Optional step alert, bot token/chat ID inputs, submit with token only, skip empty, restore initial data                                                                                                                                                                                  |
 | `app/setup/steps/__tests__/Social.test.tsx`       | 4     | Optional step alert, Pinterest/Threads toggles, Make template download button, empty form submit                                                                                                                                                                                         |
 | `app/setup/steps/__tests__/Review.test.tsx`       | 3     | All config sections displayed, Edit button navigation, API key masking                                                                                                                                                                                                                   |
 | `app/setup/steps/__tests__/Deploy.test.tsx`       | 7     | Deploy button, progress bar, checkmarks, error/retry, success URLs, Go to Dashboard                                                                                                                                                                                                      |
@@ -825,8 +850,8 @@ The pipeline is **fully idempotent** — re-deploying without resetting volumes 
 | 7   | Ghost settings     | No-op (already configured in step 5)                                                                               |
 | 8   | NocoDB setup       | Creates admin account, base, and table; removes default bases; inserts sample row                                  |
 | 9   | n8n setup          | Auto-provisions API key (fast path: verify existing key)                                                           |
-| 10  | n8n credentials    | Creates 2 credentials (LLM API, NocoDB). Managed mode: reads LLM key from env vars instead of wizard state         |
-| 11  | n8n workflows      | Imports and activates generate-article workflow (includes Pinterest promotion). Managed mode: reads model from env |
+| 10  | n8n credentials    | Creates 2-3 credentials in parallel (LLM API, NocoDB, optionally Telegram Bot). Managed mode: reads LLM key from env vars |
+| 11  | n8n workflows      | Imports and activates generate-article + optionally telegram-bot workflows in parallel. Managed mode: reads model from env |
 | 12  | Finalize           | Merges adapter keys into .env, sets `deployed: true`. Managed mode: hides n8n URL and credentials from user        |
 
 ### Context hydration

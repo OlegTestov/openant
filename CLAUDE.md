@@ -95,7 +95,7 @@ Each external service has a TypeScript adapter in `wizard/src/lib/adapters/`. Th
 
 ### API routes
 
-**Setup routes** (`/api/setup/*`): welcome, domain, llm, blog, social, status, apply
+**Setup routes** (`/api/setup/*`): welcome, domain, llm, blog, telegram, social, status, apply
 
 **Dashboard routes** (`/api/dashboard/*`): status, stats, reconfigure
 
@@ -117,7 +117,7 @@ Each external service has a TypeScript adapter in `wizard/src/lib/adapters/`. Th
 
 Each step = UI component (`app/setup/steps/`) + API route (`app/api/setup/`) + Zod schema.
 
-Steps: Welcome → Domain → LLM → Blog → Social (optional) → Review → Deploy.
+Steps: Welcome → Domain → LLM → Blog → Telegram (optional) → Social (optional) → Review → Deploy.
 
 ### API conventions
 

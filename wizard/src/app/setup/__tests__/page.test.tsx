@@ -124,6 +124,12 @@ describe('SetupPage', () => {
     // Blog → Next
     await user.click(screen.getByRole('button', { name: 'Next' }));
     await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Telegram Bot' })).toBeInTheDocument();
+    });
+
+    // Telegram → Next
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Social Distribution' })).toBeInTheDocument();
     });
 

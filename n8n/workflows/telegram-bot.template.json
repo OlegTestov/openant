@@ -1,0 +1,212 @@
+{
+  "name": "Telegram Bot",
+  "nodes": [
+    {
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "telegram-bot-wh",
+      "parameters": {
+        "updates": ["message"],
+        "additionalFields": {}
+      },
+      "credentials": {
+        "telegramApi": { "id": "", "name": "Telegram Bot" }
+      }
+    },
+    {
+      "name": "Route Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const message = $input.first().json.message;\nconst text = message.text || '';\nconst chat_id = message.chat.id;\nconst staticData = $getWorkflowStaticData('global');\n\n// Clean up stale conversation state (older than 1 hour)\nif (staticData[chat_id]?.ts && Date.now() - staticData[chat_id].ts > 3600000) {\n  delete staticData[chat_id];\n}\n\n// Branch 0: /start\nif (text === '/start') {\n  return [\n    [{ json: { chat_id, action: 'start' } }],\n    [],\n    [],\n    [],\n    []\n  ];\n}\n\n// Branch 1: forwarded message\nif (message.forward_date || message.forward_origin) {\n  staticData[chat_id] = { step: 'awaiting_topic', description: text, ts: Date.now() };\n  return [\n    [],\n    [{ json: { chat_id, description: text, action: 'forwarded' } }],\n    [],\n    [],\n    []\n  ];\n}\n\n// Branch 2: awaiting topic\nif (staticData[chat_id]?.step === 'awaiting_topic') {\n  staticData[chat_id].step = 'awaiting_link';\n  staticData[chat_id].topic = text;\n  return [\n    [],\n    [],\n    [{ json: { chat_id, topic: text, action: 'topic' } }],\n    [],\n    []\n  ];\n}\n\n// Branch 3: awaiting link\nif (staticData[chat_id]?.step === 'awaiting_link') {\n  const topic = staticData[chat_id].topic;\n  const description = staticData[chat_id].description;\n  const link = text === '/skip' ? '' : text;\n  delete staticData[chat_id];\n  return [\n    [],\n    [],\n    [],\n    [{ json: { chat_id, topic, description, link, action: 'link' } }],\n    []\n  ];\n}\n\n// Branch 4: fallback\nreturn [\n  [],\n  [],\n  [],\n  [],\n  [{ json: { chat_id, action: 'fallback' } }]\n];",
+        "outputs": 5
+      }
+    },
+    {
+      "name": "Get Prompts Row",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [700, 50],
+      "parameters": {
+        "method": "GET",
+        "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_PROMPTS_TABLE_ID}}/records",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "limit", "value": "1" },
+            { "name": "fields", "value": "Id" }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "", "name": "NocoDB" }
+      }
+    },
+    {
+      "name": "Save Chat ID",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [900, 50],
+      "parameters": {
+        "method": "PATCH",
+        "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_PROMPTS_TABLE_ID}}/records",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "Id",
+              "value": "={{ $json.list[0].Id }}"
+            },
+            {
+              "name": "TelegramChatId",
+              "value": "={{ $('Route Message').item.json.chat_id }}"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "", "name": "NocoDB" }
+      }
+    },
+    {
+      "name": "Reply: Bot Connected",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1100, 50],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $('Route Message').item.json.chat_id, text: 'Bot connected! Chat ID saved. Forward me a message to create a content plan entry.' }) }}"
+      }
+    },
+    {
+      "name": "Reply: Send Topic",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [700, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $json.chat_id, text: 'Got it! Now send me the Topic for this article.' }) }}"
+      }
+    },
+    {
+      "name": "Reply: Send Link",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [700, 350],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $json.chat_id, text: 'Topic saved. Now send me the Link (URL) for this article, or send /skip to skip.' }) }}"
+      }
+    },
+    {
+      "name": "Create Article",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [700, 500],
+      "parameters": {
+        "method": "POST",
+        "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "Topic",
+              "value": "={{ $json.topic }}"
+            },
+            {
+              "name": "Description",
+              "value": "={{ $json.description }}"
+            },
+            {
+              "name": "Link",
+              "value": "={{ $json.link }}"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "", "name": "NocoDB" }
+      }
+    },
+    {
+      "name": "Build Confirmation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 500],
+      "parameters": {
+        "jsCode": "const item = $('Route Message').first().json;\nconst text = '\\u2705 Added to content plan:\\n\\nTopic: ' + (item.topic || '') + '\\nDescription: ' + (item.description || '') + '\\nLink: ' + (item.link || '');\nreturn [{ json: { chat_id: item.chat_id, text } }];"
+      }
+    },
+    {
+      "name": "Send Confirmation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1100, 500],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $json.chat_id, text: $json.text }) }}"
+      }
+    },
+    {
+      "name": "Reply: Fallback",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [700, 650],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $json.chat_id, text: 'Forward me a message to create a content plan entry, or send /start to connect.' }) }}"
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [[{ "node": "Route Message", "type": "main", "index": 0 }]]
+    },
+    "Route Message": {
+      "main": [
+        [{ "node": "Get Prompts Row", "type": "main", "index": 0 }],
+        [{ "node": "Reply: Send Topic", "type": "main", "index": 0 }],
+        [{ "node": "Reply: Send Link", "type": "main", "index": 0 }],
+        [{ "node": "Create Article", "type": "main", "index": 0 }],
+        [{ "node": "Reply: Fallback", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get Prompts Row": {
+      "main": [[{ "node": "Save Chat ID", "type": "main", "index": 0 }]]
+    },
+    "Save Chat ID": {
+      "main": [[{ "node": "Reply: Bot Connected", "type": "main", "index": 0 }]]
+    },
+    "Create Article": {
+      "main": [[{ "node": "Build Confirmation", "type": "main", "index": 0 }]]
+    },
+    "Build Confirmation": {
+      "main": [[{ "node": "Send Confirmation", "type": "main", "index": 0 }]]
+    }
+  }
+}

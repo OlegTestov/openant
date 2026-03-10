@@ -85,6 +85,9 @@ function buildEnvVars(state: SetupState): Record<string, string> {
     MAKE_WEBHOOK_URL: state.social?.make_webhook_url ?? '',
     PINTEREST_ENABLED: String(state.social?.pinterest_enabled ?? false),
     THREADS_ENABLED: String(state.social?.threads_enabled ?? false),
+
+    TELEGRAM_BOT_TOKEN: state.telegram?.bot_token ?? '',
+    TELEGRAM_CHAT_ID: state.telegram?.chat_id ?? '',
   };
 }
 
@@ -237,25 +240,45 @@ async function executeDeployStep(
       // Managed mode: LLM credentials from env; BYOK: from wizard state
       const llmApiKey = isManaged() ? process.env.LLM_API_KEY || '' : (state.llm?.api_key ?? '');
       const llmApiUrl = isManaged() ? process.env.LLM_API_URL || '' : (state.llm?.api_url ?? '');
-      const llmCredId = await adapters.automation.createCredential({
-        name: 'LLM API',
-        type: 'openAiApi',
-        data: {
-          apiKey: llmApiKey,
-          url: llmApiUrl,
-          headerName: 'Authorization',
-          headerValue: `Bearer ${llmApiKey}`,
-        },
-      });
-      const nocoCredId = await adapters.automation.createCredential({
-        name: 'NocoDB',
-        type: 'httpHeaderAuth',
-        data: { name: 'xc-auth', value: ctx.nocoKeys?.authToken ?? '' },
-      });
-      ctx.credentialIds = {
-        'LLM API': llmCredId,
-        NocoDB: nocoCredId,
-      };
+
+      // Create all credentials in parallel (independent n8n API calls)
+      const credPromises: Array<Promise<[string, string]>> = [
+        adapters.automation
+          .createCredential({
+            name: 'LLM API',
+            type: 'openAiApi',
+            data: {
+              apiKey: llmApiKey,
+              url: llmApiUrl,
+              headerName: 'Authorization',
+              headerValue: `Bearer ${llmApiKey}`,
+            },
+          })
+          .then((id) => ['LLM API', id]),
+        adapters.automation
+          .createCredential({
+            name: 'NocoDB',
+            type: 'httpHeaderAuth',
+            data: { name: 'xc-auth', value: ctx.nocoKeys?.authToken ?? '' },
+          })
+          .then((id) => ['NocoDB', id]),
+      ];
+
+      const telegramToken = state.telegram?.bot_token;
+      if (telegramToken) {
+        credPromises.push(
+          adapters.automation
+            .createCredential({
+              name: 'Telegram Bot',
+              type: 'telegramApi',
+              data: { accessToken: telegramToken },
+            })
+            .then((id) => ['Telegram Bot', id]),
+        );
+      }
+
+      const credResults = await Promise.all(credPromises);
+      ctx.credentialIds = Object.fromEntries(credResults);
       break;
     }
 
@@ -286,10 +309,25 @@ async function executeDeployStep(
         nocodbPromptsTableId: ctx.nocoKeys?.promptsTableId,
         ghostAdminApiKey: ctx.ghostKeys?.adminApiKey,
         ghostUrl,
+        telegramBotToken: state.telegram?.bot_token,
+        telegramChatId: state.telegram?.chat_id,
+        nocodbAuthToken: ctx.nocoKeys?.authToken,
       };
 
-      const genId = await adapters.automation.importWorkflow(generateTemplate, workflowParams);
-      await adapters.automation.activateWorkflow(genId);
+      const importAndActivate = async (template: object) => {
+        const id = await adapters.automation.importWorkflow(template, workflowParams);
+        await adapters.automation.activateWorkflow(id);
+      };
+
+      const workflows = [importAndActivate(generateTemplate)];
+
+      // Import and activate telegram-bot workflow (only if bot token is configured)
+      if (state.telegram?.bot_token) {
+        const telegramTemplate = await readWorkflowTemplate('telegram-bot');
+        workflows.push(importAndActivate(telegramTemplate));
+      }
+
+      await Promise.all(workflows);
       break;
     }
 

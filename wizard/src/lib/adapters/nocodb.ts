@@ -313,6 +313,7 @@ async function createPromptsTable(
     { title: 'PinText', uidt: 'LongText' },
     { title: 'PinImage', uidt: 'LongText' },
     { title: 'ThreadText', uidt: 'LongText' },
+    { title: 'TelegramChatId', uidt: 'SingleLineText' },
   ];
 
   for (const col of additionalColumns) {

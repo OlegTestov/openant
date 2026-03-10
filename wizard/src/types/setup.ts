@@ -26,6 +26,10 @@ export interface SetupState {
     tone: string;
     publish_interval_minutes: number;
   };
+  telegram?: {
+    bot_token?: string;
+    chat_id?: string;
+  };
   social?: {
     make_webhook_url?: string;
     pinterest_enabled: boolean;

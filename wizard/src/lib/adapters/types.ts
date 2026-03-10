@@ -148,6 +148,9 @@ export interface WorkflowParams {
   nocodbPromptsTableId?: string;
   ghostAdminApiKey?: string;
   ghostUrl?: string;
+  telegramBotToken?: string;
+  telegramChatId?: string;
+  nocodbAuthToken?: string;
 }
 
 // ── Distribution ──────────────────────────────────

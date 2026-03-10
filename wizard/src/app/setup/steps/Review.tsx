@@ -16,6 +16,7 @@ interface ReviewConfig {
     tone: string;
     publish_interval_minutes: number;
   };
+  telegram?: { bot_token?: string; chat_id?: string };
   social?: { make_webhook_url?: string; pinterest_enabled: boolean; threads_enabled: boolean };
   saas_mode?: boolean;
   default_domain?: string | null;
@@ -157,6 +158,28 @@ export default function Review({ onComplete, onBack, onGoToStep }: StepProps) {
           role="button"
           tabIndex={0}
           onKeyDown={(e) => e.key === 'Enter' && onGoToStep?.(isManaged ? 3 : 4)}
+        >
+          <div className="min-w-0">
+            <p className="text-sm font-medium">{t.steps.review.telegram}</p>
+            {config?.telegram?.bot_token ? (
+              <p className="text-muted-foreground text-sm">
+                {'•••••' + config.telegram.bot_token.slice(-4)}
+                {' · '}
+                {config.telegram.chat_id || t.steps.review.telegramAutoDetect}
+              </p>
+            ) : (
+              <p className="text-muted-foreground text-sm">{t.steps.review.notConfigured}</p>
+            )}
+          </div>
+          <span className="text-muted-foreground ml-4 text-sm">{t.steps.review.edit}</span>
+        </div>
+
+        <div
+          className="hover:bg-muted/50 flex cursor-pointer items-center justify-between px-4 py-3 transition-colors"
+          onClick={() => onGoToStep?.(isManaged ? 4 : 5)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && onGoToStep?.(isManaged ? 4 : 5)}
         >
           <div className="min-w-0">
             <p className="text-sm font-medium">{t.steps.review.social}</p>
