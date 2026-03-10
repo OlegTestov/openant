@@ -6,9 +6,7 @@
 
 ## What is openant
 
-openant is a self-hosted platform for automated content generation and promotion. It orchestrates several services — a blog engine (Ghost), a spreadsheet interface (NocoDB), an automation engine (n8n), and a reverse proxy (Caddy) — through a single Setup Wizard built with Next.js.
-
-The user installs openant on a VPS with one command, walks through a web-based wizard to configure everything, and the system automatically generates SEO articles from a topic queue, publishes them to a blog, and promotes them on social media.
+Self-hosted platform for automated content generation and promotion. Orchestrates Ghost (blog), NocoDB (spreadsheet/queue), n8n (automation), and Caddy (reverse proxy) through a Next.js Setup Wizard. One-command VPS install, web-based config wizard, automatic SEO article generation, blog publishing, and social media promotion.
 
 ---
 
@@ -21,75 +19,45 @@ openant/
 ├── install.sh                     # One-command installer script
 ├── install-dev.sh                 # Local dev installer (rsync from current dir, /tmp/openant-dev)
 ├── .env.example                   # All environment variables with defaults
-├── .gitignore                     # Root gitignore
 ├── ARCHITECTURE.md                # This file
 ├── LICENSE                        # MIT License
 │
-├── tests/
-│   └── e2e/
-│       └── run.sh                 # End-to-end test script
+├── tests/e2e/run.sh               # End-to-end test script
+├── caddy/Caddyfile                # Initial IP-mode reverse proxy config
 │
-├── caddy/
-│   └── Caddyfile                  # Initial IP-mode reverse proxy config
+├── n8n/workflows/
+│   ├── generate-article.template.json   # Article generation + Pinterest + Telegram
+│   └── telegram-bot.template.json       # Telegram bot for content creation
 │
-├── n8n/
-│   └── workflows/
-│       ├── generate-article.template.json   # Article generation + Pinterest promotion + Telegram notifications
-│       └── telegram-bot.template.json      # Telegram bot for content creation via forwarded messages
-│
-├── make/
-│   └── blueprint.json             # Make.com scenario template (Pinterest)
+├── make/blueprint.json            # Make.com scenario template (Pinterest)
 │
 ├── ghost/
-│   ├── fake-sendmail.sh           # Null mailer for Ghost (avoids SMTP requirement)
+│   ├── fake-sendmail.sh           # Null mailer (avoids SMTP requirement)
 │   └── themes/
-│       ├── openant-source/        # Forked Source v1.5.0 theme (dark mode, image-first layout)
-│       ├── openant-source.zip     # Pre-built theme zip (uploaded during deploy)
-│       └── build-theme.sh         # Rebuilds the zip from openant-source/
+│       ├── openant-source/        # Forked Source v1.5.0 theme
+│       ├── openant-source.zip     # Pre-built theme zip
+│       └── build-theme.sh         # Rebuilds zip from openant-source/
 │
-├── .github/
-│   └── workflows/
-│       └── ci.yml                 # GitHub Actions CI pipeline
-│
+├── .github/workflows/ci.yml      # GitHub Actions CI pipeline
 ├── docs/                          # Design documentation (specs, plans)
-│   ├── SPECIFICATION.md           # Full specification
-│   └── plans/
-│       ├── stage-01-scaffold.md
-│       ├── stage-02-state-auth.md
-│       ├── stage-03-wizard-shell.md
-│       ├── stage-04-wizard-steps.md
-│       ├── stage-05-adapters.md
-│       ├── stage-06-deploy-sse.md
-│       ├── stage-07-docker-infra.md
-│       ├── stage-08-dashboard-saas.md
-│       ├── stage-09-install-e2e.md
-│       ├── stage-10-ci-polish.md
-│       ├── openant-saas-phase-1.md
-│       └── openant-saas-phase-2.md
 │
 ├── wizard/                        # Next.js application (the only custom code)
-│   ├── Dockerfile                 # Multi-stage build (builder → runner)
+│   ├── Dockerfile                 # Multi-stage build (builder -> runner)
 │   ├── src/
 │   │   ├── app/                   # Next.js App Router (pages + API routes)
-│   │   │   ├── page.tsx           # Root redirect (→ /setup or /dashboard)
+│   │   │   ├── page.tsx           # Root redirect (-> /setup or /dashboard)
 │   │   │   ├── api/setup/         # Step API routes + deploy endpoint
-│   │   │   ├── api/dashboard/     # Dashboard API routes (status, stats, reconfigure)
+│   │   │   ├── api/dashboard/     # Dashboard API routes
 │   │   │   ├── api/saas/          # SaaS health endpoint (no auth)
-│   │   │   ├── dashboard/
-│   │   │   │   └── page.tsx       # Dashboard page (client component)
+│   │   │   ├── dashboard/page.tsx # Dashboard page
 │   │   │   └── setup/
-│   │   │       ├── page.tsx       # Wizard container (client component)
+│   │   │       ├── page.tsx       # Wizard container
 │   │   │       └── steps/         # Step form components
-│   │   ├── components/            # React components (Stepper, StepLayout, ServiceStatus, ThemeToggle, ui/)
+│   │   ├── components/            # Stepper, StepLayout, ServiceStatus, ThemeToggle, ui/
 │   │   ├── lib/                   # Business logic, adapters, utilities
 │   │   ├── types/                 # Shared TypeScript types
 │   │   ├── test/                  # Unit test setup
-│   │   └── __tests__/
-│   │       └── integration/       # Integration tests (real Docker services)
-│   │           ├── setup.ts
-│   │           ├── ghost.integration.test.ts
-│   │           ├── nocodb.integration.test.ts
-│   │           └── n8n.integration.test.ts
+│   │   └── __tests__/integration/ # Integration tests (real Docker services)
 │   ├── next.config.ts
 │   ├── vitest.config.ts           # Unit test config (jsdom)
 │   ├── vitest.integration.config.ts  # Integration test config (node)
@@ -99,24 +67,24 @@ openant/
 │   └── package.json
 ```
 
-The `wizard/` directory is the only custom code. Everything else (Ghost, NocoDB, n8n, Caddy, PostgreSQL, MySQL) runs as unmodified Docker images configured via docker-compose.
+The `wizard/` directory is the only custom code. Everything else runs as unmodified Docker images.
 
 ---
 
 ## Technology stack
 
-| Layer         | Technology                  | Purpose                                              |
-| ------------- | --------------------------- | ---------------------------------------------------- |
-| Framework     | Next.js 16 (App Router)     | Wizard UI + API routes                               |
-| Language      | TypeScript (strict mode)    | Type safety across the project                       |
-| Validation    | Zod v4                      | Runtime schema validation for API requests and state |
-| Styling       | Tailwind CSS v4 + shadcn/ui | UI components                                        |
-| Testing       | Vitest + Testing Library    | Unit and component tests                             |
-| Containers    | Docker Compose              | 7-service orchestration                              |
-| Reverse proxy | Caddy 2                     | Auto-HTTPS, domain routing                           |
-| Linting       | ESLint (flat config)        | Code quality                                         |
-| Formatting    | Prettier                    | Code style                                           |
-| Build         | `output: "standalone"`      | Minimal Docker-ready build                           |
+| Layer         | Technology                  | Purpose                              |
+| ------------- | --------------------------- | ------------------------------------ |
+| Framework     | Next.js 16 (App Router)     | Wizard UI + API routes               |
+| Language      | TypeScript (strict mode)    | Type safety                          |
+| Validation    | Zod v4                      | Runtime schema validation            |
+| Styling       | Tailwind CSS v4 + shadcn/ui | UI components                        |
+| Testing       | Vitest + Testing Library    | Unit and component tests             |
+| Containers    | Docker Compose              | 7-service orchestration              |
+| Reverse proxy | Caddy 2                     | Auto-HTTPS, domain routing           |
+| Linting       | ESLint (flat config)        | Code quality                         |
+| Formatting    | Prettier                    | Code style                           |
+| Build         | `output: "standalone"`      | Minimal Docker-ready build           |
 
 ---
 
@@ -124,7 +92,7 @@ The `wizard/` directory is the only custom code. Everything else (Ghost, NocoDB,
 
 ### Production (`docker-compose.yml`)
 
-7 services orchestrated via docker-compose with a shared bridge network (`openant_net`):
+7 services on shared bridge network (`openant_net`):
 
 | Service    | Image                   | Container          | Purpose                        |
 | ---------- | ----------------------- | ------------------ | ------------------------------ |
@@ -136,487 +104,337 @@ The `wizard/` directory is the only custom code. Everything else (Ghost, NocoDB,
 | `n8n`      | `n8nio/n8n:2.9.2`       | `openant-n8n`      | Workflow automation            |
 | `caddy`    | `caddy:2-alpine`        | `openant-caddy`    | Reverse proxy with auto-HTTPS  |
 
-All services have healthchecks and JSON file logging (`max-size: 10m`, `max-file: 3`).
-
-7 named volumes: `ghost_content`, `ghost_db_data`, `nocodb_data`, `postgres_data`, `n8n_data`, `caddy_data`, `caddy_config`.
+All services have healthchecks and JSON file logging (`max-size: 10m`, `max-file: 3`). 7 named volumes: `ghost_content`, `ghost_db_data`, `nocodb_data`, `postgres_data`, `n8n_data`, `caddy_data`, `caddy_config`.
 
 ### Development (`docker-compose.dev.yml`)
 
-Same infrastructure services but **no wizard** (runs on host via `npm run dev`) and **no caddy** (direct port access). Hardcoded dev passwords. All ports exposed:
-
-- Ghost: `localhost:2368`
-- NocoDB: `localhost:8080`
-- n8n: `localhost:5678`
-
-Usage: `docker compose -f docker-compose.dev.yml up -d && cd wizard && npm run dev`
+Same infra but **no wizard** (runs on host) and **no caddy** (direct port access). Hardcoded dev passwords. Ports: Ghost `:2368`, NocoDB `:8080`, n8n `:5678`.
 
 ### Wizard Dockerfile
 
-Multi-stage build:
+Multi-stage build: **Builder** (`node:20-alpine`, `npm ci`, `npm run build`) -> **Runner** (`node:20-alpine`, non-root `nextjs` user, `DOCKER_GID` build arg for Docker socket, curl for healthcheck). Key env: `STATE_PATH=/app/data/state.json`, `PORT=3000`.
 
-1. **Builder stage**: `node:20-alpine`, `npm ci`, `npm run build` → standalone output
-2. **Runner stage**: `node:20-alpine`, non-root `nextjs` user, `DOCKER_GID` build arg for Docker socket access, curl for healthcheck
-
-Key environment variables: `STATE_PATH=/app/data/state.json`, `HOSTNAME=0.0.0.0`, `PORT=3000`.
-
-Docker-compose passes additional env vars to the wizard service for SaaS mode:
-
-- `INSTANCE_MODE` — `managed` or `byok` (default: `byok`)
-- `GHOST_ADMIN_PASSWORD`, `NOCODB_ADMIN_PASSWORD`, `N8N_ADMIN_PASSWORD` — random passwords injected by cloud-init
+SaaS mode env vars: `INSTANCE_MODE` (`managed`/`byok`), `GHOST_ADMIN_PASSWORD`, `NOCODB_ADMIN_PASSWORD`, `N8N_ADMIN_PASSWORD` (random, injected by cloud-init).
 
 ### Caddy configuration
 
-**File:** `caddy/Caddyfile`
+**File:** `caddy/Caddyfile` -- initial IP-mode config (`:80 -> ghost:2368`), regenerated during deploy:
 
-Initial IP-mode config (`:80 → ghost:2368`). Regenerated by Wizard during deploy:
-
-- **IP mode**: Single `:80` block → Ghost. Blog accessed via Caddy on port 80 (`http://<ip>`), other services use direct ports (NocoDB `:8080`, n8n `:5678`, wizard `:3000`)
-- **Domain mode**: 4 server blocks with auto-HTTPS (main→Ghost, table.X→NocoDB, auto.X→n8n, setup.X→wizard). n8n is always proxied; in managed mode, the URL and credentials are hidden from the user but accessible to admins
+- **IP mode**: Single `:80` -> Ghost. Other services via direct ports.
+- **Domain mode**: 4 server blocks with auto-HTTPS (main->Ghost, table.X->NocoDB, auto.X->n8n, setup.X->wizard). SaaS adds `tls internal`.
 
 ### Custom Ghost theme (`openant-source`)
 
-**Directory:** `ghost/themes/openant-source/`
+Fork of Source v1.5.0 with: (1) dark mode toggle replacing search icon, persisted in `localStorage` with `prefers-color-scheme` default and flash-prevention script; (2) built-in dark CSS via `html[data-theme="dark"]` selector; (3) feature image above title in `post.hbs`.
 
-A fork of Ghost's default Source theme (v1.5.0) with three modifications:
-
-1. **Dark mode toggle** — the search icon in the header is replaced with a sun/moon toggle button. The toggle sets `data-theme="dark"|"light"` on `<html>` and persists the choice in `localStorage`. On first visit, the system's `prefers-color-scheme` is used as the default. A render-blocking script in `<head>` reads the preference before paint to prevent flash of wrong theme.
-
-2. **Built-in dark mode CSS** — CSS variables are overridden via `html[data-theme="dark"]` selector (instead of the old `@media prefers-color-scheme` injection via `codeinjection_head`). This gives users manual control and persists across page loads.
-
-3. **Article layout** — In `post.hbs`, the feature image is rendered above the article title (image → title → text). The image uses `grid-column: main` to match the text content width, with 40px vertical margins for proper spacing.
-
-The theme is pre-built as `ghost/themes/openant-source.zip` and mounted into the wizard container via a Docker volume (`./ghost/themes:/app/themes:ro`). During deploy step 6, the wizard uploads the zip to Ghost via `POST /ghost/api/admin/themes/upload/`. If the theme is already active, the upload is skipped.
-
-To rebuild the zip after modifying theme files: `bash ghost/themes/build-theme.sh`
+Pre-built as `openant-source.zip`, mounted into wizard via Docker volume. Uploaded during deploy step 6 via Ghost Admin API (skipped if already active). Rebuild: `bash ghost/themes/build-theme.sh`.
 
 ---
 
 ## n8n workflow templates
 
-Two n8n workflow templates live in `n8n/workflows/`. They are imported into n8n during deploy step 11, with placeholder substitution.
+Two templates in `n8n/workflows/`, imported during deploy step 11 with placeholder substitution.
 
 ### generate-article.template.json
 
-Pipeline with system/user prompt split, image generation, optional Pinterest promotion, and automatic error retry:
+Pipeline with system/user prompt split, image generation, optional Pinterest promotion, and error retry:
 
 ```
-Schedule Trigger → Get Next Queued (blank/publishing/error status) → Has Records?
-  → Is Pin Retry? (Status=error AND GhostURL not empty)
-    → true (pin retry):
-       Update Status: promoting → Get Prompts (retry) → Check Pinterest (retry)
-       → Prepare Pin Retry → Pin Prompt Data → [pin generation flow below]
-    → false (normal):
-       Update status: generating → Get Prompts (from NocoDB Prompts table)
-       → Prepare Prompts (split system/user) → Generate Title (LLM)
-       → Generate Article (LLM) → Generate & Upload Image (LLM + Ghost upload)
-       → Update status: publishing → Build Ghost JWT → POST to Ghost
-       → Update status: published → Check Pinterest (If: MAKE_WEBHOOK_URL not empty)
-         → false: Update Status: completed (no pin)
-         → true:  Prepare Pin Prompts → Pin Prompt Data → Generate Pin Title
-                   → Generate Pin Text → Generate & Upload Pin Image
-                   → Send to Make Webhook → Save Pin URL
-                   → Update Status: completed (writes PinURL)
-  → article-stage errors: Update Status: error (no GhostURL → full retry next cycle)
-  → pin-stage errors: Update Status: error (GhostURL present → pin-only retry next cycle)
+Schedule Trigger -> Get Next Queued (blank/publishing/error status) -> Has Records?
+  -> Is Pin Retry? (Status=error AND GhostURL not empty)
+    -> true: Update Status: promoting -> retry pin generation flow
+    -> false: Update status: generating -> Get Prompts -> Generate Title (LLM)
+       -> Generate Article (LLM) -> Generate & Upload Image -> publishing
+       -> Build Ghost JWT -> POST to Ghost -> published -> Check Pinterest
+         -> false: completed (no pin)
+         -> true: Generate Pin Title/Text/Image -> Make Webhook -> Save Pin URL -> completed
+  -> article-stage errors: Status: error (no GhostURL -> full retry next cycle)
+  -> pin-stage errors: Status: error (GhostURL present -> pin-only retry next cycle)
 ```
 
-**Error retry**: Records with `error` status are automatically picked up on the next schedule cycle. The "Is Pin Retry?" node distinguishes between article errors (no GhostURL → full pipeline retry) and pin errors (GhostURL present → skip article generation, retry only pin). Pin errors clear the Error field and set status to `promoting` before retrying.
+**Error retry**: Records with `error` status auto-picked up next cycle. "Is Pin Retry?" distinguishes article errors (full retry) from pin errors (pin-only retry, clears Error field).
 
-**System/user prompt split**: Each LLM call sends two messages — a `system` message (static instructions from NocoDB Prompts table) and a `user` message (only dynamic data: topic, description, link). System prompts are fully rendered at deploy time (language/tone baked in), so no runtime substitution is needed in n8n.
+**System/user prompt split**: Each LLM call uses a `system` message (static, from NocoDB Prompts table) and `user` message (dynamic: topic, description, link). Prompts fully rendered at deploy time.
 
-**Image generation**: The "Generate & Upload Image" Code node calls the LLM API with `modalities: ['text', 'image']` to generate a cover image, then uploads the base64 PNG to Ghost's Admin API via multipart form. The image URL is passed to the Ghost post as `feature_image`. Errors are caught silently — the article publishes without an image if generation fails. HTTP timeout is 120 seconds.
+**Image generation**: Code node calls LLM API with `modalities: ['text', 'image']`, uploads base64 PNG to Ghost Admin API. Fails silently (article publishes without image). 120s timeout.
 
-**HTML sanitization**: The "Build Ghost JWT" Code node post-processes article HTML before publishing. Two regex passes wrap any bare text (not inside block-level tags) in `<p>` tags — this prevents Ghost's Source theme from rendering loose text in broken multi-column layout. The article prompt also explicitly requires all paragraphs to be wrapped in `<p>` tags.
+**HTML sanitization**: Post-processes article HTML wrapping bare text in `<p>` tags to prevent Ghost Source theme layout issues.
 
-**Pinterest promotion**: After publishing, the workflow checks if `{{MAKE_WEBHOOK_URL}}` is configured. If yes, it generates pin title, text, and image (2:3 vertical) via LLM using system prompts from the NocoDB Prompts table (`PinName`, `PinText`, `PinImage`), then sends a webhook to Make.com with `{ board, title, description, url, imageUrl }`. Make.com responds synchronously with `{ success, pin_id, pin_url }` — the "Save Pin URL" node parses this response and the "Update Status: completed" node writes `PinURL` to NocoDB. Pin errors set `Status: error` with an `Error` field — these are automatically retried on the next schedule cycle (pin-only retry path skips article generation since GhostURL is already present).
+**Pinterest promotion**: If `{{MAKE_WEBHOOK_URL}}` configured, generates pin title/text/image via LLM (system prompts from Prompts table), sends webhook to Make.com (`{ board, title, description, url, imageUrl }`). Make responds with `{ success, pin_id, pin_url }`. Pin errors auto-retry next cycle.
 
-**Telegram notifications**: After "Update Status: published" and "Update Status: error", parallel notification Code nodes check if `{{TELEGRAM_BOT_TOKEN}}` is configured. If yes, they resolve `chat_id` from `{{TELEGRAM_CHAT_ID}}` env var (fallback: NocoDB Prompts table `TelegramChatId` column). Notifications include all article fields. Errors use `onError: continueRegularOutput` so notification failures don't break the pipeline.
+**Telegram notifications**: After publish/error, checks `{{TELEGRAM_BOT_TOKEN}}`. If set, sends notification with article fields. Uses `onError: continueRegularOutput` so failures don't break pipeline.
 
-**Make.com blueprint** (`make/blueprint.json`): 7-module scenario — Webhook → List Boards → Aggregator → Set Variable (find board ID by name) → Create Pin → Webhook Response (success/error). Uses `gateway:WebhookRespond` for synchronous response. Board lookup uses `get(map(array; "id"; "name"; trim(board)))` to find board ID by name. Download available via `/api/make-blueprint` (auth required), with buttons on the Social wizard step and Dashboard.
+**Make.com blueprint** (`make/blueprint.json`): 7-module scenario (Webhook -> List Boards -> Aggregator -> Set Variable -> Create Pin -> Webhook Response). Download via `/api/make-blueprint`.
 
 ### telegram-bot.template.json
 
 Conversational workflow for creating content plan entries via Telegram:
 
 ```
-Telegram Trigger → Route Message (5-branch Code node)
-  → /start: Save chat_id to NocoDB Prompts.TelegramChatId → reply "Bot connected!"
-  → Forwarded message: Save description to static data → reply "Send Topic"
-  → Topic (awaiting_topic state): Save topic → reply "Send Link or /skip"
-  → Link (awaiting_link state): Create NocoDB article row → reply "✅ Added"
-  → Fallback: reply "Forward a message to start"
+Telegram Trigger -> Route Message (5-branch Code node)
+  -> /start: Save chat_id to NocoDB Prompts.TelegramChatId
+  -> Forwarded message: Save description, reply "Send Topic"
+  -> Topic: Save topic, reply "Send Link or /skip"
+  -> Link: Create NocoDB article row
+  -> Fallback: reply "Forward a message to start"
 ```
 
-State management uses n8n `$getWorkflowStaticData('global')` keyed by `chat_id` with 1-hour TTL cleanup on each message.
+State via `$getWorkflowStaticData('global')` keyed by `chat_id` with 1-hour TTL.
 
 ### Placeholder substitution
 
-Templates contain `{{PLACEHOLDER}}` markers that the n8n adapter substitutes during import:
-
-| Placeholder                   | Substitution type                   | Source                                   |
-| ----------------------------- | ----------------------------------- | ---------------------------------------- |
-| `{{NOCODB_TABLE_ID}}`         | String replacement                  | `WorkflowParams.nocodbTableId`           |
-| `{{NOCODB_PROMPTS_TABLE_ID}}` | String replacement                  | `WorkflowParams.nocodbPromptsTableId`    |
-| `{{LLM_API_URL}}`             | String replacement                  | `WorkflowParams.llmApiUrl`               |
-| `{{LLM_API_KEY}}`             | String replacement                  | `WorkflowParams.llmApiKey`               |
-| `{{LLM_IMAGE_MODEL}}`         | String replacement                  | `WorkflowParams.llmImageModel`           |
-| `{{GHOST_ADMIN_API_KEY}}`     | String replacement                  | `WorkflowParams.ghostAdminApiKey`        |
-| `{{GHOST_URL}}`               | String replacement                  | `WorkflowParams.ghostUrl`                |
-| `{{MAKE_WEBHOOK_URL}}`        | String replacement                  | `WorkflowParams.makeWebhookUrl`          |
-| `{{PINTEREST_BOARD}}`         | String replacement                  | `WorkflowParams.pinterestBoard`          |
-| `{{TELEGRAM_BOT_TOKEN}}`     | String replacement                  | `WorkflowParams.telegramBotToken`        |
-| `{{TELEGRAM_CHAT_ID}}`       | String replacement                  | `WorkflowParams.telegramChatId`          |
-| `{{NOCODB_AUTH_TOKEN}}`       | String replacement                  | `WorkflowParams.nocodbAuthToken`         |
-| `minutesInterval`             | Structured (schedule node)          | `WorkflowParams.scheduleIntervalMinutes` |
-| `model`                       | Structured (OpenAI node)            | `WorkflowParams.llmModel`                |
-| `url` (Make node)             | Structured (HTTP node named "Make") | `WorkflowParams.makeWebhookUrl`          |
-| `credentials.*.id`            | Structured (all nodes)              | `WorkflowParams.credentialIds`           |
+| Placeholder                   | Type                        | Source                                   |
+| ----------------------------- | --------------------------- | ---------------------------------------- |
+| `{{NOCODB_TABLE_ID}}`         | String replacement          | `WorkflowParams.nocodbTableId`           |
+| `{{NOCODB_PROMPTS_TABLE_ID}}` | String replacement          | `WorkflowParams.nocodbPromptsTableId`    |
+| `{{LLM_API_URL}}`             | String replacement          | `WorkflowParams.llmApiUrl`               |
+| `{{LLM_API_KEY}}`             | String replacement          | `WorkflowParams.llmApiKey`               |
+| `{{LLM_IMAGE_MODEL}}`         | String replacement          | `WorkflowParams.llmImageModel`           |
+| `{{GHOST_ADMIN_API_KEY}}`     | String replacement          | `WorkflowParams.ghostAdminApiKey`        |
+| `{{GHOST_URL}}`               | String replacement          | `WorkflowParams.ghostUrl`                |
+| `{{MAKE_WEBHOOK_URL}}`        | String replacement          | `WorkflowParams.makeWebhookUrl`          |
+| `{{PINTEREST_BOARD}}`         | String replacement          | `WorkflowParams.pinterestBoard`          |
+| `{{TELEGRAM_BOT_TOKEN}}`      | String replacement          | `WorkflowParams.telegramBotToken`        |
+| `{{TELEGRAM_CHAT_ID}}`        | String replacement          | `WorkflowParams.telegramChatId`          |
+| `{{NOCODB_AUTH_TOKEN}}`        | String replacement          | `WorkflowParams.nocodbAuthToken`         |
+| `minutesInterval`             | Structured (schedule node)  | `WorkflowParams.scheduleIntervalMinutes` |
+| `model`                       | Structured (OpenAI node)    | `WorkflowParams.llmModel`                |
+| `url` (Make node)             | Structured (HTTP node)      | `WorkflowParams.makeWebhookUrl`          |
+| `credentials.*.id`            | Structured (all nodes)      | `WorkflowParams.credentialIds`           |
 
 ### NocoDB Prompts table
 
-During deploy, the NocoDB adapter creates a "Prompts" table with 7 system prompt columns. Language (`{language}`) and tone (`{tone}`) placeholders are substituted at deploy time from the wizard's blog settings, so the stored prompts are fully static.
+Created during deploy with 7 system prompt columns. `{language}` and `{tone}` placeholders substituted at deploy time.
 
-| Column         | Purpose                                                                                  |
-| -------------- | ---------------------------------------------------------------------------------------- |
-| `ArticleTitle` | System prompt for SEO headline generation                                                |
-| `ArticleText`  | System prompt for full article HTML generation                                           |
-| `ArticleImage` | System prompt for blog cover image generation (instructs model to create image directly) |
-| `PinName`      | System prompt for Pinterest pin title                                                    |
-| `PinText`      | System prompt for Pinterest pin description                                              |
-| `PinImage`     | System prompt for Pinterest pin image generation                                         |
-| `ThreadText`   | System prompt for social media post                                                      |
-| `TelegramChatId` | Auto-detected chat ID from Telegram bot `/start` command (populated by telegram-bot workflow) |
+| Column           | Purpose                                          |
+| ---------------- | ------------------------------------------------ |
+| `ArticleTitle`   | SEO headline generation prompt                   |
+| `ArticleText`    | Full article HTML generation prompt              |
+| `ArticleImage`   | Blog cover image generation prompt               |
+| `PinName`        | Pinterest pin title prompt                       |
+| `PinText`        | Pinterest pin description prompt                 |
+| `PinImage`       | Pinterest pin image generation prompt            |
+| `ThreadText`     | Social media post prompt                         |
+| `TelegramChatId` | Auto-detected chat ID from `/start` command      |
 
 ---
 
 ## Adapter system
 
-The core architectural pattern is the **adapter system**. Each external service interacts with the wizard through a TypeScript interface. Replacing a service means writing a new adapter — nothing else changes.
+Core pattern: each external service has a TypeScript adapter interface. Replacing a service means writing a new adapter.
 
 ### Four adapter types
 
-| Interface             | Responsibility                    | Current implementation                |
-| --------------------- | --------------------------------- | ------------------------------------- |
-| `BlogAdapter`         | Publish articles, manage blog     | Ghost (`src/lib/adapters/ghost.ts`)   |
-| `TableAdapter`        | FIFO topic queue, status tracking, articles CRUD, prompts management | NocoDB (`src/lib/adapters/nocodb.ts`) |
-| `AutomationAdapter`   | Workflow orchestration            | n8n (`src/lib/adapters/n8n.ts`)       |
-| `DistributionAdapter` | Social media posting              | Interface only (→ Make.com)           |
+| Interface             | Responsibility                                                   | Implementation                        |
+| --------------------- | ---------------------------------------------------------------- | ------------------------------------- |
+| `BlogAdapter`         | Publish articles, manage blog                                    | Ghost (`src/lib/adapters/ghost.ts`)   |
+| `TableAdapter`        | FIFO topic queue, status tracking, articles CRUD, prompts mgmt   | NocoDB (`src/lib/adapters/nocodb.ts`) |
+| `AutomationAdapter`   | Workflow orchestration                                           | n8n (`src/lib/adapters/n8n.ts`)       |
+| `DistributionAdapter` | Social media posting                                             | Interface only (Make.com)             |
 
 ### Key files
 
-- **`src/lib/adapters/types.ts`** — All adapter interfaces. This is the central contract that the entire system depends on. Treat as read-only after creation; changes require review since they affect all consumers.
-- **`src/lib/adapters/index.ts`** — Registry. `createAdapters()` returns an `Adapters` object with all three adapters. Wired to real implementations (Ghost, NocoDB, n8n).
-- **`src/lib/adapters/ghost.ts`** — Ghost BlogAdapter. **Fast path**: if `GHOST_ADMIN_API_KEY` and `GHOST_CONTENT_API_KEY` exist, verifies via JWT against `/ghost/api/admin/site/` and returns immediately (avoids login, which fails with 500 EmailError on re-deploy when mail is not configured). **Full setup**: admin account → extract session cookie from setup response → Custom Integration → settings via session cookie. `uploadTheme()` uploads the custom `openant-source` theme zip via Admin API using session cookie auth (skips if already active). JWT auth via hand-rolled HMAC-SHA256 for publish/get. Internal helpers `requireAdminJwt()`, `assertOk()`, and `getAdminEmail()` deduplicate common operations across methods.
-- **`src/lib/adapters/nocodb.ts`** — NocoDB TableAdapter. Multi-step setup (signup → signin → base → table → columns → sample row), removes default bases (e.g. "Getting Started"), FIFO queue via blank-status filter, parallel stats queries. Also provides CRUD for articles (listArticles, createArticle, updateArticle, deleteArticle) and prompts (getPrompts, updatePrompts) used by the SaaS dashboard.
-- **`src/lib/adapters/n8n.ts`** — n8n AutomationAdapter. **Fast path**: if `N8N_API_KEY` exists, verifies against `/api/v1/workflows` and returns immediately. **Full setup**: deterministic password (`N<hex>!` format to satisfy n8n's uppercase+number requirements), create owner → login → list API keys (skips masked keys containing `*`, deletes them) → create fresh key. Credential management, workflow import with parameter substitution, workflow activation.
-- **`src/lib/adapters/__mocks__/`** — Mock adapters (`ghost.ts`, `nocodb.ts`, `n8n.ts`). Return deterministic data, no external calls. Used for tests and UI development without Docker.
+- **`types.ts`** -- All adapter interfaces. Central contract; changes affect all consumers.
+- **`index.ts`** -- Registry. `createAdapters()` returns `Adapters` object with all three adapters.
+- **`ghost.ts`** -- **Fast path**: if `GHOST_ADMIN_API_KEY` + `GHOST_CONTENT_API_KEY` exist, verifies via JWT (avoids login EmailError on re-deploy). **Full setup**: admin account -> session cookie -> Custom Integration -> settings. `uploadTheme()` uploads openant-source zip (skips if active). JWT via hand-rolled HMAC-SHA256. Helpers: `requireAdminJwt()`, `assertOk()`, `getAdminEmail()`.
+- **`nocodb.ts`** -- Multi-step setup (signup -> signin -> base -> table -> columns -> sample row), removes default bases, FIFO queue via blank-status filter, parallel stats. CRUD for articles and prompts (used by SaaS dashboard).
+- **`n8n.ts`** -- **Fast path**: if `N8N_API_KEY` exists, verifies against `/api/v1/workflows`. **Full setup**: deterministic password (`N<hex>!`), create owner -> login -> manage API keys (skip masked, delete stale) -> create fresh key. Credential management, workflow import with substitution, activation.
+- **`__mocks__/`** -- Mock adapters returning deterministic data. Used for tests and Docker-free UI dev.
 
 ### Ghost JWT
 
-**File:** `src/lib/adapters/ghost.ts` — `createGhostJwt(adminApiKey)`
+`createGhostJwt(adminApiKey)` in `ghost.ts` -- HMAC-SHA256 with hex-decoded secret from `key_id:hex_secret` format. `kid` in header, `aud: '/admin/'` in payload. Node.js `crypto` only.
 
-Ghost Admin API uses JWT with HMAC-SHA256, where the secret is hex-decoded from the API key. The `adminApiKey` format is `key_id:hex_secret`. The JWT has `kid` in the header and `aud: '/admin/'` in the payload. Implemented with Node.js `crypto` — no external library needed.
+### Docker utilities (`src/lib/docker.ts`)
 
-### Docker utilities
+- `startServices()` -- Polls healthCheck endpoints for Ghost/NocoDB/n8n. Throws `AdapterError` if unreachable.
+- `reloadCaddy()` -- `docker exec openant-caddy caddy reload`. Throws `AdapterError` on failure.
 
-**File:** `src/lib/docker.ts`
+### Domain resolution (`src/lib/domain.ts`, `src/lib/server-ip.ts`)
 
-`startServices()` — Waits for Ghost, NocoDB, and n8n to become healthy by polling their healthCheck endpoints. Used during deploy step 3. Throws `AdapterError` if any service is unreachable.
+- `getEffectiveDomain(state)` -- Resolves domain from wizard state, falls back to `DOMAIN` env var.
+- `getServiceDomains(state)` -- Builds per-service domain map from state prefixes.
+- `getServerIp()` -- `SERVER_IP` env var or fetches from `ifconfig.me`.
 
-`reloadCaddy()` — Executes `docker exec openant-caddy caddy reload` via `child_process.exec`. Throws `AdapterError` on failure. Used during deploy to apply Caddy configuration changes.
+### Caddyfile generator (`src/lib/caddy.ts`)
 
-### Caddyfile generator
+- `generateCaddyfile(domains, _mode?, saas?)` -- IP mode (null domains): `:80` -> Ghost. Domain mode: 4 server blocks. SaaS adds `tls internal`.
+- `writeCaddyfile(content)` -- Writes to `CADDYFILE_PATH` (default: `/app/Caddyfile`).
 
-**File:** `src/lib/domain.ts`
+### SSE streaming (`src/lib/sse.ts`)
 
-Domain resolution utilities:
+- `createSSEStream()` -- Returns `{ stream, controller }`.
+- `sendSSEEvent(controller, event, data)` -- Formats SSE message.
+- `closeSSE(controller)` -- Closes stream.
 
-| Function                    | Behavior                                                                                            |
-| --------------------------- | --------------------------------------------------------------------------------------------------- |
-| `getEffectiveDomain(state)` | Resolves domain from wizard state, falls back to `DOMAIN` env var (set by cloud-init in SaaS mode). |
-| `getServiceDomains(state)`  | Builds per-service domain map (ghost, nocodb, n8n, wizard) from state prefixes.                     |
+### Service credentials (`src/lib/credentials.ts`)
 
-**File:** `src/lib/server-ip.ts`
+`getServiceCredentials(setupToken, domain?)` -- Reads passwords from env vars (`GHOST_ADMIN_PASSWORD`, etc.) with SHA-256 derivation fallback. SaaS injects random passwords via cloud-init. Email: `admin@{domain}` or `admin@openant.local`.
 
-| Function        | Behavior                                                                            |
-| --------------- | ----------------------------------------------------------------------------------- |
-| `getServerIp()` | Returns `SERVER_IP` env var if set, otherwise fetches public IP from `ifconfig.me`. |
-
-**File:** `src/lib/caddy.ts`
-
-Generates Caddy reverse proxy configuration based on domain mode:
-
-| Function                                    | Behavior                                                                                                                                                                                                                                                                    |
-| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `generateCaddyfile(domains, _mode?, saas?)` | IP mode (null domains): single `:80` block → Ghost. Domain mode: 4 server blocks (main→Ghost, table.X→NocoDB, setup.X→wizard, auto.X→n8n). n8n is always proxied regardless of mode; visibility is controlled at the UI level. SaaS mode adds `tls internal` to each block. |
-| `writeCaddyfile(content)`                   | Writes to `CADDYFILE_PATH` env var (default: `/app/Caddyfile`).                                                                                                                                                                                                             |
-
-### SSE streaming
-
-**File:** `src/lib/sse.ts`
-
-Server-Sent Events utility for the deploy pipeline:
-
-| Function                                | Behavior                                                                                     |
-| --------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `createSSEStream()`                     | Returns `{ stream, controller }` — a ReadableStream and its controller for enqueuing events. |
-| `sendSSEEvent(controller, event, data)` | Formats and enqueues an SSE message: `event: X\ndata: JSON\n\n`.                             |
-| `closeSSE(controller)`                  | Closes the stream.                                                                           |
-
-### Service credentials
-
-**File:** `src/lib/credentials.ts`
-
-`getServiceCredentials(setupToken, domain?)` — Returns admin credentials for Ghost, NocoDB, and n8n. Passwords are read from environment variables first (`GHOST_ADMIN_PASSWORD`, `NOCODB_ADMIN_PASSWORD`, `N8N_ADMIN_PASSWORD`), with fallback to SHA-256 derivation from `SETUP_TOKEN` for backward compatibility. When provisioned via SaaS, random passwords are injected via cloud-init into the `.env` file and env vars take priority. Admin email defaults to `admin@openant.local` or `admin@{domain}` if a domain is configured.
-
-Each adapter also reads its own env var with the same fallback pattern:
-
-- **Ghost** (`src/lib/adapters/ghost.ts`): `process.env.GHOST_ADMIN_PASSWORD` → SHA-256 fallback
-- **NocoDB** (`src/lib/adapters/nocodb.ts`): `process.env.NOCODB_ADMIN_PASSWORD` → SHA-256 fallback
-- **n8n** (`src/lib/adapters/n8n.ts`): `process.env.N8N_ADMIN_PASSWORD` → `N<hex>!` fallback
+Each adapter reads its own env var: Ghost/NocoDB use SHA-256 fallback, n8n uses `N<hex>!` fallback.
 
 ### Other utilities
 
-- **`src/lib/utils.ts`** — `cn()` helper (clsx + tailwind-merge) for conditional Tailwind classes
-- **`src/lib/download.ts`** — Client-side helper that downloads `make/blueprint.json` via `/api/make-blueprint` as a file
+- **`utils.ts`** -- `cn()` (clsx + tailwind-merge)
+- **`download.ts`** -- Client-side Make blueprint download via `/api/make-blueprint`
 
 ### Environment variable strategy
 
-Adapters read env vars at call time (inside each method), not at module load or adapter creation. This is critical because env vars like `GHOST_ADMIN_API_KEY`, `NOCODB_AUTH_TOKEN` etc. do not exist when `createAdapters()` runs at startup — they are written to `.env` during the deploy step. Base URLs (`GHOST_INTERNAL_URL`, `NOCODB_INTERNAL_URL`, `N8N_INTERNAL_URL`) have sensible Docker-internal defaults.
-
-Each adapter step persists its keys to `.env` immediately after successful setup (not just at finalization). This ensures that if a later step fails, re-deploy can recover via fast paths without repeating earlier steps. Step 1 merges config vars with existing `.env` rather than overwriting, preserving adapter keys from prior runs.
+Adapters read env vars at call time (not module load), since keys don't exist at startup -- written during deploy. Base URLs have Docker-internal defaults. Each adapter step persists keys to `.env` immediately, enabling fast-path recovery on re-deploy. Step 1 merges (not overwrites) `.env`.
 
 ### Adapter rules
 
-1. One file = one adapter. No nested folders or wrapper abstractions.
-2. Factory function, not class. `createGhostAdapter()` returns a plain object implementing `BlogAdapter`.
-3. Adapters are stateless. Configuration comes from env vars or function parameters.
-4. Adapters don't know about each other. Ghost adapter never calls NocoDB adapter.
-5. Internal URLs. Adapters use Docker-internal URLs (`http://ghost:2368`), not public ones.
+1. One file = one adapter. No nested folders.
+2. Factory function, not class.
+3. Stateless -- config from env vars or parameters.
+4. No cross-adapter calls.
+5. Docker-internal URLs only (`http://ghost:2368`).
 
 ---
 
 ## State management
 
-Two storage layers handle configuration at different lifecycle stages:
+### state.json -- setup-time storage (`src/lib/state.ts`)
 
-### state.json — setup-time storage
+`SetupState` type (`src/types/setup.ts`): `currentStep`, `deployed`, per-step status, section data.
 
-**File:** `src/lib/state.ts`
+| Function        | Behavior                                                              |
+| --------------- | --------------------------------------------------------------------- |
+| `readState()`   | Reads + validates via Zod. Returns `DEFAULT_STATE` if missing/corrupt |
+| `writeState()`  | Atomic write (`.tmp` + `fs.rename()`)                                 |
+| `resetState()`  | Writes `DEFAULT_STATE`                                                |
 
-During the wizard flow, all configuration is persisted in `state.json`. The `SetupState` type (`src/types/setup.ts`) defines its shape: `currentStep`, `deployed` flag, per-step completion status, and section data (`welcome`, `domain`, `llm`, `blog`, `social`).
+Path via `STATE_PATH` env var (default: `/app/data/state.json`), read at call time for test overrides.
 
-| Function            | Behavior                                                                                                  |
-| ------------------- | --------------------------------------------------------------------------------------------------------- |
-| `readState()`       | Reads + validates via zod. Returns `DEFAULT_STATE` if file is missing or corrupted (with `console.warn`). |
-| `writeState(state)` | Atomic write: writes to `.tmp` file, then `fs.rename()`. Prevents partial writes on crash.                |
-| `resetState()`      | Writes `DEFAULT_STATE` (all steps `completed: false`, `currentStep: 'welcome'`).                          |
+### .env -- runtime storage (`src/lib/config.ts`)
 
-Path is configurable via `STATE_PATH` env var (default: `/app/data/state.json`). Read at call time via `getStatePath()`, not at module load — this allows tests to override via `vi.stubEnv`.
+| Function          | Behavior                                                                  |
+| ----------------- | ------------------------------------------------------------------------- |
+| `parseEnv()`      | Skips comments/empty lines, splits on first `=`, strips quotes            |
+| `serializeEnv()`  | Values with spaces wrapped in double quotes                               |
+| `readEnv()`       | Returns `{}` if file missing                                              |
+| `writeEnv()`      | Direct `fs.writeFile` (no temp+rename -- `.env` may be bind-mounted)      |
 
-### .env — runtime storage
-
-**File:** `src/lib/config.ts`
-
-After deploy, the `.env` file becomes the source of truth. The config manager handles reading/writing `.env` files with proper edge-case handling.
-
-| Function                   | Behavior                                                                                                                                     |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `parseEnv(content)`        | Parses `.env` string: skips `#` comments and empty lines, splits on first `=`, strips surrounding quotes (`"` or `'`), trims key whitespace. |
-| `serializeEnv(vars)`       | Serializes to `.env` format. Values with spaces are wrapped in double quotes.                                                                |
-| `readEnv(filePath)`        | Reads `.env` from disk. Returns `{}` if file doesn't exist.                                                                                  |
-| `writeEnv(filePath, vars)` | Direct write via `fs.writeFile` (no temp+rename — `.env` may be a Docker bind-mounted file).                                                 |
-
-### Configuration lifecycle
+### Lifecycle
 
 ```
-UI Forms → API Route (validate via zod) → state.json (persist) → Deploy → .env + Service APIs
+UI Forms -> API Route (Zod validate) -> state.json -> Deploy -> .env + Service APIs
 ```
 
-- **During setup**: `state.json` is the source of truth.
-- **After deploy**: `.env` file is the source of truth.
-- Each API route reads/writes only its own section of `state.json`.
-- Deploy reads the full `state.json` and distributes data to services.
+During setup: `state.json` is source of truth. After deploy: `.env` is source of truth.
 
 ---
 
-## Authentication
+## Authentication (`src/lib/auth.ts`)
 
-**File:** `src/lib/auth.ts`
-
-All API endpoints (except `/api/health` and `/api/saas/health`) are protected by `SETUP_TOKEN` via the `withAuth()` middleware.
+All endpoints (except `/api/health`, `/api/saas/health`) protected by `SETUP_TOKEN` via `withAuth()`:
 
 ```
-Request → withAuth() → check "Authorization: Bearer <token>" → handler or 401
+Request -> withAuth() -> check "Authorization: Bearer <token>" -> handler or 401
 ```
 
-- Validates that header starts with `Bearer ` prefix (rejects raw tokens without prefix)
-- Compares extracted token against `process.env.SETUP_TOKEN`
-- Returns `{ success: false, error: "Unauthorized" }` with status 401 on failure
-
-Usage pattern in API routes:
-
-```ts
-export const POST = withAuth(apiHandler(async (req) => { ... }));
-```
+Usage: `export const POST = withAuth(apiHandler(async (req) => { ... }));`
 
 ---
 
 ## Error handling
 
-### AdapterError
-
-**File:** `src/lib/errors.ts`
+### AdapterError (`src/lib/errors.ts`)
 
 ```
-AdapterError {
-  adapter: string     // 'ghost', 'nocodb', 'n8n'
-  operation: string   // 'healthCheck', 'publishPost'
-  message: string     // Human-readable description
-  cause?: unknown     // Original error
-}
+AdapterError { adapter, operation, message, cause? }
 ```
 
-### API handler wrapper
+### API handler (`src/lib/api-handler.ts`)
 
-**File:** `src/lib/api-handler.ts`
+| Error type      | HTTP | Code               | Details                           |
+| --------------- | ---- | ------------------ | --------------------------------- |
+| `z.ZodError`    | 400  | `VALIDATION_ERROR` | First issue message               |
+| `AdapterError`  | 500  | `ADAPTER_ERROR`    | Full message (logged)             |
+| Unknown `Error` | 500  | `INTERNAL_ERROR`   | Generic message (no leak)         |
 
-`apiHandler()` wraps every API route handler and catches errors at three levels:
-
-| Error type      | HTTP status | Response `code`    | Details exposed?                          |
-| --------------- | ----------- | ------------------ | ----------------------------------------- |
-| `z.ZodError`    | 400         | `VALIDATION_ERROR` | First issue message                       |
-| `AdapterError`  | 500         | `ADAPTER_ERROR`    | Full error message (logged to console)    |
-| Unknown `Error` | 500         | `INTERNAL_ERROR`   | Generic "Internal server error" (no leak) |
-
-**Zod v4 note:** Uses `error.issues[0].message` (not `error.errors[0].message` as in zod v3).
-
-Flow: Adapters throw `AdapterError` → `apiHandler()` catches → formats JSON → UI displays message.
+Zod v4: uses `error.issues[0].message` (not v3 `error.errors`).
 
 ---
 
 ## Wizard UI
 
-The wizard is a multi-step form that guides the user through platform configuration. It consists of a Stepper (progress indicator), step content area, and navigation buttons.
+Multi-step form: Stepper (progress), step content, navigation buttons.
 
-### Routing
+### Routing (`src/app/page.tsx`)
 
-**File:** `src/app/page.tsx`
+Server Component redirects: `deployed: false` -> `/setup`, `deployed: true` -> `/dashboard`.
 
-The root page is a Server Component that reads `state.json` and redirects:
+### Dashboard (`src/app/dashboard/page.tsx`)
 
-- `deployed: false` → `/setup` (wizard)
-- `deployed: true` → `/dashboard`
+Client component: service health via `ServiceStatus` components, article stats by status, quick links, 30s auto-refresh, reconfigure button (resets deploy state), SaaS badge when `OPENANT_SAAS_MODE=true`.
 
-### Dashboard
+### Wizard container (`src/app/setup/page.tsx`)
 
-**File:** `src/app/dashboard/page.tsx`
+Client component managing: token from URL -> `localStorage`, position restore via `/api/setup/status`, SaaS mode (filters out Domain step), managed mode (filters out LLM step), index-based navigation.
 
-Client component that shows the post-deploy monitoring view:
-
-- **Service health**: Displays health status for Ghost, NocoDB, n8n, and Caddy using `ServiceStatus` components. Status data fetched from `GET /api/dashboard/status`.
-- **Article statistics**: Shows counts by status (queue, published, completed, errors) fetched from `GET /api/dashboard/stats`.
-- **Quick links**: Direct links to blog, table (NocoDB), and n8n.
-- **Auto-refresh**: Polls both APIs every 30 seconds.
-- **Reconfigure**: Button with confirm dialog that calls `POST /api/dashboard/reconfigure` to reset deploy state, then redirects to `/setup`.
-- **SaaS badge**: Shows "Managed by openant SaaS" badge when `OPENANT_SAAS_MODE=true`.
-
-### Wizard container
-
-**File:** `src/app/setup/page.tsx`
-
-Client component (`'use client'`) that manages wizard state:
-
-- **Token management**: Reads `?token=XXX` from URL on first visit, stores in `localStorage`, uses for all API calls
-- **Position restore**: On mount, calls `GET /api/setup/status` to restore `currentStep` and `completedSteps`
-- **SaaS mode**: If `saas_mode` flag from `/api/setup/status` is true, filters out the Domain step from `STEPS` and `STEP_COMPONENTS` (domain is managed by Control Plane in SaaS mode)
-- **Instance mode**: If `instance_mode` from `/api/setup/status` is `managed`, filters out the LLM step (key is pre-injected via cloud-init)
-- **Navigation**: `handleNext()`, `handleBack()`, `handleStepComplete()`, `handleGoToStep()` — all index-based, using filtered step arrays
-- **Step rendering**: Maps step index to component via filtered `STEP_COMPONENTS` array
-
-### Step props contract
-
-**File:** `src/types/step-props.ts`
-
-Every step component receives the same props:
+### Step props (`src/types/step-props.ts`)
 
 ```ts
 interface StepProps {
-  onComplete: (savedData?: Record<string, unknown>) => void; // Mark step done + advance (optionally pass form data for state persistence)
-  onBack?: () => void; // Go to previous step
-  onGoToStep?: (index: number) => void; // Jump to any step
-  initialData?: Record<string, unknown>; // Pre-fill form from saved config (enables back/forward navigation without losing data)
+  onComplete: (savedData?: Record<string, unknown>) => void;
+  onBack?: () => void;
+  onGoToStep?: (index: number) => void;
+  initialData?: Record<string, unknown>;
 }
 ```
 
 ### Reusable components
 
-| Component       | File                               | Purpose                                                                                                                                                                                                    |
-| --------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Stepper`       | `src/components/Stepper.tsx`       | Horizontal progress indicator with numbered circles, check icons for completed steps, and connector lines. Semantic `<nav>`/`<ol>`/`<li>` with `aria-current="step"`. Responsive: labels hidden on mobile. |
-| `StepLayout`    | `src/components/StepLayout.tsx`    | Step wrapper with title, description, Card container, and i18n-aware Back/Next buttons. Supports `nextLabel`, `nextDisabled`, `isLoading` (spinner + `aria-busy`), `showBack`, `showNext`.                 |
-| `ServiceStatus` | `src/components/ServiceStatus.tsx` | Service health indicator: colored dot (green/red/yellow+pulse) + name + optional "Open →" link. Used in Dashboard and Deploy steps.                                                                        |
-| `ThemeToggle`   | `src/components/ThemeToggle.tsx`   | Dark/light mode toggle button using `next-themes`. Sun/Moon icons via lucide-react.                                                                                                                        |
+| Component       | Purpose                                                                               |
+| --------------- | ------------------------------------------------------------------------------------- |
+| `Stepper`       | Horizontal progress with numbered circles, check icons, `aria-current="step"`         |
+| `StepLayout`    | Step wrapper with title, Card, i18n Back/Next buttons, loading state                  |
+| `ServiceStatus` | Health dot (green/red/yellow+pulse) + name + optional "Open" link                     |
+| `ThemeToggle`   | Dark/light toggle via `next-themes`                                                   |
 
 ---
 
 ## Wizard steps
 
-The wizard is a linear sequence of configuration steps. Each step is a self-contained module with a UI component, an API route, and a Zod schema.
+Linear sequence: each step has UI component + API route + Zod schema.
 
-### Step registry
+### Step registry (`src/lib/steps.ts`)
 
-Defined in **`src/lib/steps.ts`** as a `STEPS` array:
-
-| #   | ID        | Label   | Required |
-| --- | --------- | ------- | -------- |
-| 1   | `welcome` | Welcome | Yes      |
-| 2   | `domain`  | Domain  | Yes      |
-| 3   | `llm`     | LLM     | Yes      |
-| 4   | `blog`     | Blog    | Yes      |
-| 5   | `telegram` | Telegram | No      |
-| 6   | `social`   | Social  | No       |
-| 7   | `review`   | Review  | Yes      |
-| 8   | `deploy`   | Apply Configuration | Yes      |
-
-### Step anatomy
-
-Each step consists of three parts:
-
-| Part         | File pattern                     | Responsibility                               |
-| ------------ | -------------------------------- | -------------------------------------------- |
-| UI component | `app/setup/steps/{Name}.tsx`     | Form, client validation, UX                  |
-| API route    | `app/api/setup/{name}/route.ts`  | Server validation via Zod, state persistence |
-| Zod schema   | Exported from the API route file | Request body typing and validation           |
+| # | ID         | Required |
+| - | ---------- | -------- |
+| 1 | `welcome`  | Yes      |
+| 2 | `domain`   | Yes      |
+| 3 | `llm`      | Yes      |
+| 4 | `blog`     | Yes      |
+| 5 | `telegram` | No       |
+| 6 | `social`   | No       |
+| 7 | `review`   | Yes      |
+| 8 | `deploy`   | Yes      |
 
 ### Common step pattern
 
-All step UI components follow the same pattern:
-
-1. Local form state via `useState`
-2. `handleSubmit()` → POST to `/api/setup/{step}` with Bearer token from localStorage
-3. On success → `onComplete()` (advances wizard)
-4. On error → display error via `<Alert variant="destructive">`
-5. Loading state → `isLoading` prop on `StepLayout`
+1. Local state via `useState` -> POST to `/api/setup/{step}` with Bearer token
+2. Success -> `onComplete()` | Error -> `<Alert variant="destructive">` | Loading -> `StepLayout.isLoading`
 
 ### Step details
 
-| Step        | UI component                                                | API route                        | Key behavior                                                                                              |
-| ----------- | ----------------------------------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| **Welcome** | Language selector + "Get Started"                           | `POST /api/setup/welcome`        | `z.enum(['en', 'ru'])`. Saves language to localStorage.                                                   |
-| **Domain**  | Switch (domain/IP mode), domain input, DNS result           | `POST /api/setup/domain`         | `dns.resolve4()` check. Returns `server_ip` + `dns_check`. Domain optional if IP mode.                    |
-| **LLM**     | Preset selector, URL/Key/Model inputs, "Test Connection"    | `POST /api/setup/llm`            | Tests LLM via `POST {api_url}/chat/completions` with 10s timeout. Result returned but doesn't block save. |
-| **Blog**    | Title, description, language, tone, interval + live preview | `POST /api/setup/blog`           | Title max 100 chars, interval min 10 minutes. Client converts hours→minutes.                              |
-| **Telegram** | Bot token, optional chat ID                                   | `POST /api/setup/telegram`     | Optional step. Chat ID auto-detected from `/start` if not provided. Token validated as non-empty if present. |
-| **Social**  | Webhook URL, Pinterest/Threads toggles, Make template download | `POST /api/setup/social`       | All fields optional. Empty webhook URL allowed via `z.literal('')`. Download button serves `make/blueprint.json` via `/api/make-blueprint`. |
-| **Review**  | Read-only config cards with Edit buttons                    | None (reads `/api/setup/status`) | `onGoToStep()` for navigation. API key masked as `•••••`.                                                 |
-| **Deploy**  | Deploy button → SSE progress → success/retry                | `POST /api/setup/apply` (SSE)    | 12-step pipeline with real-time progress. Retry from failed step. Shows service URLs on success.          |
+| Step         | Key behavior                                                                                       |
+| ------------ | -------------------------------------------------------------------------------------------------- |
+| **Welcome**  | Language selector (`en`/`ru`), saves to localStorage                                               |
+| **Domain**   | Switch (domain/IP mode), `dns.resolve4()` check, domain optional in IP mode                        |
+| **LLM**      | Preset selector, URL/Key/Model inputs, test via `POST {api_url}/chat/completions` (10s timeout)    |
+| **Blog**     | Title (max 100), description, language, tone, interval (min 10m), live preview                     |
+| **Telegram** | Optional. Bot token + optional chat ID (auto-detected from `/start`)                               |
+| **Social**   | Optional. Webhook URL, Pinterest/Threads toggles, Make template download                           |
+| **Review**   | Read-only config cards with Edit buttons, API key masked as `*****`                                |
+| **Deploy**   | SSE progress, 12-step pipeline, retry from failed step, service URLs on success                    |
 
 ---
 
-## LLM presets
+## LLM presets (`src/lib/llm-presets.ts`)
 
-Defined in **`src/lib/llm-presets.ts`**. All LLM providers are OpenAI-compatible, so no adapter is needed — just a preset with `apiUrl` and `defaultModel`:
+All providers are OpenAI-compatible (no adapter needed):
 
 | Provider   | Default model                   | Default image model                     |
 | ---------- | ------------------------------- | --------------------------------------- |
@@ -629,66 +447,60 @@ Defined in **`src/lib/llm-presets.ts`**. All LLM providers are OpenAI-compatible
 
 ## API conventions
 
-- **URL structure**: `/api/health` (no auth), `/api/saas/health` (no auth, SaaS only), `/api/setup/{step}` (auth required), `/api/setup/status` (auth required), `/api/dashboard/*` (auth required), `/api/saas/*` except health (auth required)
-- **Response format**: `{ success: true, data?: ... }` or `{ success: false, error: string, code?: string }`
-- **Auth**: `withAuth()` middleware — `Authorization: Bearer <SETUP_TOKEN>`
-- **Error handling**: `apiHandler()` wrapper — catches ZodError (400), AdapterError (500), unknown (500)
-- **Validation**: zod v4 schemas defined inline next to the API route
-- **Composition**: Routes compose `withAuth(apiHandler(async (req) => { ... }))`
+- **Auth**: `withAuth()` -- `Authorization: Bearer <SETUP_TOKEN>`
+- **Response**: `{ success: true, data? }` or `{ success: false, error, code? }`
+- **Errors**: `apiHandler()` catches ZodError (400), AdapterError (500), unknown (500)
+- **Validation**: Zod v4 schemas inline next to route
+- **Composition**: `withAuth(apiHandler(async (req) => { ... }))`
 
-### Current endpoints
+### Endpoints
 
-| Endpoint                          | Auth | Description                                                                                                                                                                          |
-| --------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `GET /api/health`                 | No   | Returns `{ status: "ok" }`. Used by Docker healthcheck.                                                                                                                              |
-| `GET /api/setup/status`           | Yes  | Returns current setup state with masked `api_key` (`***`), `instance_mode`, `saas_mode`, `default_domain`, `server_ip`.                                                              |
-| `POST /api/setup/welcome`         | Yes  | Validates language, saves to state, advances to `domain`.                                                                                                                            |
-| `POST /api/setup/domain`          | Yes  | Validates domain config, runs DNS check if domain mode, advances to `llm`.                                                                                                           |
-| `POST /api/setup/llm`             | Yes  | Validates LLM config, tests connection (non-blocking), advances to `blog`.                                                                                                           |
-| `POST /api/setup/blog`            | Yes  | Validates blog config (title, language, tone, interval), advances to `social`.                                                                                                       |
-| `POST /api/setup/social`          | Yes  | Validates social config (all optional), advances to `review`.                                                                                                                        |
-| `GET /api/make-blueprint`         | Yes  | Serves `make/blueprint.json` as download (`Content-Disposition: attachment`). Used by Social step and Dashboard.                                                                      |
-| `POST /api/setup/apply`           | Yes  | SSE deploy pipeline. Executes 12 steps, streams progress. Supports `?startFrom=N` for retry.                                                                                         |
-| `GET /api/dashboard/status`       | Yes  | Returns health status for all 4 services (Ghost, NocoDB, n8n, Caddy), service URLs, admin credentials, and `saas_mode` flag. Managed mode: n8n URL and credentials hidden from user. |
-| `GET /api/dashboard/stats`        | Yes  | Returns article counts by status from NocoDB `table.getStats()`.                                                                                                                     |
-| `POST /api/dashboard/reconfigure` | Yes  | Resets `deployed` to false, clears deploy+review steps, sets `currentStep` to review. Preserves all config data.                                                                     |
-| `GET /api/saas/health`            | No   | Returns 404 if `OPENANT_SAAS_MODE !== 'true'`. Otherwise returns combined health + article stats for Control Plane.                                                                  |
-| `GET/POST/PATCH/DELETE /api/saas/articles` | Yes | CRUD operations for articles table via NocoDB adapter. DELETE is guarded: only articles in queue/error status. Used by SaaS dashboard proxy. |
-| `GET/PATCH /api/saas/prompts`     | Yes  | Read and update LLM prompts in the NocoDB Prompts table. Used by SaaS dashboard proxy.                                                                                              |
-| `POST /api/saas/restart`          | Yes  | Restarts all Docker containers except wizard via `docker restart`. Waits for services to become healthy. Used by SaaS dashboard proxy.                                               |
+| Endpoint                                | Auth | Description                                                              |
+| --------------------------------------- | ---- | ------------------------------------------------------------------------ |
+| `GET /api/health`                       | No   | `{ status: "ok" }` for Docker healthcheck                               |
+| `GET /api/setup/status`                 | Yes  | Current state, masked keys, `instance_mode`, `saas_mode`, `server_ip`   |
+| `POST /api/setup/welcome`              | Yes  | Validate language, save, advance                                         |
+| `POST /api/setup/domain`               | Yes  | Validate domain, DNS check if domain mode                                |
+| `POST /api/setup/llm`                  | Yes  | Validate LLM config, test connection (non-blocking)                      |
+| `POST /api/setup/blog`                 | Yes  | Validate blog config (title, language, tone, interval)                   |
+| `POST /api/setup/telegram`             | Yes  | Validate telegram config (optional step)                                 |
+| `POST /api/setup/social`               | Yes  | Validate social config (all optional)                                    |
+| `GET /api/make-blueprint`              | Yes  | Download `make/blueprint.json`                                           |
+| `POST /api/setup/apply`               | Yes  | SSE deploy pipeline, supports `?startFrom=N`                             |
+| `GET /api/dashboard/status`            | Yes  | Service health, URLs, credentials, `saas_mode`. Managed: n8n hidden     |
+| `GET /api/dashboard/stats`             | Yes  | Article counts by status                                                 |
+| `POST /api/dashboard/reconfigure`      | Yes  | Reset deploy state, preserve config                                      |
+| `GET /api/saas/health`                 | No   | 404 if SaaS off; combined health + stats for Control Plane               |
+| `GET/POST/PATCH/DELETE /api/saas/articles` | Yes | Articles CRUD. DELETE guarded: queue/error status only                |
+| `GET/PATCH /api/saas/prompts`          | Yes  | Read/update LLM prompts in Prompts table                                 |
+| `POST /api/saas/restart`              | Yes  | Restart Docker containers (except wizard), wait for healthy              |
 
 ---
 
 ## UI components
 
-10 shadcn/ui components are installed in **`src/components/ui/`**:
+10 shadcn/ui components in `src/components/ui/`: `button`, `input`, `select`, `switch`, `card`, `label`, `badge`, `progress`, `alert`, `textarea`.
 
-`button`, `input`, `select`, `switch`, `card`, `label`, `badge`, `progress`, `alert`, `textarea`
-
-These are copy-pasted components (not a library dependency), styled with Tailwind CSS.
-
-3 custom components in **`src/components/`**:
-
-`Stepper`, `StepLayout`, `ServiceStatus`
+3 custom components in `src/components/`: `Stepper`, `StepLayout`, `ServiceStatus`.
 
 ---
 
 ## Scripts
 
-| Script                     | Command                                            | Purpose                             |
-| -------------------------- | -------------------------------------------------- | ----------------------------------- |
-| `npm run dev`              | `next dev`                                         | Development server                  |
-| `npm run build`            | `next build`                                       | Production build (standalone)       |
-| `npm run start`            | `next start`                                       | Start production server             |
-| `npm run lint`             | `eslint`                                           | Lint with strict TypeScript rules   |
-| `npm run typecheck`        | `tsc --noEmit`                                     | Type checking                       |
-| `npm run format`           | `prettier --write`                                 | Auto-format source files            |
-| `npm run format:check`     | `prettier --check`                                 | Verify formatting                   |
-| `npm run check`            | typecheck + lint + format:check                    | Full static analysis                |
-| `npm test`                 | `vitest run`                                       | Run unit tests (37 files)           |
-| `npm run test:watch`       | `vitest`                                           | Tests in watch mode                 |
-| `npm run test:coverage`    | `vitest run --coverage`                            | Tests with coverage                 |
-| `npm run test:integration` | `vitest run --config vitest.integration.config.ts` | Integration tests (requires Docker) |
+| Script                     | Purpose                             |
+| -------------------------- | ----------------------------------- |
+| `npm run dev`              | Development server                  |
+| `npm run build`            | Production build (standalone)       |
+| `npm run start`            | Start production server             |
+| `npm run lint`             | ESLint                              |
+| `npm run typecheck`        | `tsc --noEmit`                      |
+| `npm run format`           | Prettier auto-format                |
+| `npm run format:check`     | Verify formatting                   |
+| `npm run check`            | typecheck + lint + format:check     |
+| `npm test`                 | Run unit tests (37 files)           |
+| `npm run test:watch`       | Watch mode                          |
+| `npm run test:coverage`    | Tests with coverage                 |
+| `npm run test:integration` | Integration tests (requires Docker) |
 
 ---
 
@@ -696,290 +508,231 @@ These are copy-pasted components (not a library dependency), styled with Tailwin
 
 ### Unit tests
 
-376 tests across 39 test files, all passing:
+376 tests across 39 files:
 
-| File                                              | Tests | What it verifies                                                                                                                                                                                                                                                                         |
-| ------------------------------------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `lib/adapters/__tests__/ghost.test.ts`            | 34    | Ghost JWT creation, healthCheck, setup (fast path via JWT, full setup with cookie extraction, EmailError handling, "already configured" recovery, env var password), uploadTheme (POST with JWT, skip-if-active, missing key, upload failure), publishPost, getPostUrl, error cases      |
-| `lib/adapters/__tests__/nocodb.test.ts`           | 24    | healthCheck, setup (signup → signin → base → table → columns + TelegramChatId → sample row, default base deletion, env var password), getNextQueued (empty/non-empty, FIFO sort, blank-status filter, field mapping), updateStatus (status + extra fields), getStats (parallel queries, missing pageInfo) |
-| `lib/adapters/__tests__/n8n.test.ts`              | 31    | healthCheck, setup (fast path with valid key, fallback on invalid key, masked key handling, owner creation, password format, env var password), createCredential, importWorkflow (template immutability, all 5 substitution types), activateWorkflow                                     |
-| `lib/__tests__/docker.test.ts`                    | 3     | reloadCaddy exec command, AdapterError on failure, container-not-found skip                                                                                                                                                                                                              |
-| `lib/__tests__/adapters-mock.test.ts`             | 15    | All mock adapters implement correct interfaces and return expected shapes                                                                                                                                                                                                                |
-| `lib/__tests__/steps.test.ts`                     | 5     | 8 steps, correct order, `telegram` and `social` are the optional steps                                                                                                                                                                                                                   |
-| `lib/__tests__/llm-presets.test.ts`               | 4     | 4 presets, correct shape, `custom` has empty defaults                                                                                                                                                                                                                                    |
-| `lib/__tests__/errors.test.ts`                    | 5     | `AdapterError` message format, name, instanceof, cause                                                                                                                                                                                                                                   |
-| `lib/__tests__/state.test.ts`                     | 8     | readState/writeState round-trip, atomic write, corrupted file fallback, resetState                                                                                                                                                                                                       |
-| `lib/__tests__/config.test.ts`                    | 14    | parseEnv/serializeEnv edge cases (quotes, comments, `=` in values), readEnv/writeEnv round-trip                                                                                                                                                                                          |
-| `lib/__tests__/auth.test.ts`                      | 5     | Valid token passthrough, missing/wrong/malformed header → 401                                                                                                                                                                                                                            |
-| `lib/__tests__/api-handler.test.ts`               | 7     | ZodError → 400, AdapterError → 500, unknown → 500, no detail leaks, console logging                                                                                                                                                                                                      |
-| `app/api/health/__tests__/route.test.ts`          | 2     | Health endpoint returns 200 + `{ status: "ok" }`                                                                                                                                                                                                                                         |
-| `app/api/make-blueprint/__tests__/route.test.ts`  | 2     | Auth required (401), returns blueprint JSON with Content-Disposition header                                                                                                                                                                                                               |
-| `app/api/setup/__tests__/schemas.test.ts`         | 32    | Zod schemas for all 6 step routes: valid/invalid inputs, edge cases                                                                                                                                                                                                                      |
-| `app/api/setup/__tests__/routes.test.ts`          | 20    | All 5 POST routes: 200 on valid, 400 on invalid, 401 without auth, correct state updates, DNS/LLM mocking                                                                                                                                                                                |
-| `components/__tests__/Stepper.test.tsx`           | 5     | Renders all labels, highlights current step, shows checkmarks for completed, step numbers, connector lines                                                                                                                                                                               |
-| `components/__tests__/StepLayout.test.tsx`        | 9     | Title/description, children, buttons, hide Back, disable Next, spinner, click handlers, custom label                                                                                                                                                                                     |
-| `components/__tests__/ServiceStatus.test.tsx`     | 6     | Green/red/yellow dot colors, service name, Open link present/absent                                                                                                                                                                                                                      |
-| `app/setup/__tests__/page.test.tsx`               | 7     | Default step rendering, next/back navigation, bounds checking, position restore from API, token storage                                                                                                                                                                                  |
-| `app/setup/steps/__tests__/Welcome.test.tsx`      | 4     | Language selector, Get Started button, submit success, API error display                                                                                                                                                                                                                 |
-| `app/setup/steps/__tests__/Domain.test.tsx`       | 4     | Toggle domain/IP mode, domain input visibility, IP mode info, submit success                                                                                                                                                                                                             |
-| `app/setup/steps/__tests__/LLM.test.tsx`          | 4     | Provider selector, Test Connection success/error, submit                                                                                                                                                                                                                                 |
-| `app/setup/steps/__tests__/Blog.test.tsx`         | 3     | Live preview update, hours→minutes conversion, API error display                                                                                                                                                                                                                         |
-| `app/setup/steps/__tests__/Telegram.test.tsx`     | 7     | Optional step alert, bot token/chat ID inputs, submit with token only, skip empty, restore initial data                                                                                                                                                                                  |
-| `app/setup/steps/__tests__/Social.test.tsx`       | 4     | Optional step alert, Pinterest/Threads toggles, Make template download button, empty form submit                                                                                                                                                                                         |
-| `app/setup/steps/__tests__/Review.test.tsx`       | 3     | All config sections displayed, Edit button navigation, API key masking                                                                                                                                                                                                                   |
-| `app/setup/steps/__tests__/Deploy.test.tsx`       | 7     | Deploy button, progress bar, checkmarks, error/retry, success URLs, Go to Dashboard                                                                                                                                                                                                      |
-| `app/api/setup/__tests__/apply.test.ts`           | 24    | SSE stream format, all 12 pipeline steps, error handling, startFrom retry, auth, URL generation (domain + IP mode), managed mode Caddyfile                                                                                                                                               |
-| `lib/__tests__/caddy.test.ts`                     | 11    | IP-mode and domain-mode Caddyfile generation, SaaS mode (tls internal), writeCaddyfile path handling                                                                                                                                                                                     |
-| `lib/__tests__/sse.test.ts`                       | 4     | createSSEStream, sendSSEEvent format, closeSSE                                                                                                                                                                                                                                           |
-| `lib/__tests__/credentials.test.ts`               | 7     | Env var password priority, SHA-256 fallback, admin email from domain, default email, all 3 services returned                                                                                                                                                                             |
-| `lib/__tests__/i18n.test.ts`                      | 4     | Default English locale, Russian locale, all keys in both languages, no empty strings                                                                                                                                                                                                     |
-| `lib/__tests__/retry.test.ts`                     | 6     | Success on first try, retry+success, max retries exceeded, exponential backoff, fixed delay, last error passthrough                                                                                                                                                                      |
-| `app/api/dashboard/__tests__/status.test.ts`      | 10    | All services healthy/unhealthy, Caddy 404 handling, domain/IP URLs, saas_mode flag, credentials, auth                                                                                                                                                                                    |
-| `app/api/dashboard/__tests__/stats.test.ts`       | 3     | Article counts, auth, AdapterError handling                                                                                                                                                                                                                                              |
-| `app/api/dashboard/__tests__/reconfigure.test.ts` | 5     | Reset deployed/steps, preserve config, auth                                                                                                                                                                                                                                              |
-| `app/api/saas/__tests__/health.test.ts`           | 5     | 404 when SaaS off, combined health+stats, adapter failures, no auth required                                                                                                                                                                                                             |
-| `app/dashboard/__tests__/page.test.tsx`           | 12    | Service statuses, article stats, tools card with Make download, quick links, SaaS badge, reconfigure confirm, auto-refresh                                                                                                                                                               |
+| File                                              | Tests | What it verifies                                                                                                  |
+| ------------------------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------- |
+| `lib/adapters/__tests__/ghost.test.ts`            | 34    | JWT, healthCheck, setup (fast path, full, EmailError, recovery, env password), uploadTheme, publishPost, errors   |
+| `lib/adapters/__tests__/nocodb.test.ts`           | 24    | healthCheck, setup (full flow, default base deletion, env password), getNextQueued, updateStatus, getStats         |
+| `lib/adapters/__tests__/n8n.test.ts`              | 31    | healthCheck, setup (fast path, masked keys, owner creation, password format), credentials, importWorkflow, activate |
+| `lib/__tests__/docker.test.ts`                    | 3     | reloadCaddy exec, AdapterError on failure, container-not-found skip                                                |
+| `lib/__tests__/adapters-mock.test.ts`             | 15    | Mock adapters implement correct interfaces                                                                         |
+| `lib/__tests__/steps.test.ts`                     | 5     | 8 steps, correct order, optional steps                                                                             |
+| `lib/__tests__/llm-presets.test.ts`               | 4     | 4 presets, correct shape                                                                                           |
+| `lib/__tests__/errors.test.ts`                    | 5     | AdapterError message, name, instanceof, cause                                                                      |
+| `lib/__tests__/state.test.ts`                     | 8     | readState/writeState round-trip, atomic write, corrupted fallback, reset                                           |
+| `lib/__tests__/config.test.ts`                    | 14    | parseEnv/serializeEnv edge cases, readEnv/writeEnv round-trip                                                      |
+| `lib/__tests__/auth.test.ts`                      | 5     | Valid token, missing/wrong/malformed header -> 401                                                                 |
+| `lib/__tests__/api-handler.test.ts`               | 7     | ZodError -> 400, AdapterError -> 500, unknown -> 500, no leaks                                                    |
+| `app/api/health/__tests__/route.test.ts`          | 2     | 200 + `{ status: "ok" }`                                                                                          |
+| `app/api/make-blueprint/__tests__/route.test.ts`  | 2     | Auth required, returns blueprint with Content-Disposition                                                          |
+| `app/api/setup/__tests__/schemas.test.ts`         | 32    | Zod schemas for all 6 step routes                                                                                  |
+| `app/api/setup/__tests__/routes.test.ts`          | 20    | All 5 POST routes: 200/400/401, state updates, DNS/LLM mocking                                                    |
+| `components/__tests__/Stepper.test.tsx`           | 5     | Labels, current step, checkmarks, numbers, connectors                                                              |
+| `components/__tests__/StepLayout.test.tsx`        | 9     | Title, buttons, hide/disable, spinner, click handlers                                                              |
+| `components/__tests__/ServiceStatus.test.tsx`     | 6     | Dot colors, service name, Open link                                                                                |
+| `app/setup/__tests__/page.test.tsx`               | 7     | Default step, navigation, bounds, position restore, token storage                                                  |
+| `app/setup/steps/__tests__/Welcome.test.tsx`      | 4     | Language selector, submit, error display                                                                           |
+| `app/setup/steps/__tests__/Domain.test.tsx`       | 4     | Toggle modes, domain input, IP mode, submit                                                                        |
+| `app/setup/steps/__tests__/LLM.test.tsx`          | 4     | Provider selector, test connection, submit                                                                         |
+| `app/setup/steps/__tests__/Blog.test.tsx`         | 3     | Live preview, hours->minutes, error display                                                                        |
+| `app/setup/steps/__tests__/Telegram.test.tsx`     | 7     | Optional alert, inputs, submit, skip, restore data                                                                 |
+| `app/setup/steps/__tests__/Social.test.tsx`       | 4     | Optional alert, toggles, Make download, empty submit                                                               |
+| `app/setup/steps/__tests__/Review.test.tsx`       | 3     | Config sections, Edit navigation, key masking                                                                      |
+| `app/setup/steps/__tests__/Deploy.test.tsx`       | 7     | Deploy button, progress, checkmarks, error/retry, URLs, dashboard link                                             |
+| `app/api/setup/__tests__/apply.test.ts`           | 24    | SSE format, all 12 steps, errors, startFrom, auth, URL generation, managed mode                                    |
+| `lib/__tests__/caddy.test.ts`                     | 11    | IP/domain mode, SaaS tls internal, writeCaddyfile                                                                  |
+| `lib/__tests__/sse.test.ts`                       | 4     | createSSEStream, sendSSEEvent format, closeSSE                                                                     |
+| `lib/__tests__/credentials.test.ts`               | 7     | Env var priority, SHA-256 fallback, admin email, all services                                                      |
+| `lib/__tests__/i18n.test.ts`                      | 4     | English/Russian locale, all keys, no empty strings                                                                 |
+| `lib/__tests__/retry.test.ts`                     | 6     | Success, retry+success, max exceeded, exponential/fixed backoff                                                    |
+| `app/api/dashboard/__tests__/status.test.ts`      | 10    | Healthy/unhealthy, Caddy 404, URLs, saas_mode, credentials, auth                                                  |
+| `app/api/dashboard/__tests__/stats.test.ts`       | 3     | Article counts, auth, AdapterError                                                                                 |
+| `app/api/dashboard/__tests__/reconfigure.test.ts` | 5     | Reset deployed/steps, preserve config, auth                                                                        |
+| `app/api/saas/__tests__/health.test.ts`           | 5     | 404 when SaaS off, combined health+stats, adapter failures                                                         |
+| `app/dashboard/__tests__/page.test.tsx`           | 12    | Statuses, stats, tools, links, SaaS badge, reconfigure, auto-refresh                                              |
 
 ### Integration tests
 
-13 tests across 3 test files. Require `docker compose -f docker-compose.dev.yml up -d` before running:
+13 tests across 3 files (require `docker compose -f docker-compose.dev.yml up -d`):
 
-| File                                               | Tests | What it verifies                                                                                               |
-| -------------------------------------------------- | ----- | -------------------------------------------------------------------------------------------------------------- |
-| `__tests__/integration/ghost.integration.test.ts`  | 4     | healthCheck, setup (admin + API keys), publishPost, getPostUrl against real Ghost                              |
-| `__tests__/integration/nocodb.integration.test.ts` | 5     | healthCheck, setup (base + table + columns), getNextQueued (empty), updateStatus, getStats against real NocoDB |
-| `__tests__/integration/n8n.integration.test.ts`    | 4     | healthCheck, createCredential, importWorkflow, activateWorkflow against real n8n                               |
+| File                              | Tests | What it verifies                                              |
+| --------------------------------- | ----- | ------------------------------------------------------------- |
+| `ghost.integration.test.ts`       | 4     | healthCheck, setup, publishPost, getPostUrl against real Ghost |
+| `nocodb.integration.test.ts`      | 5     | healthCheck, setup, getNextQueued, updateStatus, getStats      |
+| `n8n.integration.test.ts`         | 4     | healthCheck, createCredential, importWorkflow, activate        |
 
 ---
 
 ## Code conventions
 
 - **TypeScript strict**: `strict: true`, no `any`, no `as` assertions
-- **Files**: kebab-case (`llm-presets.ts`), PascalCase for React components (`Welcome.tsx`)
+- **Files**: kebab-case (`llm-presets.ts`), PascalCase for components (`Welcome.tsx`)
 - **Imports**: `@/*` path alias, no deep relative imports
-- **Functions over classes**: Adapters use factory functions returning plain objects
-- **Async/await**: No `.then()` chains
-- **ESLint rules**: `no-explicit-any: error`, `no-unused-vars: error` (except `_` prefix), `consistent-type-imports: warn`
+- **Functions over classes**: factory functions returning plain objects
+- **Async/await**: no `.then()` chains
+- **ESLint**: `no-explicit-any: error`, `no-unused-vars: error` (`_` prefix allowed), `consistent-type-imports: warn`
 - **Prettier**: single quotes, trailing commas, 100 char width, 2-space indent
-- **Zod v4**: `z.record(z.string(), valueSchema)` (not `z.record(valueSchema)` as in v3), `error.issues` instead of `error.errors`
+- **Zod v4**: `z.record(z.string(), valueSchema)`, `error.issues` not `error.errors`
 
 ---
 
-## Internationalization (i18n)
+## Internationalization (`src/lib/i18n.ts`)
 
-**File:** `src/lib/i18n.ts`
+Lightweight i18n, no external libraries. Single file with `en` and `ru` locales.
 
-Lightweight i18n system — no external libraries. A single file contains all translations for both locales (`en`, `ru`).
+- `getTranslations(locale?)` -- Returns translations for locale (default: `'en'`).
+- `useTranslations()` -- React hook reading locale from `localStorage('language')`.
 
-| Export                     | Purpose                                                                                                      |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `getTranslations(locale?)` | Returns the translation object for a locale. Defaults to `'en'`.                                             |
-| `useTranslations()`        | React hook that reads locale from `localStorage('language')` (set in Welcome step) and returns translations. |
-
-Translations cover: all 7 wizard steps, common UI strings (Next, Back, Save, Edit, Loading), dashboard (services, stats, links, reconfigure), and service descriptions (Ghost, NocoDB, n8n).
-
-Dynamic strings use template placeholders: `t.steps.domain.dnsWrong.replace('{ip}', ...)`.
-
-All components use `useTranslations()` — no hardcoded strings in the UI.
+Covers all wizard steps, common UI strings, dashboard, service descriptions. Dynamic strings use `t.key.replace('{ip}', ...)`. No hardcoded UI strings.
 
 ---
 
-## Retry utility
-
-**File:** `src/lib/retry.ts`
-
-Generic retry wrapper with exponential backoff:
+## Retry utility (`src/lib/retry.ts`)
 
 ```ts
-withRetry<T>(fn: () => Promise<T>, options?: {
-  maxRetries?: number;   // default: 3
-  delayMs?: number;      // default: 1000
-  backoff?: boolean;     // default: true (exponential: delayMs * 2^attempt)
-}): Promise<T>
+withRetry<T>(fn, options?: { maxRetries?: 3, delayMs?: 1000, backoff?: true })
 ```
 
-Intended for adapter healthCheck calls and other critical API operations where transient failures are expected.
+Exponential backoff (`delayMs * 2^attempt`). Used for adapter healthChecks and transient failures.
 
 ---
 
 ## Accessibility
 
-ARIA attributes are applied to custom components and form elements:
-
-| Component    | ARIA enhancements                                                                                               |
-| ------------ | --------------------------------------------------------------------------------------------------------------- |
-| `Stepper`    | `<nav aria-label="Setup progress">`, `<ol>`/`<li>` semantics, `aria-current="step"` on active step              |
-| `StepLayout` | `aria-label` on Back/Next buttons, `aria-busy` on Next during loading                                           |
-| Form steps   | `htmlFor`/`id` pairs on all Label+Input, `aria-required` on required fields, `aria-describedby` for helper text |
-| Review       | `role="button"`, `tabIndex={0}`, `onKeyDown` (Enter) on clickable rows                                          |
+| Component    | ARIA                                                                        |
+| ------------ | --------------------------------------------------------------------------- |
+| `Stepper`    | `<nav aria-label>`, `<ol>`/`<li>`, `aria-current="step"`                   |
+| `StepLayout` | `aria-label` on buttons, `aria-busy` during loading                         |
+| Form steps   | `htmlFor`/`id` pairs, `aria-required`, `aria-describedby`                   |
+| Review       | `role="button"`, `tabIndex={0}`, `onKeyDown` (Enter)                       |
 
 ---
 
-## CI/CD
+## CI/CD (`.github/workflows/ci.yml`)
 
-**File:** `.github/workflows/ci.yml`
+GitHub Actions on push/PR to `main`. Three parallel jobs:
 
-GitHub Actions pipeline triggered on push/PR to `main`. Three parallel jobs:
-
-| Job             | Steps                                                                                                              |
-| --------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `lint-and-test` | `npm ci` → `npm run check` (typecheck + lint + format:check) → `npm test -- --coverage` → upload coverage artifact |
-| `docker-build`  | `docker build wizard/` → `docker compose config --quiet`                                                           |
-| `shellcheck`    | ShellCheck for `install.sh` and `install-dev.sh`                                                                   |
+| Job             | Steps                                                   |
+| --------------- | ------------------------------------------------------- |
+| `lint-and-test` | `npm ci` -> `npm run check` -> `npm test --coverage`    |
+| `docker-build`  | `docker build wizard/` -> `docker compose config`       |
+| `shellcheck`    | ShellCheck for `install.sh` and `install-dev.sh`        |
 
 ---
 
-## Deploy pipeline
+## Deploy pipeline (`src/app/api/setup/apply/route.ts`)
 
-**File:** `src/app/api/setup/apply/route.ts`
-
-The deploy endpoint is a 12-step pipeline that configures all services and streams progress via SSE. Unlike other API routes, it uses `withAuth()` only (not `apiHandler()`) since it returns an SSE stream, not JSON.
-
-The pipeline is **fully idempotent** — re-deploying without resetting volumes works correctly. Each adapter has a "fast path" that verifies existing credentials before full setup.
+12-step SSE pipeline, fully idempotent. Uses `withAuth()` only (not `apiHandler()`) since it returns SSE, not JSON. Each adapter has fast paths for re-deploy. Supports `?startFrom=N` for retry.
 
 ### Pipeline steps
 
-| #   | Step               | Action                                                                                                             |
-| --- | ------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| 1   | Save .env          | Merges configuration variables into `.env` (preserves existing adapter keys)                                       |
-| 2   | Generate Caddyfile | Creates reverse proxy config (IP or domain mode). n8n always proxied via Caddy; SaaS mode adds `tls internal`      |
-| 3   | Checking services  | Verifies Ghost, NocoDB, n8n are healthy (wizard has no Docker CLI)                                                 |
-| 4   | Reload Caddy       | Applies new Caddyfile via Docker exec                                                                              |
-| 5   | Ghost setup        | Creates admin account, Custom Integration (fast path: verify existing keys via JWT)                                |
-| 6   | Upload theme       | Uploads `openant-source` custom theme (skips if already active). Theme zip mounted from `ghost/themes/`            |
-| 7   | Ghost settings     | No-op (already configured in step 5)                                                                               |
-| 8   | NocoDB setup       | Creates admin account, base, and table; removes default bases; inserts sample row                                  |
-| 9   | n8n setup          | Auto-provisions API key (fast path: verify existing key)                                                           |
-| 10  | n8n credentials    | Creates 2-3 credentials in parallel (LLM API, NocoDB, optionally Telegram Bot). Managed mode: reads LLM key from env vars |
-| 11  | n8n workflows      | Imports and activates generate-article + optionally telegram-bot workflows in parallel. Managed mode: reads model from env |
-| 12  | Finalize           | Merges adapter keys into .env, sets `deployed: true`. Managed mode: hides n8n URL and credentials from user        |
+| #  | Step               | Action                                                                          |
+| -- | ------------------ | ------------------------------------------------------------------------------- |
+| 1  | Save .env          | Merge config vars (preserves existing adapter keys)                             |
+| 2  | Generate Caddyfile | IP or domain mode; SaaS adds `tls internal`                                    |
+| 3  | Check services     | Verify Ghost, NocoDB, n8n healthy                                               |
+| 4  | Reload Caddy       | Apply Caddyfile via Docker exec                                                 |
+| 5  | Ghost setup        | Admin account + Custom Integration (fast path: verify via JWT)                  |
+| 6  | Upload theme       | Upload openant-source zip (skip if active)                                      |
+| 7  | Ghost settings     | No-op (configured in step 5)                                                    |
+| 8  | NocoDB setup       | Admin, base, table, remove defaults, sample row                                 |
+| 9  | n8n setup          | Auto-provision API key (fast path: verify existing)                             |
+| 10 | n8n credentials    | 2-3 credentials in parallel (LLM, NocoDB, optionally Telegram)                  |
+| 11 | n8n workflows      | Import + activate generate-article + optionally telegram-bot                    |
+| 12 | Finalize           | Merge adapter keys to .env, set `deployed: true`                                |
 
 ### Context hydration
 
-Before executing steps, the pipeline unconditionally reads `.env` and hydrates both `DeployContext` and `process.env` with previously saved adapter keys (Ghost, NocoDB, n8n). This ensures fast paths work on re-deploy and intermediate steps have access to keys from prior runs.
+Before executing, pipeline reads `.env` and hydrates `DeployContext` + `process.env` with saved adapter keys for fast-path support.
 
 ### SSE protocol
 
-Three event types:
-
-- `step` — `{ step, total, label, status: 'running' | 'completed' }` — emitted before and after each step
-- `error` — `{ step, label, error, recoverable: true }` — emitted on failure, pipeline stops
-- `complete` — `{ success: true, urls: { blog, table, n8n } }` — emitted after all steps
+- `step` -- `{ step, total, label, status: 'running'|'completed' }`
+- `error` -- `{ step, label, error, recoverable: true }`
+- `complete` -- `{ success: true, urls: { blog, table, n8n } }`
 
 ### DeployContext
 
-Intermediate data (Ghost API keys, NocoDB tokens, n8n credential IDs) flows between steps via a local `DeployContext` object — not persisted to `state.json`. This keeps `SetupState` clean and avoids Zod schema conflicts.
+Intermediate data (API keys, tokens, credential IDs) flows between steps via local `DeployContext` object -- not persisted to `state.json`.
 
-### Deploy UI
+### Deploy UI (`src/app/setup/steps/Deploy.tsx`)
 
-**File:** `src/app/setup/steps/Deploy.tsx`
-
-Uses `fetch` + `ReadableStream.getReader()` to consume SSE (not `EventSource`, which doesn't support POST/headers). Shows progress bar, step list with icons (Check/Loader2/X/Circle from lucide-react), error with retry button, and success with service URLs.
+Uses `fetch` + `ReadableStream.getReader()` for SSE (not `EventSource` -- needs POST/headers). Shows progress bar, step icons, error with retry, success with URLs.
 
 ---
 
 ## SaaS mode
 
-The `OPENANT_SAAS_MODE` environment variable enables minimal SaaS hooks for Control Plane integration:
+`OPENANT_SAAS_MODE=true` enables Control Plane integration:
 
-| Feature            | Behavior when `OPENANT_SAAS_MODE=true`            |
+| Feature            | Behavior                                          |
 | ------------------ | ------------------------------------------------- |
-| Domain step        | Skipped in wizard (Control Plane manages DNS)     |
+| Domain step        | Skipped (Control Plane manages DNS)               |
 | Dashboard badge    | Shows "Managed by openant SaaS"                   |
-| `/api/saas/health` | Returns combined health + article stats (no auth) |
-| Reconfigure        | Domain step stays completed (cannot be changed)   |
+| `/api/saas/health` | Returns combined health + stats (no auth)         |
+| Reconfigure        | Domain step stays completed                       |
 
-When the env var is absent or any value other than `'true'`, all SaaS features are disabled and the system behaves as a standard self-hosted installation.
+Absent or non-`'true'` disables all SaaS features.
 
 ### Instance mode (managed vs BYOK)
 
-The `INSTANCE_MODE` environment variable (`managed` or `byok`, default `byok`) controls which features are available. Set by the SaaS Control Plane during cloud-init based on the user's subscription plan (`pro` → `managed`, `starter` → `byok`).
+`INSTANCE_MODE` (`managed`/`byok`, default `byok`). Set by Control Plane via cloud-init (`pro` -> `managed`, `starter` -> `byok`).
 
-| Feature              | BYOK (`byok`)                                            | Managed (`managed`)                                              |
-| -------------------- | -------------------------------------------------------- | ---------------------------------------------------------------- |
-| LLM setup step       | Shown in wizard (user enters API key)                    | Skipped (key pre-injected via cloud-init)                        |
-| n8n Caddy block      | Always included (accessible via `auto.{slug}` subdomain) | Always included (accessible via `auto.{slug}` subdomain)         |
-| n8n in dashboard     | URL and credentials shown                                | URL and credentials hidden from user (admin can access directly) |
-| n8n in deploy result | Credentials included                                     | Credentials hidden from user                                     |
-| LLM credentials      | From wizard state (`state.llm`)                          | From environment variables (`LLM_API_KEY`, etc.)                 |
-
-**Wizard behavior:**
-
-- `GET /api/setup/status` returns `instance_mode` field
-- `setup/page.tsx` detects mode and filters steps (removes LLM for managed)
-- `POST /api/setup/apply` uses mode for LLM credential source and deploy result filtering
-- `GET /api/dashboard/status` hides n8n URL and credentials for managed (admin accesses via known URL)
+| Feature          | BYOK                              | Managed                                      |
+| ---------------- | --------------------------------- | -------------------------------------------- |
+| LLM step         | Shown (user enters key)           | Skipped (key pre-injected via cloud-init)    |
+| n8n Caddy block  | Always included                   | Always included                              |
+| n8n in dashboard | URL + credentials shown           | Hidden from user (admin direct access)       |
+| LLM credentials  | From wizard state                 | From env vars (`LLM_API_KEY`, etc.)          |
 
 ---
 
-## Installation
+## Installation (`install.sh`)
 
-**File:** `install.sh`
-
-One-command installer script for deploying openant. Supports Linux (production) and macOS (local testing with Docker Desktop).
+One-command installer. Supports Linux (production) and macOS (local testing with Docker Desktop).
 
 ### Prerequisites
 
-**Linux (production):**
+- **Linux**: Root, Ubuntu 20.04+/Debian 11+, amd64/arm64, ports 80/443/3000
+- **macOS**: Docker Desktop installed and running
 
-- Root access (sudo)
-- Ubuntu 20.04+ or Debian 11+ (CentOS/RHEL best-effort)
-- amd64 or arm64 architecture
-- Ports 80, 443, 3000 available
+### Steps
 
-**macOS (local testing):**
-
-- Docker Desktop installed and running
-- No root required (Docker Desktop runs as user)
-
-### What it does
-
-| #   | Step                 | Action                                                                |
-| --- | -------------------- | --------------------------------------------------------------------- |
-| 1   | `check_root()`       | Verify running as root (skipped on macOS)                             |
-| 2   | `check_os()`         | Detect distro, version, architecture (`sw_vers` on macOS)             |
-| 3   | `check_docker()`     | Verify Docker + Compose plugin; install if missing                    |
-| 4   | `check_ports()`      | Verify 80/443/3000 available (skipped if openant containers running)  |
-| 5   | `setup_directory()`  | `git clone` or tarball fallback to `/opt/openant`                     |
-| 6   | `generate_secrets()` | Generate `.env` from `.env.example` with random secrets               |
-| 7   | `start_services()`   | `docker compose up -d --build` + wait for healthchecks (180s timeout) |
-| 8   | `print_result()`     | Display wizard URL with SETUP_TOKEN                                   |
+| # | Step                | Action                                                               |
+| - | ------------------- | -------------------------------------------------------------------- |
+| 1 | `check_root()`      | Verify root (skipped on macOS)                                       |
+| 2 | `check_os()`        | Detect distro, version, arch                                         |
+| 3 | `check_docker()`    | Verify Docker + Compose; install if missing                          |
+| 4 | `check_ports()`     | Verify 80/443/3000 available (skipped if containers running)         |
+| 5 | `setup_directory()` | `git clone` or tarball to `/opt/openant`                             |
+| 6 | `generate_secrets()`| `.env` from `.env.example` with random secrets                       |
+| 7 | `start_services()`  | `docker compose up -d --build` + healthcheck wait (180s)             |
+| 8 | `print_result()`    | Display wizard URL with SETUP_TOKEN                                  |
 
 ### macOS adaptations
-
-The script detects the OS via `uname -s` and branches accordingly:
 
 | Area           | Linux                        | macOS                          |
 | -------------- | ---------------------------- | ------------------------------ |
 | Root check     | Required                     | Skipped                        |
 | OS detection   | `/etc/os-release`            | `sw_vers`                      |
-| Docker install | `get.docker.com` + systemctl | Error → link to Docker Desktop |
+| Docker install | `get.docker.com` + systemctl | Error -> link Docker Desktop   |
 | Port check     | `ss -tlnp`                   | `lsof -iTCP`                   |
 | sed in-place   | `sed -i`                     | `sed -i ''`                    |
-| Docker GID     | `getent group docker`        | `0` (not used)                 |
+| Docker GID     | `getent group docker`        | `0`                            |
 | Server IP      | `curl ifconfig.me`           | `127.0.0.1`                    |
 
 ### Idempotency
 
-- Re-running is safe: existing `.env` is never overwritten
-- Code is updated via `git pull --ff-only`
-- Running containers are detected (port check skipped)
+Re-running is safe: existing `.env` preserved, code updated via `git pull --ff-only`, running containers detected.
 
-### Uninstall
-
-`install.sh --uninstall` — stops containers, removes volumes, deletes `/opt/openant` (with confirmation prompt).
+**Uninstall**: `install.sh --uninstall` -- stops containers, removes volumes, deletes `/opt/openant` (with confirmation).
 
 ---
 
-## E2E tests
+## E2E tests (`tests/e2e/run.sh`)
 
-**File:** `tests/e2e/run.sh`
-
-Automated end-to-end test that validates the full wizard flow on a deployed instance. Reads `SETUP_TOKEN` and `SERVER_IP` from `/opt/openant/.env`.
-
-9 sequential tests: health, welcome, domain, LLM, blog, social, deploy (SSE stream), dashboard status, dashboard stats.
-
-Requires: `curl`, `jq`. Designed for fresh installations (wizard state is not reset between runs).
+Automated test validating full wizard flow on a deployed instance. Reads `SETUP_TOKEN`/`SERVER_IP` from `/opt/openant/.env`. 9 sequential tests: health, welcome, domain, LLM, blog, social, deploy (SSE), dashboard status/stats. Requires `curl`, `jq`. Designed for fresh installations.
 
 ---
 
