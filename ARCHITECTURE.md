@@ -171,14 +171,16 @@ Schedule Trigger -> Get Next Queued (blank/publishing/error status) -> Has Recor
 Conversational workflow for creating content plan entries via Telegram:
 
 ```
-Telegram Trigger -> Route Message (5-branch Code node)
-  -> /start: Save chat_id to NocoDB Prompts.TelegramChatId
-  -> Forwarded message: Save description, reply "Send Topic"
-  -> Topic: Save topic, reply "Send Link or /skip"
-  -> Link: Create NocoDB article row
-  -> Fallback: reply "Forward a message to start"
+Telegram Trigger -> Handle Message (single Code node with inline HTTP)
+  /start: Save chat_id to NocoDB Prompts.TelegramChatId
+  Forwarded message: Save description (text or caption), reply "Send Topic"
+  Topic: Save topic, reply "Send Link or /skip"
+  Link: Create NocoDB article row (POST as array), reply confirmation
+  Fallback: reply "Forward a message to start"
 ```
 
+Uses `require('https')`/`require('http')` for inline HTTP calls (needs `NODE_FUNCTION_ALLOW_BUILTIN`).
+NocoDB auth via `xc-auth` header (JWT token). NocoDB v2 POST requires array body `[{...}]`.
 State via `$getWorkflowStaticData('global')` keyed by `chat_id` with 1-hour TTL.
 
 ### Placeholder substitution
