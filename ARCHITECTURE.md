@@ -1,6 +1,6 @@
 # openant — Architecture Overview
 
-> Last updated: 2026-03-08
+> Last updated: 2026-03-10
 
 ---
 
@@ -600,7 +600,7 @@ Defined in **`src/lib/llm-presets.ts`**. All LLM providers are OpenAI-compatible
 
 ## API conventions
 
-- **URL structure**: `/api/health` (no auth), `/api/saas/health` (no auth, SaaS only), `/api/setup/{step}` (auth required), `/api/setup/status` (auth required), `/api/dashboard/*` (auth required)
+- **URL structure**: `/api/health` (no auth), `/api/saas/health` (no auth, SaaS only), `/api/setup/{step}` (auth required), `/api/setup/status` (auth required), `/api/dashboard/*` (auth required), `/api/saas/*` except health (auth required)
 - **Response format**: `{ success: true, data?: ... }` or `{ success: false, error: string, code?: string }`
 - **Auth**: `withAuth()` middleware — `Authorization: Bearer <SETUP_TOKEN>`
 - **Error handling**: `apiHandler()` wrapper — catches ZodError (400), AdapterError (500), unknown (500)
@@ -626,6 +626,7 @@ Defined in **`src/lib/llm-presets.ts`**. All LLM providers are OpenAI-compatible
 | `GET /api/saas/health`            | No   | Returns 404 if `OPENANT_SAAS_MODE !== 'true'`. Otherwise returns combined health + article stats for Control Plane.                                                                  |
 | `GET/POST/PATCH/DELETE /api/saas/articles` | Yes | CRUD operations for articles table via NocoDB adapter. DELETE is guarded: only articles in queue/error status. Used by SaaS dashboard proxy. |
 | `GET/PATCH /api/saas/prompts`     | Yes  | Read and update LLM prompts in the NocoDB Prompts table. Used by SaaS dashboard proxy.                                                                                              |
+| `POST /api/saas/restart`          | Yes  | Restarts all Docker containers except wizard via `docker restart`. Waits for services to become healthy. Used by SaaS dashboard proxy.                                               |
 
 ---
 
@@ -666,7 +667,7 @@ These are copy-pasted components (not a library dependency), styled with Tailwin
 
 ### Unit tests
 
-347 tests across 37 test files, all passing:
+363 tests across 38 test files, all passing:
 
 | File                                              | Tests | What it verifies                                                                                                                                                                                                                                                                         |
 | ------------------------------------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
