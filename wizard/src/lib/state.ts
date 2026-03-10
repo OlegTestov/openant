@@ -43,6 +43,12 @@ const setupStateSchema = z.object({
       publish_interval_minutes: z.number(),
     })
     .optional(),
+  telegram: z
+    .object({
+      bot_token: z.string().optional(),
+      chat_id: z.string().optional(),
+    })
+    .optional(),
   social: z
     .object({
       make_webhook_url: z.string().optional(),
@@ -61,6 +67,7 @@ const DEFAULT_STATE: SetupState = {
     domain: { completed: false },
     llm: { completed: false },
     blog: { completed: false },
+    telegram: { completed: false },
     social: { completed: false },
     review: { completed: false },
     deploy: { completed: false },

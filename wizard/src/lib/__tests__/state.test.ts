@@ -151,6 +151,6 @@ describe('resetState', () => {
 
     expect(state.currentStep).toBe('welcome');
     expect(state.deployed).toBe(false);
-    expect(Object.keys(state.steps)).toHaveLength(7);
+    expect(Object.keys(state.steps)).toHaveLength(8);
   });
 });
