@@ -163,7 +163,7 @@ export default function Review({ onComplete, onBack, onGoToStep }: StepProps) {
             <p className="text-sm font-medium">{t.steps.review.telegram}</p>
             {config?.telegram?.bot_token ? (
               <p className="text-muted-foreground text-sm">
-                {'•••••' + config.telegram.bot_token.slice(-4)}
+                {config.telegram.bot_token}
                 {' · '}
                 {config.telegram.chat_id || t.steps.review.telegramAutoDetect}
               </p>

@@ -18,6 +18,9 @@ export const GET = withAuth(
         domain: state.domain,
         llm: state.llm ? { ...state.llm, api_key: '***' } : undefined,
         blog: state.blog,
+        telegram: state.telegram?.bot_token
+          ? { ...state.telegram, bot_token: '•••••' + state.telegram.bot_token.slice(-4) }
+          : state.telegram,
         social: state.social,
         saas_mode: process.env.OPENANT_SAAS_MODE === 'true',
         instance_mode: process.env.INSTANCE_MODE || 'byok',
