@@ -291,7 +291,6 @@ export function createN8nAdapter(): AutomationAdapter {
         .replace(/\{\{NOCODB_TABLE_ID\}\}/g, params.nocodbTableId ?? '')
         .replace(/\{\{NOCODB_PROMPTS_TABLE_ID\}\}/g, params.nocodbPromptsTableId ?? '')
         .replace(/\{\{GHOST_ADMIN_API_KEY\}\}/g, params.ghostAdminApiKey ?? '')
-        .replace(/\{\{GHOST_INTERNAL_URL\}\}/g, params.ghostInternalUrl ?? 'http://ghost:2368')
         .replace(/\{\{GHOST_URL\}\}/g, params.ghostUrl ?? '')
         .replace(/\{\{LLM_API_URL\}\}/g, params.llmApiUrl ?? '')
         .replace(/\{\{LLM_API_KEY\}\}/g, params.llmApiKey ?? '')
