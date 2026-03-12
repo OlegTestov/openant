@@ -13,8 +13,14 @@ export const POST = withAuth(
     const body = telegramSchema.parse(await req.json());
     const state = await readState();
 
+    // Preserve existing bot token if masked placeholder submitted (same pattern as LLM route)
+    const botToken =
+      body.bot_token && body.bot_token.startsWith('•') && state.telegram?.bot_token
+        ? state.telegram.bot_token
+        : body.bot_token || undefined;
+
     state.telegram = {
-      bot_token: body.bot_token || undefined,
+      bot_token: botToken,
       chat_id: body.chat_id || undefined,
     };
     state.steps.telegram = { completed: true };

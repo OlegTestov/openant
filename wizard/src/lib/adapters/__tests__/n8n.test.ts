@@ -238,6 +238,8 @@ describe('createN8nAdapter', () => {
 
   describe('createCredential', () => {
     it('sends POST with correct body and X-N8N-API-KEY header', async () => {
+      // List credentials (empty — no duplicates)
+      mockFetch.mockResolvedValueOnce(mockResponse({ data: [] }));
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'cred-123' }));
       const adapter = createN8nAdapter();
 
@@ -258,7 +260,7 @@ describe('createN8nAdapter', () => {
         }),
       );
 
-      const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+      const body = JSON.parse(mockFetch.mock.calls[1][1].body as string);
       expect(body).toEqual({
         name: 'OpenAI',
         type: 'openAiApi',
@@ -267,6 +269,7 @@ describe('createN8nAdapter', () => {
     });
 
     it('returns credential ID from response', async () => {
+      mockFetch.mockResolvedValueOnce(mockResponse({ data: [] }));
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'cred-456' }));
       const adapter = createN8nAdapter();
 
@@ -290,6 +293,7 @@ describe('createN8nAdapter', () => {
     });
 
     it('throws AdapterError on API error', async () => {
+      mockFetch.mockResolvedValueOnce(mockResponse({ data: [] }));
       mockFetch.mockResolvedValueOnce(mockResponse('Bad Request', { ok: false, status: 400 }));
       const adapter = createN8nAdapter();
 

@@ -187,6 +187,25 @@ export function createN8nAdapter(): AutomationAdapter {
     async createCredential(cred: CredentialData) {
       const apiKey = getApiKey('createCredential');
 
+      // Delete existing credentials with same name+type to prevent duplicates on re-deploy
+      const listRes = await fetch(`${getN8nUrl()}/api/v1/credentials`, {
+        headers: { 'X-N8N-API-KEY': apiKey },
+      });
+      if (listRes.ok) {
+        const listData = (await listRes.json()) as {
+          data?: Array<{ id: string; name: string; type: string }>;
+        };
+        const existing = listData.data?.filter((c) => c.name === cred.name && c.type === cred.type);
+        if (existing) {
+          for (const old of existing) {
+            await fetch(`${getN8nUrl()}/api/v1/credentials/${old.id}`, {
+              method: 'DELETE',
+              headers: { 'X-N8N-API-KEY': apiKey },
+            });
+          }
+        }
+      }
+
       const res = await fetch(`${getN8nUrl()}/api/v1/credentials`, {
         method: 'POST',
         headers: {

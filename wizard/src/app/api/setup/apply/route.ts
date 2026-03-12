@@ -86,8 +86,8 @@ function buildEnvVars(state: SetupState): Record<string, string> {
     PINTEREST_ENABLED: String(state.social?.pinterest_enabled ?? false),
     THREADS_ENABLED: String(state.social?.threads_enabled ?? false),
 
-    TELEGRAM_BOT_TOKEN: state.telegram?.bot_token ?? '',
-    TELEGRAM_CHAT_ID: state.telegram?.chat_id ?? '',
+    TELEGRAM_BOT_TOKEN: state.telegram?.bot_token ?? process.env.TELEGRAM_BOT_TOKEN ?? '',
+    TELEGRAM_CHAT_ID: state.telegram?.chat_id ?? process.env.TELEGRAM_CHAT_ID ?? '',
   };
 }
 
@@ -309,8 +309,8 @@ async function executeDeployStep(
         nocodbPromptsTableId: ctx.nocoKeys?.promptsTableId,
         ghostAdminApiKey: ctx.ghostKeys?.adminApiKey,
         ghostUrl,
-        telegramBotToken: state.telegram?.bot_token,
-        telegramChatId: state.telegram?.chat_id,
+        telegramBotToken: state.telegram?.bot_token || process.env.TELEGRAM_BOT_TOKEN,
+        telegramChatId: state.telegram?.chat_id || process.env.TELEGRAM_CHAT_ID,
         nocodbAuthToken: ctx.nocoKeys?.authToken,
       };
 
