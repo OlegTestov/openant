@@ -240,7 +240,8 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ posts: [{ title: $json.articleTitle, mobiledoc: $json.mobiledoc, status: 'published', feature_image: $json.featureImageUrl || null }] }) }}"
+        "jsonBody": "={{ JSON.stringify({ posts: [{ title: $json.articleTitle, mobiledoc: $json.mobiledoc, status: 'published', feature_image: $json.featureImageUrl || null }] }) }}",
+        "options": { "allowUnauthorizedCerts": true }
       }
     },
     {
