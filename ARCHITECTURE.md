@@ -193,7 +193,8 @@ State via `$getWorkflowStaticData('global')` keyed by `chat_id` with 1-hour TTL.
 | `{{LLM_API_KEY}}`             | String replacement          | `WorkflowParams.llmApiKey`               |
 | `{{LLM_IMAGE_MODEL}}`         | String replacement          | `WorkflowParams.llmImageModel`           |
 | `{{GHOST_ADMIN_API_KEY}}`     | String replacement          | `WorkflowParams.ghostAdminApiKey`        |
-| `{{GHOST_URL}}`               | String replacement          | `WorkflowParams.ghostUrl`                |
+| `{{GHOST_URL}}`               | String replacement          | `WorkflowParams.ghostUrl` (public links) |
+| `{{GHOST_INTERNAL_URL}}`      | String replacement          | `WorkflowParams.ghostInternalUrl` (`http://ghost:2368`, Ghost Admin API) |
 | `{{MAKE_WEBHOOK_URL}}`        | String replacement          | `WorkflowParams.makeWebhookUrl`          |
 | `{{PINTEREST_BOARD}}`         | String replacement          | `WorkflowParams.pinterestBoard`          |
 | `{{TELEGRAM_BOT_TOKEN}}`      | String replacement          | `WorkflowParams.telegramBotToken`        |
