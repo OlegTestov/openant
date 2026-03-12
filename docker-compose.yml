@@ -158,6 +158,7 @@ services:
       - N8N_PROTOCOL=https
       - WEBHOOK_URL=${N8N_WEBHOOK_URL:-http://localhost:5678}
       - N8N_API_KEY=${N8N_API_KEY}
+      # Accept Caddy's internal TLS cert for Ghost Admin API calls from n8n Code nodes
       - NODE_TLS_REJECT_UNAUTHORIZED=0
       - NODE_FUNCTION_ALLOW_BUILTIN=crypto,http,https,url
       - N8N_RUNNERS_MAX_OLD_SPACE_SIZE=512

@@ -285,11 +285,13 @@ async function executeDeployStep(
     case 11: {
       const generateTemplate = await readWorkflowTemplate('generate-article');
 
-      // Use custom domain for ghostUrl (Pinterest links) if available, else SaaS domain
       const customDomains = getCustomDomains(state);
       const saasDomains = getServiceDomains(state);
+      const envVars = buildEnvVars(state);
+
+      // Public links (Pinterest, Telegram) use custom domain if available
       const ghostDomain = customDomains?.ghost ?? saasDomains?.ghost;
-      const ghostUrl = ghostDomain ? `https://${ghostDomain}` : buildEnvVars(state).GHOST_URL;
+      const ghostUrl = ghostDomain ? `https://${ghostDomain}` : envVars.GHOST_URL;
 
       const workflowParams: WorkflowParams = {
         credentialIds: ctx.credentialIds ?? {},
@@ -309,7 +311,8 @@ async function executeDeployStep(
         nocodbPromptsTableId: ctx.nocoKeys?.promptsTableId,
         ghostAdminApiKey: ctx.ghostKeys?.adminApiKey,
         ghostUrl,
-        ghostApiUrl: saasDomains ? `https://${saasDomains.ghost}` : buildEnvVars(state).GHOST_URL,
+        // Admin API always uses SaaS domain (Caddy internal TLS, no Let's Encrypt dependency)
+        ghostApiUrl: saasDomains ? `https://${saasDomains.ghost}` : envVars.GHOST_URL,
         telegramBotToken: state.telegram?.bot_token || process.env.TELEGRAM_BOT_TOKEN,
         telegramChatId: state.telegram?.chat_id || process.env.TELEGRAM_CHAT_ID,
         nocodbAuthToken: ctx.nocoKeys?.authToken,
