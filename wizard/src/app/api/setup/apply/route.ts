@@ -309,6 +309,7 @@ async function executeDeployStep(
         nocodbPromptsTableId: ctx.nocoKeys?.promptsTableId,
         ghostAdminApiKey: ctx.ghostKeys?.adminApiKey,
         ghostUrl,
+        ghostApiUrl: saasDomains ? `https://${saasDomains.ghost}` : buildEnvVars(state).GHOST_URL,
         telegramBotToken: state.telegram?.bot_token || process.env.TELEGRAM_BOT_TOKEN,
         telegramChatId: state.telegram?.chat_id || process.env.TELEGRAM_CHAT_ID,
         nocodbAuthToken: ctx.nocoKeys?.authToken,
