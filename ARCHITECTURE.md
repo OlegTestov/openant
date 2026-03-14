@@ -1,6 +1,6 @@
 # openant — Architecture Overview
 
-> Last updated: 2026-03-10
+> Last updated: 2026-03-14
 
 ---
 
@@ -183,6 +183,14 @@ Uses `require('https')`/`require('http')` for inline HTTP calls (needs `NODE_FUN
 NocoDB auth via `xc-auth` header (JWT token). NocoDB v2 POST requires array body `[{...}]`.
 State via `$getWorkflowStaticData('global')` keyed by `chat_id` with 1-hour TTL.
 
+### Ghost Admin API and TLS
+
+n8n calls Ghost Admin API via HTTPS through Caddy. SaaS domains use `tls internal` (self-signed cert, always available). To accept this cert:
+- **Code nodes** (Node.js `https` module): `NODE_TLS_REJECT_UNAUTHORIZED=0` in docker-compose.yml
+- **HTTP Request nodes** (Axios): `allowUnauthorizedCerts: true` on the node
+
+`{{GHOST_API_URL}}` (SaaS domain) is used for Admin API calls; `{{GHOST_URL}}` (custom domain if set) for public article links. Substitution order matters: `GHOST_API_URL` must be replaced before `GHOST_URL` to prevent partial matching.
+
 ### Placeholder substitution
 
 | Placeholder                   | Type                        | Source                                   |
@@ -256,12 +264,15 @@ Core pattern: each external service has a TypeScript adapter interface. Replacin
 ### Domain resolution (`src/lib/domain.ts`, `src/lib/server-ip.ts`)
 
 - `getEffectiveDomain(state)` -- Resolves domain from wizard state, falls back to `DOMAIN` env var.
-- `getServiceDomains(state)` -- Builds per-service domain map from state prefixes.
+- `getServiceDomains(state)` -- Builds SaaS flat subdomain map (`slug-blog.openant.app`).
+- `getCustomDomains(state)` -- Returns custom domain map (`blog.example.com`) if user configured one, else `null`.
+- `hasCustomDomain(state)` -- Boolean check for custom domain presence.
+- `isSaasMode()` -- `true` when `DOMAIN` env var is set (SaaS-provisioned instance).
 - `getServerIp()` -- `SERVER_IP` env var or fetches from `ifconfig.me`.
 
 ### Caddyfile generator (`src/lib/caddy.ts`)
 
-- `generateCaddyfile(domains, _mode?, saas?)` -- IP mode (null domains): `:80` -> Ghost. Domain mode: 4 server blocks. SaaS adds `tls internal`.
+- `generateCaddyfile(domains, mode?, saas?, customDomains?)` -- IP mode (null domains): `:80` -> Ghost. Domain mode: 4 server blocks. SaaS adds `tls internal`. Optional 4th param adds custom domain blocks with Let's Encrypt.
 - `writeCaddyfile(content)` -- Writes to `CADDYFILE_PATH` (default: `/app/Caddyfile`).
 
 ### SSE streaming (`src/lib/sse.ts`)
