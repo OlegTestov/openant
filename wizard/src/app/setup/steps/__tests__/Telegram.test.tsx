@@ -28,6 +28,15 @@ describe('Telegram', () => {
     expect(screen.getByLabelText('Chat ID')).toBeInTheDocument();
   });
 
+  it('shows BotFather link and instructions', () => {
+    render(<Telegram onComplete={vi.fn()} onBack={vi.fn()} />);
+
+    const link = screen.getByRole('link', { name: /BotFather/i });
+    expect(link).toHaveAttribute('href', 'https://t.me/BotFather');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(screen.getByText(/Send \/newbot/)).toBeInTheDocument();
+  });
+
   it('shows chat id auto-detect hint', () => {
     render(<Telegram onComplete={vi.fn()} onBack={vi.fn()} />);
 

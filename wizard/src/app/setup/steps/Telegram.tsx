@@ -89,9 +89,22 @@ export default function Telegram({ onComplete, onBack, initialData }: StepProps)
             placeholder={t.steps.telegram.botTokenPlaceholder}
             aria-describedby="bot-token-hint"
           />
-          <p id="bot-token-hint" className="text-muted-foreground mt-1 text-xs">
-            {t.steps.telegram.botTokenHint}
-          </p>
+          <div id="bot-token-hint" className="mt-2 space-y-1">
+            <a
+              href="https://t.me/BotFather"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary text-sm font-medium hover:underline"
+            >
+              {t.steps.telegram.botFatherLink} ↗
+            </a>
+            <p className="text-muted-foreground text-xs">{t.steps.telegram.botTokenHint}</p>
+            <ol className="text-muted-foreground list-inside list-decimal text-xs">
+              <li>{t.steps.telegram.botTokenStep1}</li>
+              <li>{t.steps.telegram.botTokenStep2}</li>
+              <li>{t.steps.telegram.botTokenStep3}</li>
+            </ol>
+          </div>
         </div>
 
         <div>

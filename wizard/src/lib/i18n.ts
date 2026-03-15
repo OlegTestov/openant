@@ -65,6 +65,10 @@ export interface Translations {
       optionalHint: string;
       botToken: string;
       botTokenHint: string;
+      botFatherLink: string;
+      botTokenStep1: string;
+      botTokenStep2: string;
+      botTokenStep3: string;
       botTokenPlaceholder: string;
       chatId: string;
       chatIdHint: string;
@@ -218,7 +222,11 @@ const en: Translations = {
       optional: 'This step is optional',
       optionalHint: 'You can configure Telegram notifications later.',
       botToken: 'Bot Token',
-      botTokenHint: 'Create a bot via @BotFather on Telegram and paste the token here',
+      botTokenHint: 'How to get a bot token:',
+      botFatherLink: 'Open @BotFather',
+      botTokenStep1: 'Open @BotFather in Telegram (link above)',
+      botTokenStep2: 'Send /newbot and follow the prompts',
+      botTokenStep3: 'Copy the token and paste it here',
       botTokenPlaceholder: '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11',
       chatId: 'Chat ID',
       chatIdHint: 'Leave empty to auto-detect when you send /start to the bot',
@@ -374,7 +382,11 @@ const ru: Translations = {
       optional: 'Этот шаг необязателен',
       optionalHint: 'Вы можете настроить Telegram-уведомления позже.',
       botToken: 'Токен бота',
-      botTokenHint: 'Создайте бота через @BotFather в Telegram и вставьте токен сюда',
+      botTokenHint: 'Как получить токен:',
+      botFatherLink: 'Открыть @BotFather',
+      botTokenStep1: 'Откройте @BotFather в Telegram (ссылка выше)',
+      botTokenStep2: 'Отправьте /newbot и следуйте инструкциям',
+      botTokenStep3: 'Скопируйте токен и вставьте сюда',
       botTokenPlaceholder: '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11',
       chatId: 'ID чата',
       chatIdHint: 'Оставьте пустым для автоопределения при отправке /start боту',
