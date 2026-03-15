@@ -11,6 +11,7 @@ export interface SetupState {
     ghost_prefix?: string;
     nocodb_prefix?: string;
     n8n_prefix?: string;
+    wizard_prefix?: string;
   };
   llm?: {
     provider: string;

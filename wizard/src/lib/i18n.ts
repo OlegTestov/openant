@@ -20,6 +20,7 @@ export interface Translations {
       ghostPrefix: string;
       nocodbPrefix: string;
       n8nPrefix: string;
+      wizardPrefix: string;
       rootDomainHint: string;
       requiredRecords: string;
       dnsType: string;
@@ -64,8 +65,7 @@ export interface Translations {
       optional: string;
       optionalHint: string;
       botToken: string;
-      botTokenHint: string;
-      botFatherLink: string;
+      botTokenInstructions: string;
       botTokenStep1: string;
       botTokenStep2: string;
       botTokenStep3: string;
@@ -178,6 +178,7 @@ const en: Translations = {
       ghostPrefix: 'Blog (Ghost)',
       nocodbPrefix: 'NocoDB',
       n8nPrefix: 'n8n',
+      wizardPrefix: 'Setup (Wizard)',
       rootDomainHint: 'Leave empty for root domain',
       requiredRecords: 'Required DNS records',
       dnsType: 'Type',
@@ -222,9 +223,8 @@ const en: Translations = {
       optional: 'This step is optional',
       optionalHint: 'You can configure Telegram notifications later.',
       botToken: 'Bot Token',
-      botTokenHint: 'How to get a bot token:',
-      botFatherLink: 'Open @BotFather',
-      botTokenStep1: 'Open @BotFather in Telegram (link above)',
+      botTokenInstructions: 'Get a token:',
+      botTokenStep1: 'Open @BotFather in Telegram',
       botTokenStep2: 'Send /newbot and follow the prompts',
       botTokenStep3: 'Copy the token and paste it here',
       botTokenPlaceholder: '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11',
@@ -338,6 +338,7 @@ const ru: Translations = {
       ghostPrefix: 'Блог (Ghost)',
       nocodbPrefix: 'NocoDB',
       n8nPrefix: 'n8n',
+      wizardPrefix: 'Настройка (Wizard)',
       rootDomainHint: 'Оставьте пустым для корневого домена',
       requiredRecords: 'Необходимые DNS-записи',
       dnsType: 'Тип',
@@ -382,9 +383,8 @@ const ru: Translations = {
       optional: 'Этот шаг необязателен',
       optionalHint: 'Вы можете настроить Telegram-уведомления позже.',
       botToken: 'Токен бота',
-      botTokenHint: 'Как получить токен:',
-      botFatherLink: 'Открыть @BotFather',
-      botTokenStep1: 'Откройте @BotFather в Telegram (ссылка выше)',
+      botTokenInstructions: 'Получите токен:',
+      botTokenStep1: 'Откройте @BotFather в Telegram',
       botTokenStep2: 'Отправьте /newbot и следуйте инструкциям',
       botTokenStep3: 'Скопируйте токен и вставьте сюда',
       botTokenPlaceholder: '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11',

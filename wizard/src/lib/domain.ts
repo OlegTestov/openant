@@ -44,10 +44,11 @@ export function getCustomDomains(state: SetupState): ServiceDomains | null {
   const ghostPrefix = state.domain.ghost_prefix ?? 'blog';
   const nocodbPrefix = state.domain.nocodb_prefix ?? 'table';
   const n8nPrefix = state.domain.n8n_prefix ?? 'auto';
+  const wizardPrefix = state.domain.wizard_prefix ?? 'setup';
   return {
     ghost: ghostPrefix ? `${ghostPrefix}.${domain}` : domain,
     nocodb: `${nocodbPrefix}.${domain}`,
     n8n: `${n8nPrefix}.${domain}`,
-    wizard: `setup.${domain}`,
+    wizard: `${wizardPrefix}.${domain}`,
   };
 }

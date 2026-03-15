@@ -22,6 +22,7 @@ interface InitialDomainData {
   ghost_prefix?: string;
   nocodb_prefix?: string;
   n8n_prefix?: string;
+  wizard_prefix?: string;
 }
 
 export default function Domain({ onComplete, onBack, initialData }: StepProps) {
@@ -31,6 +32,7 @@ export default function Domain({ onComplete, onBack, initialData }: StepProps) {
   const [ghostPrefix, setGhostPrefix] = useState(initial?.ghost_prefix ?? 'blog');
   const [nocodbPrefix, setNocodbPrefix] = useState(initial?.nocodb_prefix ?? 'table');
   const [n8nPrefix, setN8nPrefix] = useState(initial?.n8n_prefix ?? 'auto');
+  const [wizardPrefix, setWizardPrefix] = useState(initial?.wizard_prefix ?? 'setup');
   const [serverIp, setServerIp] = useState<string | null>(null);
   const [dnsResult, setDnsResult] = useState<DnsCheck | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -70,7 +72,7 @@ export default function Domain({ onComplete, onBack, initialData }: StepProps) {
     records.add(resolveServiceDomain(ghostPrefix));
     records.add(resolveServiceDomain(nocodbPrefix));
     records.add(resolveServiceDomain(n8nPrefix));
-    records.add(`setup.${domain}`);
+    records.add(resolveServiceDomain(wizardPrefix));
     return Array.from(records);
   }
 
@@ -86,6 +88,7 @@ export default function Domain({ onComplete, onBack, initialData }: StepProps) {
         ghost_prefix: useDomain ? ghostPrefix : undefined,
         nocodb_prefix: useDomain ? nocodbPrefix : undefined,
         n8n_prefix: useDomain ? n8nPrefix : undefined,
+        wizard_prefix: useDomain ? wizardPrefix : undefined,
       };
 
       const res = await fetch('/api/setup/domain', {
@@ -118,6 +121,7 @@ export default function Domain({ onComplete, onBack, initialData }: StepProps) {
         ghost_prefix: ghostPrefix,
         nocodb_prefix: nocodbPrefix,
         n8n_prefix: n8nPrefix,
+        wizard_prefix: wizardPrefix,
       });
     } catch {
       setError(t.common.failedToSave);
@@ -217,6 +221,19 @@ export default function Domain({ onComplete, onBack, initialData }: StepProps) {
                   </div>
                   <p className="text-muted-foreground ml-28 pl-2 text-xs">
                     → {resolveServiceDomain(n8nPrefix)}
+                  </p>
+
+                  <div className="flex items-center gap-2">
+                    <Label className="w-28 shrink-0 text-sm">{t.steps.domain.wizardPrefix}</Label>
+                    <Input
+                      value={wizardPrefix}
+                      onChange={(e) => setWizardPrefix(e.target.value)}
+                      className="max-w-32"
+                    />
+                    <span className="text-muted-foreground text-sm">.{domain}</span>
+                  </div>
+                  <p className="text-muted-foreground ml-28 pl-2 text-xs">
+                    → {resolveServiceDomain(wizardPrefix)}
                   </p>
                 </div>
 

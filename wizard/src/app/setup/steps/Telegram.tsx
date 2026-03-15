@@ -79,6 +79,24 @@ export default function Telegram({ onComplete, onBack, initialData }: StepProps)
           </AlertDescription>
         </Alert>
 
+        <div className="space-y-1">
+          <p className="text-sm font-medium">{t.steps.telegram.botTokenInstructions}</p>
+          <ol className="text-muted-foreground list-inside list-decimal text-sm">
+            <li>
+              <a
+                href="https://t.me/BotFather"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                {t.steps.telegram.botTokenStep1}
+              </a>
+            </li>
+            <li>{t.steps.telegram.botTokenStep2}</li>
+            <li>{t.steps.telegram.botTokenStep3}</li>
+          </ol>
+        </div>
+
         <div>
           <Label htmlFor="bot-token">{t.steps.telegram.botToken}</Label>
           <Input
@@ -87,24 +105,7 @@ export default function Telegram({ onComplete, onBack, initialData }: StepProps)
             value={botToken}
             onChange={(e) => setBotToken(e.target.value)}
             placeholder={t.steps.telegram.botTokenPlaceholder}
-            aria-describedby="bot-token-hint"
           />
-          <div id="bot-token-hint" className="mt-2 space-y-1">
-            <a
-              href="https://t.me/BotFather"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary text-sm font-medium hover:underline"
-            >
-              {t.steps.telegram.botFatherLink} ↗
-            </a>
-            <p className="text-muted-foreground text-xs">{t.steps.telegram.botTokenHint}</p>
-            <ol className="text-muted-foreground list-inside list-decimal text-xs">
-              <li>{t.steps.telegram.botTokenStep1}</li>
-              <li>{t.steps.telegram.botTokenStep2}</li>
-              <li>{t.steps.telegram.botTokenStep3}</li>
-            </ol>
-          </div>
         </div>
 
         <div>
