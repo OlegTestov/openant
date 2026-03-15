@@ -92,10 +92,10 @@ export async function testWebhook(url: string): Promise<WebhookTestResult> {
       signal: AbortSignal.timeout(10000),
     });
 
-    // Any HTTP response (even 400) means the webhook URL is reachable.
     // Make.com returns 400 for payloads that don't match the scenario's expected structure,
-    // but that's fine — we just need to verify the URL works.
-    if (res.status < 500) {
+    // but that's fine — the webhook URL is correct and listening.
+    // 404 means the webhook URL doesn't exist. 5xx means server error.
+    if (res.ok || res.status === 400) {
       return { connected: true };
     }
     return { connected: false, error: `Webhook returned ${res.status}` };

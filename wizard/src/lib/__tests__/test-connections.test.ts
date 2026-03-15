@@ -103,6 +103,15 @@ describe('testWebhook', () => {
     expect(result.connected).toBe(true);
   });
 
+  it('returns error on 404 (webhook URL does not exist)', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 404 });
+
+    const result = await testWebhook('https://hook.make.com/abc');
+
+    expect(result.connected).toBe(false);
+    expect(result.error).toContain('404');
+  });
+
   it('returns error on 500 response', async () => {
     mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
 
