@@ -38,6 +38,7 @@ const mockPreflight = {
       { name: 'services', status: 'pass', detail: 'All services healthy' },
       { name: 'llm', status: 'pass', detail: '200ms' },
       { name: 'telegram', status: 'skip', detail: '' },
+      { name: 'webhook', status: 'pass', detail: 'Make.com' },
       { name: 'dns', status: 'pass', detail: '' },
     ],
   },

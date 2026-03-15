@@ -71,6 +71,7 @@ export default function Review({ onComplete, onBack, onGoToStep }: StepProps) {
         { name: 'services', status: 'checking', detail: '' },
         { name: 'llm', status: 'checking', detail: '' },
         { name: 'telegram', status: 'checking', detail: '' },
+        { name: 'webhook', status: 'checking', detail: '' },
         { name: 'dns', status: 'checking', detail: '' },
       ]);
       try {
@@ -115,14 +116,14 @@ export default function Review({ onComplete, onBack, onGoToStep }: StepProps) {
             <p className="mb-2 text-sm font-medium">{t.steps.review.preflight}</p>
             <div className="space-y-1.5">
               {visibleChecks.map((check) => {
-                const label =
-                  check.name === 'services'
-                    ? t.steps.review.preflightServices
-                    : check.name === 'llm'
-                      ? t.steps.review.preflightLlm
-                      : check.name === 'telegram'
-                        ? t.steps.review.preflightTelegram
-                        : t.steps.review.preflightDns;
+                const labelMap: Record<string, string> = {
+                  services: t.steps.review.preflightServices,
+                  llm: t.steps.review.preflightLlm,
+                  telegram: t.steps.review.preflightTelegram,
+                  webhook: t.steps.review.preflightWebhook,
+                  dns: t.steps.review.preflightDns,
+                };
+                const label = labelMap[check.name] ?? check.name;
                 return (
                   <div key={check.name} className="flex items-center gap-2">
                     <div

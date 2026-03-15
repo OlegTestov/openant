@@ -114,6 +114,7 @@ export interface Translations {
       preflightServices: string;
       preflightLlm: string;
       preflightTelegram: string;
+      preflightWebhook: string;
       preflightDns: string;
     };
     deploy: {
@@ -287,6 +288,7 @@ const en: Translations = {
       preflightServices: 'Services',
       preflightLlm: 'LLM connection',
       preflightTelegram: 'Telegram bot',
+      preflightWebhook: 'Make.com webhook',
       preflightDns: 'DNS resolution',
     },
     deploy: {
@@ -461,6 +463,7 @@ const ru: Translations = {
       preflightServices: 'Сервисы',
       preflightLlm: 'Подключение LLM',
       preflightTelegram: 'Telegram-бот',
+      preflightWebhook: 'Вебхук Make.com',
       preflightDns: 'DNS-резолвинг',
     },
     deploy: {

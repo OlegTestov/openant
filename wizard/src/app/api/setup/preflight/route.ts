@@ -2,7 +2,7 @@ import { withAuth } from '@/lib/auth';
 import { apiHandler } from '@/lib/api-handler';
 import { readState } from '@/lib/state';
 import { createAdapters } from '@/lib/adapters';
-import { testLlmConnection, testTelegramToken } from '@/lib/test-connections';
+import { testLlmConnection, testTelegramToken, testWebhook } from '@/lib/test-connections';
 import { checkDns as checkDnsResolve } from '@/lib/dns-check';
 
 interface CheckResult {
@@ -55,20 +55,39 @@ async function checkTelegram(telegram: { bot_token?: string } | undefined): Prom
 }
 
 async function checkDns(
-  domain: { use_domain?: boolean; domain?: string } | undefined,
+  domain: { use_domain?: boolean; domain?: string; ghost_prefix?: string } | undefined,
 ): Promise<CheckResult> {
   if (!domain?.use_domain || !domain.domain) {
     return { name: 'dns', status: 'skip', detail: '' };
   }
+  // Check the blog subdomain (e.g. blog.olegtestov.com), not the bare domain
+  const prefix = domain.ghost_prefix || 'blog';
+  const blogDomain = prefix ? `${prefix}.${domain.domain}` : domain.domain;
   const serverIp = process.env.SERVER_IP || '';
-  const result = await checkDnsResolve(domain.domain, serverIp);
+  const result = await checkDnsResolve(blogDomain, serverIp);
   if (result.matches_server) {
-    return { name: 'dns', status: 'pass', detail: domain.domain };
+    return { name: 'dns', status: 'pass', detail: blogDomain };
   }
   return {
     name: 'dns',
     status: 'fail',
-    detail: result.resolved ? `${result.ip} (expected ${serverIp})` : 'DNS does not resolve',
+    detail: result.resolved
+      ? `${blogDomain}: ${result.ip} (expected ${serverIp})`
+      : `${blogDomain}: DNS does not resolve`,
+  };
+}
+
+async function checkWebhook(
+  social: { make_webhook_url?: string } | undefined,
+): Promise<CheckResult> {
+  if (!social?.make_webhook_url) {
+    return { name: 'webhook', status: 'skip', detail: '' };
+  }
+  const result = await testWebhook(social.make_webhook_url);
+  return {
+    name: 'webhook',
+    status: result.connected ? 'pass' : 'fail',
+    detail: result.connected ? 'Make.com' : (result.error ?? 'Failed'),
   };
 }
 
@@ -81,6 +100,7 @@ export const POST = withAuth(
       checkServices(),
       checkLlm(state.llm, isManaged),
       checkTelegram(state.telegram),
+      checkWebhook(state.social),
       checkDns(state.domain),
     ]);
 
