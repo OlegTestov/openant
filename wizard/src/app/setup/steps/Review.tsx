@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { StepLayout } from '@/components/StepLayout';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n';
 import type { StepProps } from '@/types/step-props';
 
@@ -23,6 +24,12 @@ interface ReviewConfig {
   instance_mode?: string;
 }
 
+interface PreflightCheck {
+  name: string;
+  status: 'pass' | 'fail' | 'skip' | 'checking';
+  detail: string;
+}
+
 function formatInterval(minutes: number): string {
   if (minutes >= 60 && minutes % 60 === 0) {
     const hours = minutes / 60;
@@ -35,15 +42,16 @@ export default function Review({ onComplete, onBack, onGoToStep }: StepProps) {
   const [config, setConfig] = useState<ReviewConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [checks, setChecks] = useState<PreflightCheck[]>([]);
   const t = useTranslations();
 
   useEffect(() => {
+    const token = localStorage.getItem('setup_token');
+    const headers = { Authorization: `Bearer ${token}` };
+
     async function loadConfig() {
       try {
-        const token = localStorage.getItem('setup_token');
-        const res = await fetch('/api/setup/status', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await fetch('/api/setup/status', { headers });
         const data = await res.json();
 
         if (data.success) {
@@ -57,7 +65,27 @@ export default function Review({ onComplete, onBack, onGoToStep }: StepProps) {
         setIsLoading(false);
       }
     }
+
+    async function runPreflight() {
+      setChecks([
+        { name: 'services', status: 'checking', detail: '' },
+        { name: 'llm', status: 'checking', detail: '' },
+        { name: 'telegram', status: 'checking', detail: '' },
+        { name: 'dns', status: 'checking', detail: '' },
+      ]);
+      try {
+        const res = await fetch('/api/setup/preflight', { method: 'POST', headers });
+        const data = await res.json();
+        if (data.success && data.data?.checks) {
+          setChecks(data.data.checks);
+        }
+      } catch {
+        // Preflight failure is non-blocking
+      }
+    }
+
     loadConfig();
+    runPreflight();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -79,6 +107,44 @@ export default function Review({ onComplete, onBack, onGoToStep }: StepProps) {
       onBack={onBack}
       nextLabel={t.steps.review.applyConfiguration}
     >
+      {(() => {
+        const visibleChecks = checks.filter((c) => c.status !== 'skip');
+        if (visibleChecks.length === 0) return null;
+        return (
+          <div className="mb-4 rounded-lg border p-4">
+            <p className="mb-2 text-sm font-medium">{t.steps.review.preflight}</p>
+            <div className="space-y-1.5">
+              {visibleChecks.map((check) => {
+                const label =
+                  check.name === 'services'
+                    ? t.steps.review.preflightServices
+                    : check.name === 'llm'
+                      ? t.steps.review.preflightLlm
+                      : check.name === 'telegram'
+                        ? t.steps.review.preflightTelegram
+                        : t.steps.review.preflightDns;
+                return (
+                  <div key={check.name} className="flex items-center gap-2">
+                    <div
+                      className={cn(
+                        'h-2 w-2 rounded-full',
+                        check.status === 'pass' && 'bg-green-500',
+                        check.status === 'fail' && 'bg-red-500',
+                        check.status === 'checking' && 'animate-pulse bg-yellow-500',
+                      )}
+                    />
+                    <span className="text-sm">{label}</span>
+                    {check.detail && (
+                      <span className="text-muted-foreground text-xs">{check.detail}</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
       <div className="divide-border divide-y rounded-lg border">
         {error && (
           <div className="p-3">

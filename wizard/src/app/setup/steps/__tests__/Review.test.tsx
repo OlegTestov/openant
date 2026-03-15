@@ -31,12 +31,35 @@ const mockConfig = {
   },
 };
 
+const mockPreflight = {
+  success: true,
+  data: {
+    checks: [
+      { name: 'services', status: 'pass', detail: 'All services healthy' },
+      { name: 'llm', status: 'pass', detail: '200ms' },
+      { name: 'telegram', status: 'skip', detail: '' },
+      { name: 'dns', status: 'pass', detail: '' },
+    ],
+  },
+};
+
+function mockFetchForReview(configOverride?: unknown) {
+  mockFetch.mockImplementation((url: string) =>
+    Promise.resolve({
+      json: () =>
+        Promise.resolve(
+          typeof url === 'string' && url.includes('/preflight')
+            ? mockPreflight
+            : (configOverride ?? mockConfig),
+        ),
+    }),
+  );
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   localStorage.setItem('setup_token', 'test-token');
-  mockFetch.mockResolvedValue({
-    json: () => Promise.resolve(mockConfig),
-  });
+  mockFetchForReview();
 });
 
 describe('Review', () => {
@@ -69,13 +92,20 @@ describe('Review', () => {
     expect(onGoToStep).toHaveBeenCalledWith(2);
   });
 
+  it('shows preflight check results', async () => {
+    render(<Review onComplete={vi.fn()} onBack={vi.fn()} onGoToStep={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Pre-flight checks')).toBeInTheDocument();
+      expect(screen.getByText('Services')).toBeInTheDocument();
+      expect(screen.getByText('LLM connection')).toBeInTheDocument();
+    });
+  });
+
   it('shows IP mode when no domain', async () => {
-    mockFetch.mockResolvedValueOnce({
-      json: () =>
-        Promise.resolve({
-          success: true,
-          data: { domain: { use_domain: false } },
-        }),
+    mockFetchForReview({
+      success: true,
+      data: { domain: { use_domain: false } },
     });
 
     render(<Review onComplete={vi.fn()} onBack={vi.fn()} onGoToStep={vi.fn()} />);

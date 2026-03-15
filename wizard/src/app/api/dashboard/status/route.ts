@@ -4,6 +4,7 @@ import { createAdapters } from '@/lib/adapters';
 import { readState } from '@/lib/state';
 import { getServiceCredentials } from '@/lib/credentials';
 import { getEffectiveDomain, getServiceDomains, isSaasMode } from '@/lib/domain';
+import { checkDns } from '@/lib/dns-check';
 
 async function checkCaddy(): Promise<boolean> {
   try {
@@ -73,6 +74,11 @@ export const GET = withAuth(
       credentialsResult.n8n = credentials.n8n;
     }
 
+    const dnsCheck =
+      state.domain?.use_domain && state.domain.domain
+        ? await checkDns(state.domain.domain, ip)
+        : null;
+
     return Response.json({
       success: true,
       data: {
@@ -83,6 +89,7 @@ export const GET = withAuth(
         urls,
         credentials: credentialsResult,
         saas_mode: isSaasMode(),
+        dns_check: dnsCheck,
       },
     });
   }),

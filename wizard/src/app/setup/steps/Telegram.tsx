@@ -6,7 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
 import { useTranslations } from '@/lib/i18n';
+import type { TelegramTestResult } from '@/lib/test-connections';
 import type { StepProps } from '@/types/step-props';
+
+const TELEGRAM_TOKEN_REGEX = /^\d+:[A-Za-z0-9_-]+$/;
 
 export default function Telegram({ onComplete, onBack, initialData }: StepProps) {
   const initial = initialData as
@@ -19,10 +22,26 @@ export default function Telegram({ onComplete, onBack, initialData }: StepProps)
   const [chatId, setChatId] = useState(initial?.chat_id ?? '');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tokenError, setTokenError] = useState<string | null>(null);
+  const [testResult, setTestResult] = useState<TelegramTestResult | null>(null);
   const t = useTranslations();
+
+  function handleTokenChange(value: string) {
+    setBotToken(value);
+    setTestResult(null);
+    if (value && !TELEGRAM_TOKEN_REGEX.test(value)) {
+      setTokenError(t.steps.telegram.tokenFormatError);
+    } else {
+      setTokenError(null);
+    }
+  }
 
   async function handleSubmit() {
     setError(null);
+    setTestResult(null);
+
+    if (tokenError) return;
+
     setIsLoading(true);
 
     try {
@@ -44,6 +63,15 @@ export default function Telegram({ onComplete, onBack, initialData }: StepProps)
       if (!data.success) {
         setError(data.error);
         return;
+      }
+
+      if (data.data?.test_result) {
+        const result = data.data.test_result as TelegramTestResult;
+        setTestResult(result);
+        if (!result.connected) {
+          setError(result.error ?? 'Connection failed');
+          return;
+        }
       }
 
       onComplete({
@@ -103,15 +131,24 @@ export default function Telegram({ onComplete, onBack, initialData }: StepProps)
           </ol>
         </div>
 
+        {testResult?.connected && (
+          <Alert>
+            <AlertDescription>
+              {t.steps.telegram.connected} {testResult.bot_name}
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div>
           <Label htmlFor="bot-token">{t.steps.telegram.botToken}</Label>
           <Input
             id="bot-token"
             className="mt-1"
             value={botToken}
-            onChange={(e) => setBotToken(e.target.value)}
+            onChange={(e) => handleTokenChange(e.target.value)}
             placeholder={t.steps.telegram.botTokenPlaceholder}
           />
+          {tokenError && <p className="text-destructive mt-1 text-xs">{tokenError}</p>}
         </div>
 
         <div>

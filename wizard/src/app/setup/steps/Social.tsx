@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
 import { downloadBlueprint } from '@/lib/download';
 import { useTranslations } from '@/lib/i18n';
+import type { WebhookTestResult } from '@/lib/test-connections';
 import type { StepProps } from '@/types/step-props';
 
 export default function Social({ onComplete, onBack, initialData }: StepProps) {
@@ -26,10 +27,12 @@ export default function Social({ onComplete, onBack, initialData }: StepProps) {
   const [board, setBoard] = useState(initial?.board ?? '');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [testResult, setTestResult] = useState<WebhookTestResult | null>(null);
   const t = useTranslations();
 
   async function handleSubmit() {
     setError(null);
+    setTestResult(null);
 
     if ((pinterest || threads) && !webhookUrl.trim()) {
       setError(t.steps.social.webhookRequired);
@@ -65,6 +68,15 @@ export default function Social({ onComplete, onBack, initialData }: StepProps) {
         return;
       }
 
+      if (data.data?.test_result) {
+        const result = data.data.test_result as WebhookTestResult;
+        setTestResult(result);
+        if (!result.connected) {
+          setError(result.error ?? 'Webhook test failed');
+          return;
+        }
+      }
+
       onComplete({
         make_webhook_url: webhookUrl,
         pinterest_enabled: pinterest,
@@ -90,6 +102,12 @@ export default function Social({ onComplete, onBack, initialData }: StepProps) {
         {error && (
           <Alert variant="destructive">
             <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {testResult?.connected && (
+          <Alert>
+            <AlertDescription>{t.steps.social.webhookConnected}</AlertDescription>
           </Alert>
         )}
 

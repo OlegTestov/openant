@@ -75,6 +75,8 @@ export interface Translations {
       chatId: string;
       chatIdHint: string;
       chatIdPlaceholder: string;
+      tokenFormatError: string;
+      connected: string;
     };
     social: {
       title: string;
@@ -91,6 +93,7 @@ export interface Translations {
       downloadHint: string;
       webhookRequired: string;
       boardRequired: string;
+      webhookConnected: string;
     };
     review: {
       title: string;
@@ -107,6 +110,11 @@ export interface Translations {
       webhook: string;
       noWebhook: string;
       applyConfiguration: string;
+      preflight: string;
+      preflightServices: string;
+      preflightLlm: string;
+      preflightTelegram: string;
+      preflightDns: string;
     };
     deploy: {
       title: string;
@@ -149,6 +157,10 @@ export interface Translations {
     tools: string;
     downloadMakeTemplate: string;
     makeTemplateHint: string;
+    dnsStatus: string;
+    dnsResolved: string;
+    dnsWrongIp: string;
+    dnsPending: string;
   };
   services: {
     ghost: string;
@@ -235,6 +247,8 @@ const en: Translations = {
       chatId: 'Chat ID',
       chatIdHint: 'Leave empty to auto-detect when you send /start to the bot',
       chatIdPlaceholder: '123456789',
+      tokenFormatError: 'Invalid format (expected: 123456:ABC-DEF...)',
+      connected: 'Connected:',
     },
     social: {
       title: 'Social Distribution',
@@ -252,6 +266,7 @@ const en: Translations = {
         '1. Download the template above\n2. Go to make.com → Scenarios → Create a new scenario → Import Blueprint → upload the file\n3. Click the Pinterest module → Add connection → authorize your Pinterest account\n4. Click the webhook module (first circle) → Create a webhook → Save\n5. Copy address to clipboard → Save\n6. Paste the URL into the field below\n7. Save the scenario (floppy disk icon at the bottom)\n8. Turn on the scenario (ON/OFF toggle next to the floppy disk)\n9. In the scheduling dialog select "Immediately" → Save',
       webhookRequired: 'Webhook URL is required when Pinterest or Threads is enabled',
       boardRequired: 'Board name is required when Pinterest is enabled',
+      webhookConnected: 'Webhook connected!',
     },
     review: {
       title: 'Review Configuration',
@@ -268,6 +283,11 @@ const en: Translations = {
       webhook: 'Webhook',
       noWebhook: 'No webhook',
       applyConfiguration: 'Apply Configuration',
+      preflight: 'Pre-flight checks',
+      preflightServices: 'Services',
+      preflightLlm: 'LLM connection',
+      preflightTelegram: 'Telegram bot',
+      preflightDns: 'DNS resolution',
     },
     deploy: {
       title: 'Apply Configuration',
@@ -311,6 +331,10 @@ const en: Translations = {
     downloadMakeTemplate: 'Download Make.com Pinterest Template',
     makeTemplateHint:
       'Import this file into Make.com (Scenarios → Import Blueprint), connect your Pinterest account, and enable the scenario',
+    dnsStatus: 'DNS Status',
+    dnsResolved: 'DNS configured correctly',
+    dnsWrongIp: 'DNS points to wrong IP',
+    dnsPending: 'Waiting for DNS propagation...',
   },
   services: {
     ghost: 'Ghost',
@@ -397,6 +421,8 @@ const ru: Translations = {
       chatId: 'ID чата',
       chatIdHint: 'Оставьте пустым для автоопределения при отправке /start боту',
       chatIdPlaceholder: '123456789',
+      tokenFormatError: 'Неверный формат (ожидается: 123456:ABC-DEF...)',
+      connected: 'Подключено:',
     },
     social: {
       title: 'Дистрибуция в соцсетях',
@@ -414,6 +440,7 @@ const ru: Translations = {
         '1. Скачайте шаблон выше\n2. Откройте make.com → Scenarios → Create a new scenario → Import Blueprint → загрузите файл\n3. Нажмите на модуль Pinterest → Add connection → авторизуйте аккаунт Pinterest\n4. Нажмите на модуль вебхука (первый кружок) → Create a webhook → Save\n5. Copy address to clipboard → Save\n6. Вставьте URL в поле ниже\n7. Сохраните сценарий (иконка дискеты внизу)\n8. Включите сценарий (переключатель ON/OFF рядом с дискетой)\n9. В диалоге расписания выберите «Immediately» → Save',
       webhookRequired: 'URL вебхука обязателен, если Pinterest или Threads включён',
       boardRequired: 'Название доски обязательно, если Pinterest включён',
+      webhookConnected: 'Вебхук подключён!',
     },
     review: {
       title: 'Проверка конфигурации',
@@ -430,6 +457,11 @@ const ru: Translations = {
       webhook: 'Вебхук',
       noWebhook: 'Нет вебхука',
       applyConfiguration: 'Применить конфигурацию',
+      preflight: 'Предварительные проверки',
+      preflightServices: 'Сервисы',
+      preflightLlm: 'Подключение LLM',
+      preflightTelegram: 'Telegram-бот',
+      preflightDns: 'DNS-резолвинг',
     },
     deploy: {
       title: 'Применить конфигурацию',
@@ -473,6 +505,10 @@ const ru: Translations = {
     downloadMakeTemplate: 'Скачать шаблон Make.com для Pinterest',
     makeTemplateHint:
       'Импортируйте файл в Make.com (Scenarios → Import Blueprint), подключите аккаунт Pinterest и включите сценарий',
+    dnsStatus: 'Статус DNS',
+    dnsResolved: 'DNS настроен правильно',
+    dnsWrongIp: 'DNS указывает на другой IP',
+    dnsPending: 'Ожидание распространения DNS...',
   },
   services: {
     ghost: 'Ghost',

@@ -120,4 +120,78 @@ describe('Telegram', () => {
       expect(screen.getByText('Server error')).toBeInTheDocument();
     });
   });
+
+  it('shows token format error for invalid format', async () => {
+    const user = userEvent.setup();
+
+    render(<Telegram onComplete={vi.fn()} onBack={vi.fn()} />);
+
+    await user.type(screen.getByLabelText('Bot Token'), 'not-a-token');
+
+    expect(screen.getByText(/Invalid format/)).toBeInTheDocument();
+  });
+
+  it('does not show format error for valid token', async () => {
+    const user = userEvent.setup();
+
+    render(<Telegram onComplete={vi.fn()} onBack={vi.fn()} />);
+
+    await user.type(screen.getByLabelText('Bot Token'), '123456:ABC-DEF');
+
+    expect(screen.queryByText(/Invalid format/)).not.toBeInTheDocument();
+  });
+
+  it('blocks submit when token format is invalid', async () => {
+    const user = userEvent.setup();
+    const onComplete = vi.fn();
+
+    render(<Telegram onComplete={onComplete} onBack={vi.fn()} />);
+
+    await user.type(screen.getByLabelText('Bot Token'), 'bad');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+
+    expect(onComplete).not.toHaveBeenCalled();
+    expect(mockFetch).not.toHaveBeenCalledWith('/api/setup/telegram', expect.anything());
+  });
+
+  it('shows test result on successful token verification', async () => {
+    const user = userEvent.setup();
+    mockFetch.mockResolvedValueOnce({
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: { test_result: { connected: true, bot_name: '@mybot' } },
+        }),
+    });
+
+    render(<Telegram onComplete={vi.fn()} onBack={vi.fn()} />);
+
+    await user.type(screen.getByLabelText('Bot Token'), '123:ABC');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Connected:/)).toBeInTheDocument();
+      expect(screen.getByText(/@mybot/)).toBeInTheDocument();
+    });
+  });
+
+  it('shows error when token verification fails', async () => {
+    const user = userEvent.setup();
+    mockFetch.mockResolvedValueOnce({
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: { test_result: { connected: false, error: 'Unauthorized' } },
+        }),
+    });
+
+    render(<Telegram onComplete={vi.fn()} onBack={vi.fn()} />);
+
+    await user.type(screen.getByLabelText('Bot Token'), '123:ABC');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Unauthorized')).toBeInTheDocument();
+    });
+  });
 });

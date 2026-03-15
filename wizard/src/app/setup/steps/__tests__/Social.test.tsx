@@ -73,4 +73,54 @@ describe('Social', () => {
       expect(onComplete).toHaveBeenCalledOnce();
     });
   });
+
+  it('shows webhook connected message on successful test', async () => {
+    const user = userEvent.setup();
+    mockFetch.mockResolvedValueOnce({
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: { test_result: { connected: true } },
+        }),
+    });
+
+    render(<Social onComplete={vi.fn()} onBack={vi.fn()} />);
+
+    // Enable Pinterest to show webhook field
+    const switches = screen.getAllByRole('switch');
+    await user.click(switches[0]);
+
+    await user.type(screen.getByLabelText('Pinterest Board'), 'My Board');
+    await user.type(screen.getByLabelText('Make.com Webhook URL'), 'https://hook.make.com/abc');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Webhook connected!')).toBeInTheDocument();
+    });
+  });
+
+  it('shows error when webhook test fails', async () => {
+    const user = userEvent.setup();
+    mockFetch.mockResolvedValueOnce({
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: { test_result: { connected: false, error: 'Webhook returned 404' } },
+        }),
+    });
+
+    render(<Social onComplete={vi.fn()} onBack={vi.fn()} />);
+
+    // Enable Pinterest
+    const switches = screen.getAllByRole('switch');
+    await user.click(switches[0]);
+
+    await user.type(screen.getByLabelText('Pinterest Board'), 'My Board');
+    await user.type(screen.getByLabelText('Make.com Webhook URL'), 'https://hook.make.com/bad');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Webhook returned 404')).toBeInTheDocument();
+    });
+  });
 });

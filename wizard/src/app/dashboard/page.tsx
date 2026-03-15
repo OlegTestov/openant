@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { ServiceStatus } from '@/components/ServiceStatus';
 import { downloadBlueprint } from '@/lib/download';
 import { useTranslations } from '@/lib/i18n';
+import type { DnsCheckResult } from '@/lib/dns-check';
 
 interface CredentialInfo {
   email: string;
@@ -24,6 +25,7 @@ interface DashboardData {
     n8n?: CredentialInfo;
   } | null;
   saas_mode: boolean;
+  dns_check: DnsCheckResult | null;
 }
 
 function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
@@ -104,6 +106,7 @@ async function fetchDashboardData(): Promise<DashboardData> {
     urls: status.data?.urls ?? {},
     credentials: status.data?.credentials ?? null,
     saas_mode: status.data?.saas_mode ?? false,
+    dns_check: status.data?.dns_check ?? null,
   };
 }
 
@@ -183,6 +186,34 @@ export default function DashboardPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* DNS Status */}
+      {data.dns_check && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>{t.dashboard.dnsStatus}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ServiceStatus
+              name={data.dns_check.domain}
+              status={
+                data.dns_check.matches_server
+                  ? 'healthy'
+                  : data.dns_check.resolved
+                    ? 'unhealthy'
+                    : 'checking'
+              }
+            />
+            <p className="text-muted-foreground mt-2 text-sm">
+              {data.dns_check.matches_server
+                ? t.dashboard.dnsResolved
+                : data.dns_check.resolved
+                  ? `${t.dashboard.dnsWrongIp} (${data.dns_check.ip} → ${data.dns_check.server_ip})`
+                  : t.dashboard.dnsPending}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Service Access */}
       {data.credentials && (

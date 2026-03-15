@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { withAuth } from '@/lib/auth';
 import { apiHandler } from '@/lib/api-handler';
 import { readState, writeState } from '@/lib/state';
+import { testWebhook } from '@/lib/test-connections';
 
 export const socialSchema = z.object({
   make_webhook_url: z.string().url().optional().or(z.literal('')),
@@ -26,6 +27,12 @@ export const POST = withAuth(
 
     await writeState(state);
 
-    return Response.json({ success: true });
+    const webhookUrl = body.make_webhook_url;
+    const testResult = webhookUrl ? await testWebhook(webhookUrl) : undefined;
+
+    return Response.json({
+      success: true,
+      data: testResult ? { test_result: testResult } : undefined,
+    });
   }),
 );
