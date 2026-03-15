@@ -64,6 +64,57 @@ export async function restartServices(): Promise<void> {
   ]);
 }
 
+/**
+ * Pull latest code, rebuild wizard, and restart all services.
+ * Git pull uses alpine/git in a temporary container with host project dir mounted.
+ * Wizard rebuild + restart uses nsenter to execute docker compose on the host.
+ * Other containers are restarted directly via Docker CLI.
+ */
+export async function updateAndRestart(): Promise<void> {
+  const urls = getServiceUrls();
+  const projectDir = process.env.HOST_PROJECT_DIR || '/opt/openant';
+
+  // Step 1: git pull via ephemeral container
+  try {
+    await execAsync(`docker run --rm -v ${projectDir}:/repo -w /repo alpine/git pull origin main`, {
+      timeout: 60_000,
+    });
+  } catch (error) {
+    throw new AdapterError('docker', 'update', 'Failed to pull latest code', error);
+  }
+
+  // Step 2: rebuild + recreate wizard via docker:cli (has docker compose plugin)
+  const compose = [
+    'docker run --rm',
+    '-v /var/run/docker.sock:/var/run/docker.sock',
+    `-v ${projectDir}:${projectDir}`,
+    `-w ${projectDir}`,
+    'docker:cli',
+    'docker compose build wizard',
+  ].join(' ');
+  const recreate = compose.replace('build wizard', 'up -d wizard');
+
+  try {
+    await execAsync(compose, { timeout: 180_000 });
+    await execAsync(recreate, { timeout: 60_000 });
+  } catch (error) {
+    throw new AdapterError('docker', 'update', 'Failed to rebuild wizard', error);
+  }
+
+  // Step 3: restart other services
+  try {
+    await execAsync(`docker restart ${RESTART_CONTAINERS.join(' ')}`, { timeout: 60_000 });
+  } catch (error) {
+    throw new AdapterError('docker', 'update', 'Failed to restart containers', error);
+  }
+
+  await Promise.all([
+    waitForUrl(urls.ghost + '/ghost/api/admin/site/', 'Ghost'),
+    waitForUrl(urls.nocodb + '/api/v1/health', 'NocoDB'),
+    waitForUrl(urls.n8n + '/healthz', 'n8n'),
+  ]);
+}
+
 export async function startServices(): Promise<void> {
   const urls = getServiceUrls();
 
