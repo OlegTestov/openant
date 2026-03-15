@@ -66,8 +66,10 @@ export interface Translations {
       optionalHint: string;
       botToken: string;
       botTokenInstructions: string;
-      botTokenStep1: string;
-      botTokenStep2: string;
+      botTokenStep1Prefix: string;
+      botTokenStep1Suffix: string;
+      botTokenStep2Prefix: string;
+      botTokenStep2Suffix: string;
       botTokenStep3: string;
       botTokenPlaceholder: string;
       chatId: string;
@@ -224,8 +226,10 @@ const en: Translations = {
       optionalHint: 'You can configure Telegram notifications later.',
       botToken: 'Bot Token',
       botTokenInstructions: 'Get a token:',
-      botTokenStep1: 'Open @BotFather in Telegram',
-      botTokenStep2: 'Send /newbot and follow the prompts',
+      botTokenStep1Prefix: 'Open ',
+      botTokenStep1Suffix: ' in Telegram',
+      botTokenStep2Prefix: 'Send ',
+      botTokenStep2Suffix: ' and follow the prompts',
       botTokenStep3: 'Copy the token and paste it here',
       botTokenPlaceholder: '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11',
       chatId: 'Chat ID',
@@ -384,8 +388,10 @@ const ru: Translations = {
       optionalHint: 'Вы можете настроить Telegram-уведомления позже.',
       botToken: 'Токен бота',
       botTokenInstructions: 'Получите токен:',
-      botTokenStep1: 'Откройте @BotFather в Telegram',
-      botTokenStep2: 'Отправьте /newbot и следуйте инструкциям',
+      botTokenStep1Prefix: 'Откройте ',
+      botTokenStep1Suffix: ' в Telegram',
+      botTokenStep2Prefix: 'Отправьте ',
+      botTokenStep2Suffix: ' и следуйте инструкциям',
       botTokenStep3: 'Скопируйте токен и вставьте сюда',
       botTokenPlaceholder: '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11',
       chatId: 'ID чата',

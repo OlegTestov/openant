@@ -83,16 +83,22 @@ export default function Telegram({ onComplete, onBack, initialData }: StepProps)
           <p className="text-sm font-medium">{t.steps.telegram.botTokenInstructions}</p>
           <ol className="text-muted-foreground list-inside list-decimal text-sm">
             <li>
+              {t.steps.telegram.botTokenStep1Prefix}
               <a
                 href="https://t.me/BotFather"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary hover:underline"
               >
-                {t.steps.telegram.botTokenStep1}
+                @BotFather
               </a>
+              {t.steps.telegram.botTokenStep1Suffix}
             </li>
-            <li>{t.steps.telegram.botTokenStep2}</li>
+            <li>
+              {t.steps.telegram.botTokenStep2Prefix}
+              <code className="bg-muted rounded px-1">/newbot</code>
+              {t.steps.telegram.botTokenStep2Suffix}
+            </li>
             <li>{t.steps.telegram.botTokenStep3}</li>
           </ol>
         </div>

@@ -34,7 +34,7 @@ describe('Telegram', () => {
     const link = screen.getByRole('link', { name: /BotFather/i });
     expect(link).toHaveAttribute('href', 'https://t.me/BotFather');
     expect(link).toHaveAttribute('target', '_blank');
-    expect(screen.getByText(/Send \/newbot/)).toBeInTheDocument();
+    expect(screen.getByText('/newbot')).toBeInTheDocument();
   });
 
   it('shows chat id auto-detect hint', () => {
