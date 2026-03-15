@@ -81,7 +81,7 @@ describe('testTelegramToken', () => {
 
 describe('testWebhook', () => {
   it('returns connected on 200 response', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: true });
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 200 });
 
     const result = await testWebhook('https://hook.make.com/abc');
 
@@ -95,13 +95,21 @@ describe('testWebhook', () => {
     );
   });
 
-  it('returns error on non-ok response', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 404 });
+  it('returns connected on 400 response (Make.com rejects test payload but URL works)', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 400 });
+
+    const result = await testWebhook('https://hook.make.com/abc');
+
+    expect(result.connected).toBe(true);
+  });
+
+  it('returns error on 500 response', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
 
     const result = await testWebhook('https://hook.make.com/abc');
 
     expect(result.connected).toBe(false);
-    expect(result.error).toContain('404');
+    expect(result.error).toContain('500');
   });
 
   it('returns error on network failure', async () => {

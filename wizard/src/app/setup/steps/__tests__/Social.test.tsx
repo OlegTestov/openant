@@ -105,7 +105,7 @@ describe('Social', () => {
       json: () =>
         Promise.resolve({
           success: true,
-          data: { test_result: { connected: false, error: 'Webhook returned 404' } },
+          data: { test_result: { connected: false, error: 'Webhook returned 500' } },
         }),
     });
 
@@ -120,7 +120,7 @@ describe('Social', () => {
     await user.click(screen.getByRole('button', { name: 'Next' }));
 
     await waitFor(() => {
-      expect(screen.getByText('Webhook returned 404')).toBeInTheDocument();
+      expect(screen.getByText('Webhook returned 500')).toBeInTheDocument();
     });
   });
 });
