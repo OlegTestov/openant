@@ -435,7 +435,7 @@ export function createGhostAdapter(): BlogAdapter {
     async publishPost(post: PostData): Promise<PublishedPost> {
       const jwt = requireAdminJwt('publishPost');
 
-      const res = await fetch(`${getGhostUrl()}/ghost/api/admin/posts/`, {
+      const res = await fetch(`${getGhostUrl()}/ghost/api/admin/posts/?source=html`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
