@@ -116,6 +116,7 @@ export interface AutomationAdapter {
   createCredential(cred: CredentialData): Promise<string>;
   importWorkflow(template: object, params: WorkflowParams): Promise<string>;
   activateWorkflow(workflowId: string): Promise<void>;
+  reactivateWorkflows(): Promise<void>;
 }
 
 export interface AutomationConfig {

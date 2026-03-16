@@ -15,5 +15,6 @@ export function createMockN8nAdapter(): AutomationAdapter {
       return 'mock-workflow-id';
     },
     async activateWorkflow() {},
+    async reactivateWorkflows() {},
   };
 }

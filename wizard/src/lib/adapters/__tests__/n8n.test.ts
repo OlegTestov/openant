@@ -582,4 +582,48 @@ describe('createN8nAdapter', () => {
       await expect(adapter.activateWorkflow('wf-bad')).rejects.toThrow(AdapterError);
     });
   });
+
+  describe('reactivateWorkflows', () => {
+    it('deactivates and reactivates all active workflows', async () => {
+      // List workflows
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({
+          data: [
+            { id: 'wf-1', active: true },
+            { id: 'wf-2', active: false },
+            { id: 'wf-3', active: true },
+          ],
+        }),
+      );
+      // deactivate wf-1, activate wf-1, deactivate wf-3, activate wf-3
+      mockFetch.mockResolvedValue(mockResponse({}));
+
+      const adapter = createN8nAdapter();
+      await adapter.reactivateWorkflows();
+
+      // call[0] = list, call[1] = deactivate wf-1, call[2] = activate wf-1,
+      // call[3] = deactivate wf-3, call[4] = activate wf-3
+      expect(mockFetch).toHaveBeenCalledTimes(5);
+      expect(mockFetch.mock.calls[1][0]).toBe('http://n8n:5678/api/v1/workflows/wf-1/deactivate');
+      expect(mockFetch.mock.calls[2][0]).toBe('http://n8n:5678/api/v1/workflows/wf-1/activate');
+      expect(mockFetch.mock.calls[3][0]).toBe('http://n8n:5678/api/v1/workflows/wf-3/deactivate');
+      expect(mockFetch.mock.calls[4][0]).toBe('http://n8n:5678/api/v1/workflows/wf-3/activate');
+    });
+
+    it('handles empty workflow list', async () => {
+      mockFetch.mockResolvedValueOnce(mockResponse({ data: [] }));
+      const adapter = createN8nAdapter();
+
+      await adapter.reactivateWorkflows();
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not throw on API failure', async () => {
+      mockFetch.mockResolvedValueOnce(mockResponse({}, { ok: false, status: 500 }));
+      const adapter = createN8nAdapter();
+
+      await expect(adapter.reactivateWorkflows()).resolves.toBeUndefined();
+    });
+  });
 });

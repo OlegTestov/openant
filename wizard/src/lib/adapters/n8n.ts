@@ -384,5 +384,35 @@ export function createN8nAdapter(): AutomationAdapter {
         throw new AdapterError('n8n', 'activateWorkflow', `Activation failed: ${res.status}`);
       }
     },
+
+    async reactivateWorkflows() {
+      const apiKey = getApiKey('reactivateWorkflows');
+      const url = getN8nUrl();
+
+      const res = await fetch(`${url}/api/v1/workflows`, {
+        headers: { 'X-N8N-API-KEY': apiKey },
+      });
+      if (!res.ok) return;
+
+      const { data } = (await res.json()) as {
+        data: Array<{ id: string; active: boolean }>;
+      };
+      const active = data.filter((wf) => wf.active);
+
+      for (const wf of active) {
+        try {
+          await fetch(`${url}/api/v1/workflows/${wf.id}/deactivate`, {
+            method: 'POST',
+            headers: { 'X-N8N-API-KEY': apiKey },
+          });
+          await fetch(`${url}/api/v1/workflows/${wf.id}/activate`, {
+            method: 'POST',
+            headers: { 'X-N8N-API-KEY': apiKey },
+          });
+        } catch {
+          // Best-effort — don't fail the restart if one workflow fails
+        }
+      }
+    },
   };
 }

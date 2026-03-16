@@ -3,6 +3,7 @@ import { promisify } from 'util';
 import { readFile } from 'fs/promises';
 import { AdapterError } from '@/lib/errors';
 import { getCaddyfilePath } from '@/lib/caddy';
+import { createAdapters } from '@/lib/adapters';
 
 const execAsync = promisify(exec);
 
@@ -62,6 +63,14 @@ export async function restartServices(): Promise<void> {
     waitForUrl(urls.nocodb + '/api/v1/health', 'NocoDB'),
     waitForUrl(urls.n8n + '/healthz', 'n8n'),
   ]);
+
+  // Re-register webhook-based triggers (Telegram) after n8n restart
+  try {
+    const adapters = createAdapters();
+    await adapters.automation.reactivateWorkflows();
+  } catch {
+    // Best-effort — don't fail the restart
+  }
 }
 
 /**
@@ -113,6 +122,14 @@ export async function updateAndRestart(): Promise<void> {
     waitForUrl(urls.nocodb + '/api/v1/health', 'NocoDB'),
     waitForUrl(urls.n8n + '/healthz', 'n8n'),
   ]);
+
+  // Re-register webhook-based triggers (Telegram) after n8n restart
+  try {
+    const adapters = createAdapters();
+    await adapters.automation.reactivateWorkflows();
+  } catch {
+    // Best-effort — don't fail the update
+  }
 }
 
 export async function startServices(): Promise<void> {
