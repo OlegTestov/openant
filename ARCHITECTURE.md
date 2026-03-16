@@ -101,7 +101,7 @@ The `wizard/` directory is the only custom code. Everything else runs as unmodif
 | `ghost-db` | `mysql:8.0`             | `openant-ghost-db` | Ghost database                 |
 | `nocodb`   | `nocodb/nocodb:0.260.0` | `openant-nocodb`   | Spreadsheet UI / topic queue   |
 | `db`       | `postgres:16-alpine`    | `openant-db`       | NocoDB database                |
-| `n8n`      | `n8nio/n8n:2.9.2`       | `openant-n8n`      | Workflow automation            |
+| `n8n`      | `n8nio/n8n:2.8.4`       | `openant-n8n`      | Workflow automation            |
 | `caddy`    | `caddy:2-alpine`        | `openant-caddy`    | Reverse proxy with auto-HTTPS  |
 
 All services have healthchecks and JSON file logging (`max-size: 10m`, `max-file: 3`). 7 named volumes: `ghost_content`, `ghost_db_data`, `nocodb_data`, `postgres_data`, `n8n_data`, `caddy_data`, `caddy_config`.
