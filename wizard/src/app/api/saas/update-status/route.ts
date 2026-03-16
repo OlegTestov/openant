@@ -3,7 +3,10 @@ import path from 'path';
 import { apiHandler } from '@/lib/api-handler';
 import { withAuth } from '@/lib/auth';
 
-const STATUS_PATH = path.join(process.env.STATE_PATH || '/app/data', 'update-status.json');
+const STATUS_PATH = path.join(
+  path.dirname(process.env.STATE_PATH || '/app/data/state.json'),
+  'update-status.json',
+);
 
 export const GET = withAuth(
   apiHandler(async () => {

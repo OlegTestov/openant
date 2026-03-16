@@ -4,7 +4,10 @@ import { apiHandler } from '@/lib/api-handler';
 import { withAuth } from '@/lib/auth';
 import { updateAndRestart } from '@/lib/docker';
 
-const STATUS_PATH = path.join(process.env.STATE_PATH || '/app/data', 'update-status.json');
+const STATUS_PATH = path.join(
+  path.dirname(process.env.STATE_PATH || '/app/data/state.json'),
+  'update-status.json',
+);
 
 async function writeStatus(status: string, error?: string) {
   await fs.writeFile(STATUS_PATH, JSON.stringify({ status, error, timestamp: Date.now() }));
@@ -27,8 +30,8 @@ export const POST = withAuth(
       // no status file — proceed
     }
 
-    // Fire and forget — don't await
-    writeStatus('running');
+    // Write status synchronously, then fire and forget the update
+    await writeStatus('running');
     updateAndRestart()
       .then(() => writeStatus('done'))
       .catch((err) => writeStatus('error', err instanceof Error ? err.message : 'Unknown error'));
