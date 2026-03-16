@@ -144,7 +144,7 @@ services:
       retries: 5
 
   n8n:
-    image: n8nio/n8n:2.8.4
+    image: n8nio/n8n:2.9.2
     container_name: openant-n8n
     restart: unless-stopped
     logging: *default-logging

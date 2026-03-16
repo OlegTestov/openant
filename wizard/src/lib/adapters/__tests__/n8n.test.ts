@@ -584,6 +584,14 @@ describe('createN8nAdapter', () => {
   });
 
   describe('reactivateWorkflows', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     it('deactivates and reactivates all active workflows', async () => {
       // List workflows
       mockFetch.mockResolvedValueOnce(
@@ -599,7 +607,9 @@ describe('createN8nAdapter', () => {
       mockFetch.mockResolvedValue(mockResponse({}));
 
       const adapter = createN8nAdapter();
-      await adapter.reactivateWorkflows();
+      const promise = adapter.reactivateWorkflows();
+      await vi.advanceTimersByTimeAsync(5000);
+      await promise;
 
       // call[0] = list, call[1] = deactivate wf-1, call[2] = activate wf-1,
       // call[3] = deactivate wf-3, call[4] = activate wf-3
@@ -614,7 +624,9 @@ describe('createN8nAdapter', () => {
       mockFetch.mockResolvedValueOnce(mockResponse({ data: [] }));
       const adapter = createN8nAdapter();
 
-      await adapter.reactivateWorkflows();
+      const promise = adapter.reactivateWorkflows();
+      await vi.advanceTimersByTimeAsync(5000);
+      await promise;
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
@@ -623,7 +635,9 @@ describe('createN8nAdapter', () => {
       mockFetch.mockResolvedValueOnce(mockResponse({}, { ok: false, status: 500 }));
       const adapter = createN8nAdapter();
 
-      await expect(adapter.reactivateWorkflows()).resolves.toBeUndefined();
+      const promise = adapter.reactivateWorkflows();
+      await vi.advanceTimersByTimeAsync(5000);
+      await expect(promise).resolves.toBeUndefined();
     });
   });
 });

@@ -388,29 +388,38 @@ export function createN8nAdapter(): AutomationAdapter {
     async reactivateWorkflows() {
       const apiKey = getApiKey('reactivateWorkflows');
       const url = getN8nUrl();
+      const headers = { 'X-N8N-API-KEY': apiKey };
 
-      const res = await fetch(`${url}/api/v1/workflows`, {
-        headers: { 'X-N8N-API-KEY': apiKey },
-      });
-      if (!res.ok) return;
+      // Wait for n8n to finish activating workflows on startup
+      await new Promise((r) => setTimeout(r, 5000));
 
-      const { data } = (await res.json()) as {
-        data: Array<{ id: string; active: boolean }>;
-      };
-      const active = data.filter((wf) => wf.active);
-
-      for (const wf of active) {
+      // Retry up to 3 times (Telegram API may be temporarily unreachable)
+      for (let attempt = 0; attempt < 3; attempt++) {
         try {
-          await fetch(`${url}/api/v1/workflows/${wf.id}/deactivate`, {
-            method: 'POST',
-            headers: { 'X-N8N-API-KEY': apiKey },
-          });
-          await fetch(`${url}/api/v1/workflows/${wf.id}/activate`, {
-            method: 'POST',
-            headers: { 'X-N8N-API-KEY': apiKey },
-          });
+          const res = await fetch(`${url}/api/v1/workflows`, { headers });
+          if (!res.ok) return;
+
+          const { data } = (await res.json()) as {
+            data: Array<{ id: string; active: boolean }>;
+          };
+          const active = data.filter((wf) => wf.active);
+          if (active.length === 0) return;
+
+          for (const wf of active) {
+            await fetch(`${url}/api/v1/workflows/${wf.id}/deactivate`, {
+              method: 'POST',
+              headers,
+            });
+            await fetch(`${url}/api/v1/workflows/${wf.id}/activate`, {
+              method: 'POST',
+              headers,
+            });
+          }
+          return; // success
         } catch {
-          // Best-effort — don't fail the restart if one workflow fails
+          if (attempt < 2) {
+            await new Promise((r) => setTimeout(r, 5000));
+          }
         }
       }
     },
