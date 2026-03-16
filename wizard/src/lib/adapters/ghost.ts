@@ -201,6 +201,34 @@ async function updateSettingsWithJwt(
   }
 }
 
+async function updateSettingsWithSession(
+  authUrl: string,
+  sessionCookie: string,
+  config: BlogConfig,
+): Promise<void> {
+  const res = await fetch(`${authUrl}/ghost/api/admin/settings/`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Cookie: sessionCookie,
+      Origin: authUrl,
+    },
+    body: JSON.stringify({
+      settings: [
+        { key: 'title', value: config.title },
+        { key: 'description', value: config.description },
+        { key: 'locale', value: config.language },
+        ...buildCodeInjectionSettings(config.language),
+        ...GHOST_SETTINGS,
+      ],
+    }),
+  });
+  if (!res.ok) {
+    const error = await res.text();
+    throw new AdapterError('ghost', 'setup', `Failed to update settings: ${res.status} ${error}`);
+  }
+}
+
 async function updateCustomThemeSettings(
   ghostUrl: string,
   headers: Record<string, string>,
@@ -273,11 +301,20 @@ export function createGhostAdapter(): BlogAdapter {
             headers: { Authorization: `Ghost ${jwt}` },
           });
           if (testRes.ok) {
-            // Keys are valid — try to update settings (may fail with 501 for JWT auth)
+            // Keys are valid — try JWT first, fall back to session cookie for settings
+            let settingsUpdated = false;
             try {
               await updateSettingsWithJwt(ghostUrl, jwt, config);
+              settingsUpdated = true;
             } catch {
-              // Ghost doesn't support settings update via integration JWT — skip silently
+              // Ghost 5.x returns 501 for settings PUT via integration JWT
+            }
+            if (!settingsUpdated) {
+              const authUrl = getGhostAuthUrl();
+              const sessionCookie = await signIn(authUrl, getAdminEmail(), getAdminPassword());
+              if (sessionCookie) {
+                await updateSettingsWithSession(authUrl, sessionCookie, config);
+              }
             }
             return { adminApiKey: existingAdminKey, contentApiKey: existingContentKey };
           }
@@ -339,32 +376,7 @@ export function createGhostAdapter(): BlogAdapter {
       const keys = await getOrCreateIntegration(authUrl, sessionCookie, authUrl);
 
       // Step 3: Update site settings (via auth URL for cookie support)
-      const settingsRes = await fetch(`${authUrl}/ghost/api/admin/settings/`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Cookie: sessionCookie,
-          Origin: authUrl,
-        },
-        body: JSON.stringify({
-          settings: [
-            { key: 'title', value: config.title },
-            { key: 'description', value: config.description },
-            { key: 'locale', value: config.language },
-            ...buildCodeInjectionSettings(config.language),
-            ...GHOST_SETTINGS,
-          ],
-        }),
-      });
-
-      if (!settingsRes.ok) {
-        const error = await settingsRes.text();
-        throw new AdapterError(
-          'ghost',
-          'setup',
-          `Failed to update settings: ${settingsRes.status} ${error}`,
-        );
-      }
+      await updateSettingsWithSession(authUrl, sessionCookie, config);
 
       // Step 4: Configure custom theme settings (session cookie only, not available via JWT)
       await updateCustomThemeSettings(authUrl, {
