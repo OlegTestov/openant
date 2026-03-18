@@ -480,6 +480,8 @@ All providers are OpenAI-compatible (no adapter needed):
 | `POST /api/setup/blog`                     | Yes  | Validate blog config (title, language, tone, interval)                |
 | `POST /api/setup/telegram`                 | Yes  | Validate telegram config (optional step)                              |
 | `POST /api/setup/social`                   | Yes  | Validate social config (all optional)                                 |
+| `GET /api/setup/mode`                      | No   | Returns `instance_mode` (byok/managed) without auth                   |
+| `POST /api/setup/preflight`               | Yes  | Pre-deploy health checks (services, LLM, Telegram, DNS, webhook)      |
 | `GET /api/make-blueprint`                  | Yes  | Download `make/blueprint.json`                                        |
 | `POST /api/setup/apply`                    | Yes  | SSE deploy pipeline, supports `?startFrom=N`                          |
 | `GET /api/dashboard/status`                | Yes  | Service health, URLs, credentials, `saas_mode`. Managed: n8n hidden   |
@@ -489,6 +491,8 @@ All providers are OpenAI-compatible (no adapter needed):
 | `GET/POST/PATCH/DELETE /api/saas/articles` | Yes  | Articles CRUD. DELETE guarded: queue/error status only                |
 | `GET/PATCH /api/saas/prompts`              | Yes  | Read/update LLM prompts in Prompts table                              |
 | `POST /api/saas/restart`                   | Yes  | Restart Docker containers (except wizard), wait for healthy           |
+| `POST /api/saas/update`                    | Yes  | Trigger instance update (git pull, rebuild, restart)                  |
+| `GET /api/saas/update-status`              | Yes  | Get update progress status                                            |
 
 ---
 

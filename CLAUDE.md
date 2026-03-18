@@ -88,18 +88,18 @@ Each external service has a TypeScript adapter in `wizard/src/lib/adapters/`. Th
 - `domain.ts` — domain resolution: `getServiceDomains()` (SaaS flat subdomains), `getCustomDomains()` (user custom domains), `isSaasMode()`
 - `credentials.ts` — deterministic service credential generation (SHA256 of token+service)
 - `docker.ts` — Docker service management, `startServices()`, `restartServices()`, `reloadCaddy()` via Admin API with docker exec fallback
-- `caddy.ts` — Caddyfile generation. `generateCaddyfile(services, mode, domain, customDomains?)` — 4th param is optional custom domain map
+- `caddy.ts` — Caddyfile generation. `generateCaddyfile(domains, mode?, saas?, customDomains?)` — 4th param is optional custom domain map
 - `sse.ts` — Server-Sent Events stream helpers for the deploy pipeline
 - `config.ts` — `.env` file read/write (`readEnv()`, `writeEnv()`)
 - `state.ts` — `state.json` read/write for setup wizard state
 
 ### API routes
 
-**Setup routes** (`/api/setup/*`): welcome, domain, llm, blog, telegram, social, status, apply
+**Setup routes** (`/api/setup/*`): welcome, domain, llm, blog, telegram, social, status, apply, mode, preflight
 
 **Dashboard routes** (`/api/dashboard/*`): status, stats, reconfigure
 
-**SaaS integration** (`/api/saas/*`): health, articles, prompts, restart — called by SaaS control plane proxy
+**SaaS integration** (`/api/saas/*`): health, articles, prompts, restart, update, update-status — called by SaaS control plane proxy
 
 **Other**: `/api/health`, `/api/make-blueprint`
 
