@@ -34,11 +34,12 @@ async function nocoFetch(
   url: string,
   authToken: string,
   options: RequestInit = {},
+  authHeader: 'xc-token' | 'xc-auth' = 'xc-token',
 ): Promise<Response> {
   return fetch(url, {
     ...options,
     headers: {
-      'xc-auth': authToken,
+      [authHeader]: authToken,
       'Content-Type': 'application/json',
       ...(options.headers as Record<string, string> | undefined),
     },
@@ -46,10 +47,12 @@ async function nocoFetch(
 }
 
 async function createBase(baseUrl: string, authToken: string): Promise<string> {
-  const res = await nocoFetch(`${baseUrl}/api/v2/meta/bases/`, authToken, {
-    method: 'POST',
-    body: JSON.stringify({ title: 'openant' }),
-  });
+  const res = await nocoFetch(
+    `${baseUrl}/api/v2/meta/bases/`,
+    authToken,
+    { method: 'POST', body: JSON.stringify({ title: 'openant' }) },
+    'xc-auth',
+  );
   if (!res.ok) {
     const error = await res.text();
     throw new AdapterError('nocodb', 'setup', `Failed to create base: ${res.status} ${error}`);
@@ -63,18 +66,31 @@ async function createArticlesTable(
   authToken: string,
   baseId: string,
 ): Promise<string> {
-  const tableRes = await nocoFetch(`${baseUrl}/api/v2/meta/bases/${baseId}/tables/`, authToken, {
-    method: 'POST',
-    body: JSON.stringify({
-      title: 'Articles',
-      columns: [
-        { title: 'Id', column_name: 'id', uidt: 'ID', dt: 'int4', pk: true, ai: true, rqd: true },
-        { title: 'Topic', uidt: 'SingleLineText', pv: true },
-        { title: 'Description', uidt: 'LongText' },
-        { title: 'Link', uidt: 'URL' },
-      ],
-    }),
-  });
+  const tableRes = await nocoFetch(
+    `${baseUrl}/api/v2/meta/bases/${baseId}/tables/`,
+    authToken,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        title: 'Articles',
+        columns: [
+          {
+            title: 'Id',
+            column_name: 'id',
+            uidt: 'ID',
+            dt: 'int4',
+            pk: true,
+            ai: true,
+            rqd: true,
+          },
+          { title: 'Topic', uidt: 'SingleLineText', pv: true },
+          { title: 'Description', uidt: 'LongText' },
+          { title: 'Link', uidt: 'URL' },
+        ],
+      }),
+    },
+    'xc-auth',
+  );
   if (!tableRes.ok) {
     const error = await tableRes.text();
     throw new AdapterError(
@@ -102,10 +118,12 @@ async function createArticlesTable(
   ];
 
   for (const col of additionalColumns) {
-    const colRes = await nocoFetch(`${baseUrl}/api/v2/meta/tables/${tableId}/columns/`, authToken, {
-      method: 'POST',
-      body: JSON.stringify(col),
-    });
+    const colRes = await nocoFetch(
+      `${baseUrl}/api/v2/meta/tables/${tableId}/columns/`,
+      authToken,
+      { method: 'POST', body: JSON.stringify(col) },
+      'xc-auth',
+    );
     if (!colRes.ok) {
       const error = await colRes.text();
       throw new AdapterError(
@@ -359,18 +377,31 @@ async function createPromptsTable(
   language?: string,
   tone?: string,
 ): Promise<string> {
-  const tableRes = await nocoFetch(`${baseUrl}/api/v2/meta/bases/${baseId}/tables/`, authToken, {
-    method: 'POST',
-    body: JSON.stringify({
-      title: 'Prompts',
-      columns: [
-        { title: 'Id', column_name: 'id', uidt: 'ID', dt: 'int4', pk: true, ai: true, rqd: true },
-        { title: 'ArticleTitle', uidt: 'LongText', pv: true },
-        { title: 'ArticleText', uidt: 'LongText' },
-        { title: 'ArticleImage', uidt: 'LongText' },
-      ],
-    }),
-  });
+  const tableRes = await nocoFetch(
+    `${baseUrl}/api/v2/meta/bases/${baseId}/tables/`,
+    authToken,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        title: 'Prompts',
+        columns: [
+          {
+            title: 'Id',
+            column_name: 'id',
+            uidt: 'ID',
+            dt: 'int4',
+            pk: true,
+            ai: true,
+            rqd: true,
+          },
+          { title: 'ArticleTitle', uidt: 'LongText', pv: true },
+          { title: 'ArticleText', uidt: 'LongText' },
+          { title: 'ArticleImage', uidt: 'LongText' },
+        ],
+      }),
+    },
+    'xc-auth',
+  );
   if (!tableRes.ok) {
     const error = await tableRes.text();
     throw new AdapterError(
@@ -397,6 +428,7 @@ async function createPromptsTable(
       `${baseUrl}/api/v2/meta/tables/${promptsTableId}/columns/`,
       authToken,
       { method: 'POST', body: JSON.stringify(col) },
+      'xc-auth',
     );
     if (!colRes.ok) {
       const error = await colRes.text();
@@ -416,10 +448,12 @@ async function createPromptsTable(
       .replace(/\{tone\}/g, tone || 'professional');
   }
 
-  await nocoFetch(`${baseUrl}/api/v2/tables/${promptsTableId}/records`, authToken, {
-    method: 'POST',
-    body: JSON.stringify(filledPrompts),
-  });
+  await nocoFetch(
+    `${baseUrl}/api/v2/tables/${promptsTableId}/records`,
+    authToken,
+    { method: 'POST', body: JSON.stringify(filledPrompts) },
+    'xc-auth',
+  );
 
   return promptsTableId;
 }
@@ -510,7 +544,12 @@ export function createNocoDBAdapter(): TableAdapter {
       // Step 3: Check for existing "openant" base, or create one
       let baseId: string;
       let allBases: Array<{ id: string; title: string }> = [];
-      const listBasesRes = await nocoFetch(`${baseUrl}/api/v2/meta/bases/`, authToken);
+      const listBasesRes = await nocoFetch(
+        `${baseUrl}/api/v2/meta/bases/`,
+        authToken,
+        {},
+        'xc-auth',
+      );
       if (listBasesRes.ok) {
         const listData = (await listBasesRes.json()) as {
           list?: Array<{ id: string; title: string }>;
@@ -529,9 +568,12 @@ export function createNocoDBAdapter(): TableAdapter {
       // Remove default bases (e.g. "Getting Started") to keep workspace clean
       for (const base of allBases) {
         if (base.id !== baseId) {
-          await nocoFetch(`${baseUrl}/api/v2/meta/bases/${base.id}`, authToken, {
-            method: 'DELETE',
-          });
+          await nocoFetch(
+            `${baseUrl}/api/v2/meta/bases/${base.id}`,
+            authToken,
+            { method: 'DELETE' },
+            'xc-auth',
+          );
         }
       }
 
@@ -540,6 +582,8 @@ export function createNocoDBAdapter(): TableAdapter {
       const listTablesRes = await nocoFetch(
         `${baseUrl}/api/v2/meta/bases/${baseId}/tables/`,
         authToken,
+        {},
+        'xc-auth',
       );
       if (listTablesRes.ok) {
         const tablesData = (await listTablesRes.json()) as {
@@ -561,15 +605,20 @@ export function createNocoDBAdapter(): TableAdapter {
 
       // Step 6: Insert a sample row so the user sees table structure
       if (tableCreated) {
-        await nocoFetch(`${baseUrl}/api/v2/tables/${tableId}/records`, authToken, {
-          method: 'POST',
-          body: JSON.stringify({
-            Topic: 'Example: 10 Tips for Productive Remote Work',
-            Description:
-              'A practical guide covering workspace setup, time management, and communication best practices for remote teams.',
-            Link: 'https://example.com/remote-work-tips',
-          }),
-        });
+        await nocoFetch(
+          `${baseUrl}/api/v2/tables/${tableId}/records`,
+          authToken,
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              Topic: 'Example: 10 Tips for Productive Remote Work',
+              Description:
+                'A practical guide covering workspace setup, time management, and communication best practices for remote teams.',
+              Link: 'https://example.com/remote-work-tips',
+            }),
+          },
+          'xc-auth',
+        );
       }
 
       // Step 7: Check for existing "Prompts" table, or create one
@@ -584,7 +633,36 @@ export function createNocoDBAdapter(): TableAdapter {
             config.blogTone,
           );
 
-      return { authToken, projectId: baseId, tableId, promptsTableId };
+      // Step 8: Create a long-lived API token (replaces short-lived JWT)
+      const listTokensRes = await nocoFetch(`${baseUrl}/api/v1/tokens`, authToken, {}, 'xc-auth');
+      let apiToken: string | undefined;
+      if (listTokensRes.ok) {
+        const tokenList = (await listTokensRes.json()) as {
+          list?: Array<{ token: string; description: string }>;
+        };
+        apiToken = tokenList.list?.find((t) => t.description === 'openant')?.token;
+      }
+
+      if (!apiToken) {
+        const createTokenRes = await nocoFetch(
+          `${baseUrl}/api/v1/tokens`,
+          authToken,
+          { method: 'POST', body: JSON.stringify({ description: 'openant' }) },
+          'xc-auth',
+        );
+        if (!createTokenRes.ok) {
+          const error = await createTokenRes.text();
+          throw new AdapterError(
+            'nocodb',
+            'setup',
+            `API token creation failed: ${createTokenRes.status} ${error}`,
+          );
+        }
+        const tokenData = (await createTokenRes.json()) as { token: string };
+        apiToken = tokenData.token;
+      }
+
+      return { authToken: apiToken, projectId: baseId, tableId, promptsTableId };
     },
 
     async getNextQueued(): Promise<ArticleRow | null> {

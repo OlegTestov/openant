@@ -259,7 +259,7 @@ async function executeDeployStep(
           .createCredential({
             name: 'NocoDB',
             type: 'httpHeaderAuth',
-            data: { name: 'xc-auth', value: ctx.nocoKeys?.authToken ?? '' },
+            data: { name: 'xc-token', value: ctx.nocoKeys?.authToken ?? '' },
           })
           .then((id) => ['NocoDB', id]),
       ];
