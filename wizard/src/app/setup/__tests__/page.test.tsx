@@ -173,6 +173,56 @@ describe('SetupPage', () => {
     });
   });
 
+  it('fetches instance mode via fallback when status returns unauthorized', async () => {
+    // First call: status returns unauthorized
+    mockFetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({ success: false, error: 'Unauthorized' }),
+    });
+    // Second call: mode endpoint returns managed
+    mockFetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({ success: true, data: { instance_mode: 'managed' } }),
+    });
+
+    render(<SetupPage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Welcome to openant' })).toBeInTheDocument();
+    });
+
+    // Verify mode endpoint was called as fallback
+    expect(mockFetch).toHaveBeenCalledWith('/api/setup/mode');
+  });
+
+  it('skips LLM step when mode fallback returns managed', async () => {
+    const user = userEvent.setup();
+    // Status returns unauthorized
+    mockFetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({ success: false, error: 'Unauthorized' }),
+    });
+    // Mode fallback returns managed
+    mockFetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({ success: true, data: { instance_mode: 'managed' } }),
+    });
+
+    render(<SetupPage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Welcome to openant' })).toBeInTheDocument();
+    });
+
+    // Navigate: Welcome → Domain (LLM should be skipped)
+    await user.click(screen.getByRole('button', { name: 'Get Started' }));
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Domain Configuration' })).toBeInTheDocument();
+    });
+
+    // Next should go to Blog (skipping LLM)
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Blog Settings' })).toBeInTheDocument();
+    });
+  });
+
   it('stores token from URL to localStorage', async () => {
     Object.defineProperty(window, 'location', {
       value: { search: '?token=test-token', href: 'http://localhost/setup?token=test-token' },

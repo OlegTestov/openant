@@ -31,6 +31,18 @@ export default function SetupPage() {
     : STEP_COMPONENTS;
 
   useEffect(() => {
+    async function fetchInstanceMode() {
+      try {
+        const res = await fetch('/api/setup/mode');
+        const data = await res.json();
+        if (data.success) {
+          setInstanceMode(data.data.instance_mode || 'byok');
+        }
+      } catch {
+        // If mode fetch fails — default to byok (safe fallback)
+      }
+    }
+
     async function restorePosition() {
       try {
         const params = new URLSearchParams(window.location.search);
@@ -76,9 +88,12 @@ export default function SetupPage() {
           const stepsForIndex = mode === 'managed' ? STEPS.filter((s) => s.id !== 'llm') : STEPS;
           const stepIndex = stepsForIndex.findIndex((s) => s.id === data.data.currentStep);
           if (stepIndex > 1) setCurrentStep(stepIndex);
+        } else {
+          // Auth failed — still fetch instance mode for correct step filtering
+          await fetchInstanceMode();
         }
       } catch {
-        // If restore fails — start from the first step
+        await fetchInstanceMode();
       } finally {
         setIsLoading(false);
       }
