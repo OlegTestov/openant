@@ -180,7 +180,7 @@ Telegram Trigger -> Handle Message (single Code node with inline HTTP)
 ```
 
 Uses `require('https')`/`require('http')` for inline HTTP calls (needs `NODE_FUNCTION_ALLOW_BUILTIN`).
-NocoDB auth via `xc-auth` header (JWT token). NocoDB v2 POST requires array body `[{...}]`.
+NocoDB auth via `xc-token` header (long-lived API token). NocoDB v2 POST requires array body `[{...}]`.
 State via `$getWorkflowStaticData('global')` keyed by `chat_id` with 1-hour TTL.
 
 ### Ghost Admin API and TLS

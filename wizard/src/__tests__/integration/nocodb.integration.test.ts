@@ -50,7 +50,7 @@ describe('NocoDB integration', () => {
     const insertRes = await fetch(`${NOCODB_URL}/api/v2/tables/${tableId}/records`, {
       method: 'POST',
       headers: {
-        'xc-auth': authToken,
+        'xc-token': authToken,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ Topic: 'Test Article', Status: 'queue' }),
