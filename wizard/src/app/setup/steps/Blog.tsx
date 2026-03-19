@@ -131,7 +131,7 @@ export default function Blog({ onComplete, onBack, initialData }: StepProps) {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <Label htmlFor="blog-language">{t.steps.blog.articleLanguage} *</Label>
             <Select value={language} onValueChange={setLanguage}>
