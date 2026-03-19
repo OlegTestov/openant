@@ -67,7 +67,7 @@ describe('POST /api/dashboard/reconfigure', () => {
     expect(res.status).toBe(401);
   });
 
-  it('sets deployed to false', async () => {
+  it('preserves deployed flag', async () => {
     const { writeState } = await import('@/lib/state');
     const { POST } = await import('../reconfigure/route');
 
@@ -76,7 +76,7 @@ describe('POST /api/dashboard/reconfigure', () => {
 
     expect(res.status).toBe(200);
     expect(body.success).toBe(true);
-    expect(writeState).toHaveBeenCalledWith(expect.objectContaining({ deployed: false }));
+    expect(writeState).toHaveBeenCalledWith(expect.objectContaining({ deployed: true }));
   });
 
   it('sets currentStep to review', async () => {
