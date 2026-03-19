@@ -94,21 +94,23 @@ describe('generateCaddyfile', () => {
     expect(result).toContain('setup.example.com {\n    reverse_proxy wizard:3000');
   });
 
-  it('adds tls internal in SaaS mode', () => {
+  it('adds tls with wildcard cert in SaaS mode', () => {
     const result = generateCaddyfile(DEFAULT_DOMAINS, undefined, true);
 
-    expect(result).toContain('tls internal');
-    // Every server block should have tls internal (skip global options block)
+    expect(result).toContain('tls /opt/openant/certs/fullchain.pem /opt/openant/certs/privkey.pem');
+    // Every server block should have tls cert path (skip global options block)
     const blocks = result.split('\n\n').slice(1);
     for (const block of blocks) {
-      expect(block).toContain('tls internal');
+      expect(block).toContain(
+        'tls /opt/openant/certs/fullchain.pem /opt/openant/certs/privkey.pem',
+      );
     }
   });
 
-  it('does not add tls internal outside SaaS mode', () => {
+  it('does not add tls directive outside SaaS mode', () => {
     const result = generateCaddyfile(DEFAULT_DOMAINS, undefined, false);
 
-    expect(result).not.toContain('tls internal');
+    expect(result).not.toContain('tls ');
   });
 
   it('generates both SaaS and custom domain blocks when customDomains provided', () => {
@@ -130,7 +132,7 @@ describe('generateCaddyfile', () => {
     expect(result).toContain('setup.mysite.com {');
   });
 
-  it('SaaS blocks have tls internal, custom domain blocks do not', () => {
+  it('SaaS blocks have tls cert path, custom domain blocks do not', () => {
     const customDomains: ServiceDomains = {
       ghost: 'blog.mysite.com',
       nocodb: 'table.mysite.com',
@@ -140,15 +142,17 @@ describe('generateCaddyfile', () => {
     const result = generateCaddyfile(DEFAULT_DOMAINS, undefined, true, customDomains);
     const blocks = result.split('\n\n').slice(1); // skip global options
 
-    // First 4 blocks = SaaS (tls internal), last 4 = custom (no tls internal)
+    // First 4 blocks = SaaS (wildcard cert), last 4 = custom (Let's Encrypt)
     const saasBlocks = blocks.slice(0, 4);
     const customBlocks = blocks.slice(4);
 
     for (const block of saasBlocks) {
-      expect(block).toContain('tls internal');
+      expect(block).toContain(
+        'tls /opt/openant/certs/fullchain.pem /opt/openant/certs/privkey.pem',
+      );
     }
     for (const block of customBlocks) {
-      expect(block).not.toContain('tls internal');
+      expect(block).not.toContain('tls ');
     }
   });
 

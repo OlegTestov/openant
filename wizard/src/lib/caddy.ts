@@ -28,7 +28,9 @@ export function generateCaddyfile(
 `;
   }
 
-  const tls = saas ? '\n    tls internal' : '';
+  const tls = saas
+    ? '\n    tls /opt/openant/certs/fullchain.pem /opt/openant/certs/privkey.pem'
+    : '';
 
   const blocks: string[] = [];
 

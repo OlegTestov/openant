@@ -121,7 +121,7 @@ SaaS mode env vars: `INSTANCE_MODE` (`managed`/`byok`), `GHOST_ADMIN_PASSWORD`, 
 **File:** `caddy/Caddyfile` -- initial IP-mode config (`:80 -> ghost:2368`), regenerated during deploy:
 
 - **IP mode**: Single `:80` -> Ghost. Other services via direct ports.
-- **Domain mode**: 4 server blocks with auto-HTTPS (main->Ghost, table.X->NocoDB, auto.X->n8n, setup.X->wizard). SaaS adds `tls internal`.
+- **Domain mode**: 4 server blocks with auto-HTTPS (main->Ghost, table.X->NocoDB, auto.X->n8n, setup.X->wizard). SaaS adds `tls /opt/openant/certs/fullchain.pem /opt/openant/certs/privkey.pem` (wildcard cert).
 
 ### Custom Ghost theme (`openant-source`)
 
@@ -185,7 +185,7 @@ State via `$getWorkflowStaticData('global')` keyed by `chat_id` with 1-hour TTL.
 
 ### Ghost Admin API and TLS
 
-n8n calls Ghost Admin API via HTTPS through Caddy. SaaS domains use `tls internal` (self-signed cert, always available). To accept this cert:
+n8n calls Ghost Admin API via HTTPS through Caddy. SaaS domains use a wildcard Let's Encrypt cert (`*.openant.app`). To accept this cert in n8n:
 
 - **Code nodes** (Node.js `https` module): `NODE_TLS_REJECT_UNAUTHORIZED=0` in docker-compose.yml
 - **HTTP Request nodes** (Axios): `allowUnauthorizedCerts: true` on the node
@@ -273,7 +273,7 @@ Core pattern: each external service has a TypeScript adapter interface. Replacin
 
 ### Caddyfile generator (`src/lib/caddy.ts`)
 
-- `generateCaddyfile(domains, mode?, saas?, customDomains?)` -- IP mode (null domains): `:80` -> Ghost. Domain mode: 4 server blocks. SaaS adds `tls internal`. Optional 4th param adds custom domain blocks with Let's Encrypt.
+- `generateCaddyfile(domains, mode?, saas?, customDomains?)` -- IP mode (null domains): `:80` -> Ghost. Domain mode: 4 server blocks. SaaS adds `tls /opt/openant/certs/fullchain.pem /opt/openant/certs/privkey.pem` (wildcard cert). Optional 4th param adds custom domain blocks with Let's Encrypt.
 - `writeCaddyfile(content)` -- Writes to `CADDYFILE_PATH` (default: `/app/Caddyfile`).
 
 ### SSE streaming (`src/lib/sse.ts`)
@@ -560,7 +560,7 @@ All providers are OpenAI-compatible (no adapter needed):
 | `app/setup/steps/__tests__/Review.test.tsx`       | 3     | Config sections, Edit navigation, key masking                                                                       |
 | `app/setup/steps/__tests__/Deploy.test.tsx`       | 7     | Deploy button, progress, checkmarks, error/retry, URLs, dashboard link                                              |
 | `app/api/setup/__tests__/apply.test.ts`           | 24    | SSE format, all 12 steps, errors, startFrom, auth, URL generation, managed mode                                     |
-| `lib/__tests__/caddy.test.ts`                     | 11    | IP/domain mode, SaaS tls internal, writeCaddyfile                                                                   |
+| `lib/__tests__/caddy.test.ts`                     | 17    | IP/domain mode, SaaS wildcard cert TLS, custom domains, writeCaddyfile                                              |
 | `lib/__tests__/sse.test.ts`                       | 4     | createSSEStream, sendSSEEvent format, closeSSE                                                                      |
 | `lib/__tests__/credentials.test.ts`               | 7     | Env var priority, SHA-256 fallback, admin email, all services                                                       |
 | `lib/__tests__/i18n.test.ts`                      | 4     | English/Russian locale, all keys, no empty strings                                                                  |
@@ -649,7 +649,7 @@ GitHub Actions on push/PR to `main`. Three parallel jobs:
 | #   | Step               | Action                                                         |
 | --- | ------------------ | -------------------------------------------------------------- |
 | 1   | Save .env          | Merge config vars (preserves existing adapter keys)            |
-| 2   | Generate Caddyfile | IP or domain mode; SaaS adds `tls internal`                    |
+| 2   | Generate Caddyfile | IP or domain mode; SaaS adds wildcard cert TLS                 |
 | 3   | Check services     | Verify Ghost, NocoDB, n8n healthy                              |
 | 4   | Reload Caddy       | Apply Caddyfile via Docker exec                                |
 | 5   | Ghost setup        | Admin account + Custom Integration (fast path: verify via JWT) |
