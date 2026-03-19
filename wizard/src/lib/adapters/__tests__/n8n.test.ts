@@ -608,7 +608,8 @@ describe('createN8nAdapter', () => {
 
       const adapter = createN8nAdapter();
       const promise = adapter.reactivateWorkflows();
-      await vi.advanceTimersByTimeAsync(5000);
+      // 10s initial + 2s between deactivate/activate per workflow
+      await vi.advanceTimersByTimeAsync(30_000);
       await promise;
 
       // call[0] = list, call[1] = deactivate wf-1, call[2] = activate wf-1,
@@ -625,7 +626,7 @@ describe('createN8nAdapter', () => {
       const adapter = createN8nAdapter();
 
       const promise = adapter.reactivateWorkflows();
-      await vi.advanceTimersByTimeAsync(5000);
+      await vi.advanceTimersByTimeAsync(10_000);
       await promise;
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
@@ -636,7 +637,8 @@ describe('createN8nAdapter', () => {
       const adapter = createN8nAdapter();
 
       const promise = adapter.reactivateWorkflows();
-      await vi.advanceTimersByTimeAsync(5000);
+      // 10s initial + up to 5 retries with 5s between
+      await vi.advanceTimersByTimeAsync(60_000);
       await expect(promise).resolves.toBeUndefined();
     });
   });

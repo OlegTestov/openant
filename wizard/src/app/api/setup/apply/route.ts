@@ -87,7 +87,7 @@ function buildEnvVars(state: SetupState): Record<string, string> {
     THREADS_ENABLED: String(state.social?.threads_enabled ?? false),
 
     TELEGRAM_BOT_TOKEN: state.telegram?.bot_token ?? process.env.TELEGRAM_BOT_TOKEN ?? '',
-    TELEGRAM_CHAT_ID: state.telegram?.chat_id ?? process.env.TELEGRAM_CHAT_ID ?? '',
+    // TELEGRAM_CHAT_ID removed — NocoDB Prompts.TelegramChatId is the source of truth
   };
 }
 
@@ -314,7 +314,7 @@ async function executeDeployStep(
         // Admin API always uses SaaS domain (Caddy internal TLS, no Let's Encrypt dependency)
         ghostApiUrl: saasDomains ? `https://${saasDomains.ghost}` : envVars.GHOST_URL,
         telegramBotToken: state.telegram?.bot_token || process.env.TELEGRAM_BOT_TOKEN,
-        telegramChatId: state.telegram?.chat_id || process.env.TELEGRAM_CHAT_ID,
+        // telegramChatId removed — NocoDB Prompts.TelegramChatId is the source of truth
         nocodbAuthToken: ctx.nocoKeys?.authToken,
       };
 

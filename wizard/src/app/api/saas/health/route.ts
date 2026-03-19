@@ -27,11 +27,37 @@ export const GET = apiHandler(async () => {
   const effectiveDomain = getEffectiveDomain(state);
   const serviceDomains = getServiceDomains(state);
 
+  let telegram: Record<string, unknown> | null = null;
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  if (botToken) {
+    try {
+      const whRes = await fetch(`https://api.telegram.org/bot${botToken}/getWebhookInfo`);
+      const whInfo = (await whRes.json()) as {
+        result?: {
+          url?: string;
+          pending_update_count?: number;
+          last_error_message?: string;
+          last_error_date?: number;
+        };
+      };
+      const r = whInfo.result;
+      telegram = {
+        webhookActive: !!r?.url,
+        pendingUpdates: r?.pending_update_count ?? 0,
+        lastError: r?.last_error_message ?? null,
+        lastErrorAge: r?.last_error_date ? Math.round(Date.now() / 1000 - r.last_error_date) : null,
+      };
+    } catch {
+      telegram = { webhookActive: false, error: 'unreachable' };
+    }
+  }
+
   return Response.json({
     wizard: 'healthy',
     ghost: ghost ? 'healthy' : 'unhealthy',
     nocodb: nocodb ? 'healthy' : 'unhealthy',
     n8n: n8n ? 'healthy' : 'unhealthy',
+    telegram,
     stats: stats
       ? {
           articles_queue: stats.queue,

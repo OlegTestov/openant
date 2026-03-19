@@ -299,7 +299,7 @@ export function createN8nAdapter(): AutomationAdapter {
         .replace(/\{\{MAKE_WEBHOOK_URL\}\}/g, params.makeWebhookUrl ?? '')
         .replace(/\{\{PINTEREST_BOARD\}\}/g, params.pinterestBoard ?? '')
         .replace(/\{\{TELEGRAM_BOT_TOKEN\}\}/g, params.telegramBotToken ?? '')
-        .replace(/\{\{TELEGRAM_CHAT_ID\}\}/g, params.telegramChatId ?? '')
+        // TELEGRAM_CHAT_ID removed — fetched from NocoDB at runtime
         .replace(/\{\{NOCODB_AUTH_TOKEN\}\}/g, params.nocodbAuthToken ?? '');
       const finalWorkflow = JSON.parse(serialized) as N8nWorkflow;
 
@@ -390,14 +390,16 @@ export function createN8nAdapter(): AutomationAdapter {
       const url = getN8nUrl();
       const headers = { 'X-N8N-API-KEY': apiKey };
 
-      // Wait for n8n to finish activating workflows on startup
-      await new Promise((r) => setTimeout(r, 5000));
+      // Wait for n8n API to be fully ready (lags behind /healthz)
+      await new Promise((r) => setTimeout(r, 10_000));
 
-      // Retry up to 3 times (Telegram API may be temporarily unreachable)
-      for (let attempt = 0; attempt < 3; attempt++) {
+      for (let attempt = 0; attempt < 5; attempt++) {
         try {
           const res = await fetch(`${url}/api/v1/workflows`, { headers });
-          if (!res.ok) return;
+          if (!res.ok) {
+            console.error(`[reactivate] Failed to list workflows: ${res.status}`);
+            continue;
+          }
 
           const { data } = (await res.json()) as {
             data: Array<{ id: string; active: boolean }>;
@@ -410,18 +412,44 @@ export function createN8nAdapter(): AutomationAdapter {
               method: 'POST',
               headers,
             });
+            // Let n8n fully unregister webhook before re-registering
+            await new Promise((r) => setTimeout(r, 2000));
             await fetch(`${url}/api/v1/workflows/${wf.id}/activate`, {
               method: 'POST',
               headers,
             });
           }
-          return; // success
-        } catch {
-          if (attempt < 2) {
-            await new Promise((r) => setTimeout(r, 5000));
+
+          // Verify Telegram webhook if bot token is configured
+          const botToken = process.env.TELEGRAM_BOT_TOKEN;
+          if (botToken) {
+            await new Promise((r) => setTimeout(r, 3000));
+            try {
+              const whRes = await fetch(`https://api.telegram.org/bot${botToken}/getWebhookInfo`);
+              const whInfo = (await whRes.json()) as {
+                result?: { last_error_date?: number; last_error_message?: string };
+              };
+              const lastErr = whInfo.result?.last_error_date;
+              if (lastErr && Date.now() / 1000 - lastErr < 60) {
+                console.error(
+                  `[reactivate] Telegram webhook error: ${whInfo.result?.last_error_message}`,
+                );
+                continue; // retry the whole cycle
+              }
+            } catch {
+              // Telegram API unreachable — skip verification
+            }
           }
+
+          return; // success
+        } catch (err) {
+          console.error(`[reactivate] Attempt ${attempt + 1}/5 failed:`, err);
+        }
+        if (attempt < 4) {
+          await new Promise((r) => setTimeout(r, 5000));
         }
       }
+      console.error('[reactivate] All 5 attempts exhausted');
     },
   };
 }

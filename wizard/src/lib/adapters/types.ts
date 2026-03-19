@@ -151,7 +151,7 @@ export interface WorkflowParams {
   ghostUrl?: string;
   ghostApiUrl?: string;
   telegramBotToken?: string;
-  telegramChatId?: string;
+  // telegramChatId removed — NocoDB Prompts.TelegramChatId is the source of truth
   nocodbAuthToken?: string;
 }
 
