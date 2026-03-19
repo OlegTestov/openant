@@ -27,6 +27,25 @@ export const GET = apiHandler(async () => {
   const effectiveDomain = getEffectiveDomain(state);
   const serviceDomains = getServiceDomains(state);
 
+  let autopublish: { workflowActive: boolean } | null = null;
+  const n8nApiKey = process.env.N8N_API_KEY;
+  if (n8n && n8nApiKey) {
+    try {
+      const n8nUrl = process.env.N8N_INTERNAL_URL || 'http://n8n:5678';
+      const wfRes = await fetch(`${n8nUrl}/api/v1/workflows`, {
+        headers: { 'X-N8N-API-KEY': n8nApiKey },
+        signal: AbortSignal.timeout(5000),
+      });
+      if (wfRes.ok) {
+        const wfData = (await wfRes.json()) as { data?: Array<{ active: boolean }> };
+        const hasActive = wfData.data?.some((w) => w.active) ?? false;
+        autopublish = { workflowActive: hasActive };
+      }
+    } catch {
+      /* skip — n8n API not reachable */
+    }
+  }
+
   let telegram: Record<string, unknown> | null = null;
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   if (botToken) {
@@ -57,6 +76,7 @@ export const GET = apiHandler(async () => {
     ghost: ghost ? 'healthy' : 'unhealthy',
     nocodb: nocodb ? 'healthy' : 'unhealthy',
     n8n: n8n ? 'healthy' : 'unhealthy',
+    autopublish,
     telegram,
     stats: stats
       ? {
