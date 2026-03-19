@@ -27,19 +27,50 @@ export const GET = apiHandler(async () => {
   const effectiveDomain = getEffectiveDomain(state);
   const serviceDomains = getServiceDomains(state);
 
-  let autopublish: { workflowActive: boolean } | null = null;
+  let autopublish: { workflowActive: boolean; lastStatus: string | null } | null = null;
+  let telegramWorkflow: { workflowActive: boolean; lastStatus: string | null } | null = null;
   const n8nApiKey = process.env.N8N_API_KEY;
   if (n8n && n8nApiKey) {
     try {
       const n8nUrl = process.env.N8N_INTERNAL_URL || 'http://n8n:5678';
+      const headers = { 'X-N8N-API-KEY': n8nApiKey };
+
       const wfRes = await fetch(`${n8nUrl}/api/v1/workflows`, {
-        headers: { 'X-N8N-API-KEY': n8nApiKey },
+        headers,
         signal: AbortSignal.timeout(5000),
       });
       if (wfRes.ok) {
-        const wfData = (await wfRes.json()) as { data?: Array<{ active: boolean }> };
-        const hasActive = wfData.data?.some((w) => w.active) ?? false;
-        autopublish = { workflowActive: hasActive };
+        const wfData = (await wfRes.json()) as {
+          data?: Array<{ id: string; name: string; active: boolean }>;
+        };
+        const workflows = wfData.data ?? [];
+        const articleWf = workflows.find((w) => w.name === 'Generate & Publish Article');
+        const telegramWf = workflows.find((w) => w.name === 'Telegram Bot');
+
+        const getLastStatus = async (wfId: string): Promise<string | null> => {
+          try {
+            const execRes = await fetch(`${n8nUrl}/api/v1/executions?workflowId=${wfId}&limit=1`, {
+              headers,
+              signal: AbortSignal.timeout(5000),
+            });
+            if (!execRes.ok) return null;
+            const execData = (await execRes.json()) as {
+              data?: Array<{ status: string }>;
+            };
+            return execData.data?.[0]?.status ?? null;
+          } catch {
+            return null;
+          }
+        };
+
+        if (articleWf) {
+          const lastStatus = await getLastStatus(articleWf.id);
+          autopublish = { workflowActive: articleWf.active, lastStatus };
+        }
+        if (telegramWf) {
+          const lastStatus = await getLastStatus(telegramWf.id);
+          telegramWorkflow = { workflowActive: telegramWf.active, lastStatus };
+        }
       }
     } catch {
       /* skip — n8n API not reachable */
@@ -77,6 +108,7 @@ export const GET = apiHandler(async () => {
     nocodb: nocodb ? 'healthy' : 'unhealthy',
     n8n: n8n ? 'healthy' : 'unhealthy',
     autopublish,
+    telegramWorkflow,
     telegram,
     stats: stats
       ? {
