@@ -239,7 +239,7 @@ export default function Domain({ onComplete, onBack, initialData }: StepProps) {
 
                 <div className="space-y-2">
                   <p className="text-sm font-medium">{t.steps.domain.requiredRecords}</p>
-                  <div className="overflow-hidden rounded-md border">
+                  <div className="overflow-x-auto rounded-md border">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="bg-muted/50 border-b">
