@@ -481,13 +481,13 @@ All providers are OpenAI-compatible (no adapter needed):
 | `POST /api/setup/telegram`                 | Yes  | Validate telegram config (optional step)                              |
 | `POST /api/setup/social`                   | Yes  | Validate social config (all optional)                                 |
 | `GET /api/setup/mode`                      | No   | Returns `instance_mode` (byok/managed) without auth                   |
-| `POST /api/setup/preflight`               | Yes  | Pre-deploy health checks (services, LLM, Telegram, DNS, webhook)      |
+| `POST /api/setup/preflight`                | Yes  | Pre-deploy health checks (services, LLM, Telegram, DNS, webhook)      |
 | `GET /api/make-blueprint`                  | Yes  | Download `make/blueprint.json`                                        |
 | `POST /api/setup/apply`                    | Yes  | SSE deploy pipeline, supports `?startFrom=N`                          |
 | `GET /api/dashboard/status`                | Yes  | Service health, URLs, credentials, `saas_mode`. Managed: n8n hidden   |
 | `GET /api/dashboard/stats`                 | Yes  | Article counts by status                                              |
 | `POST /api/dashboard/reconfigure`          | Yes  | Reset deploy state, preserve config                                   |
-| `GET /api/saas/health`                     | No   | 404 if SaaS off; combined health + stats for Control Plane            |
+| `GET /api/saas/health`                     | No   | 404 if SaaS off; health + stats + autopublish/telegramWorkflow status |
 | `GET/POST/PATCH/DELETE /api/saas/articles` | Yes  | Articles CRUD. DELETE guarded: queue/error status only                |
 | `GET/PATCH /api/saas/prompts`              | Yes  | Read/update LLM prompts in Prompts table                              |
 | `POST /api/saas/restart`                   | Yes  | Restart Docker containers (except wizard), wait for healthy           |
@@ -685,12 +685,12 @@ Uses `fetch` + `ReadableStream.getReader()` for SSE (not `EventSource` -- needs 
 
 `OPENANT_SAAS_MODE=true` enables Control Plane integration:
 
-| Feature            | Behavior                                  |
-| ------------------ | ----------------------------------------- |
-| Domain step        | Skipped (Control Plane manages DNS)       |
-| Dashboard badge    | Shows "Managed by openant SaaS"           |
-| `/api/saas/health` | Returns combined health + stats (no auth) |
-| Reconfigure        | Domain step stays completed               |
+| Feature            | Behavior                                                                                                                               |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Domain step        | Skipped (Control Plane manages DNS)                                                                                                    |
+| Dashboard badge    | Shows "Managed by openant SaaS"                                                                                                        |
+| `/api/saas/health` | Returns service health, article stats, n8n workflow execution status (autopublish + telegramWorkflow), Telegram webhook info (no auth) |
+| Reconfigure        | Domain step stays completed                                                                                                            |
 
 Absent or non-`'true'` disables all SaaS features.
 
