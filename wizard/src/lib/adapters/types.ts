@@ -70,6 +70,7 @@ export interface ArticleRow {
   topic: string;
   description?: string;
   link?: string;
+  board?: string;
   status: ArticleStatus;
   ghostUrl?: string;
   pinUrl?: string;
@@ -90,12 +91,14 @@ export interface ArticleCreateInput {
   topic: string;
   description?: string;
   link?: string;
+  board?: string;
 }
 
 export interface ArticleUpdateInput {
   topic?: string;
   description?: string;
   link?: string;
+  board?: string;
 }
 
 export interface PromptRow {
@@ -144,6 +147,7 @@ export interface WorkflowParams {
   blogTone: string;
   makeWebhookUrl?: string;
   pinterestBoard?: string;
+  defaultLink?: string;
   nocodbBaseId?: string;
   nocodbTableId?: string;
   nocodbPromptsTableId?: string;

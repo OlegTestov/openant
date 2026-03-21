@@ -306,6 +306,7 @@ async function executeDeployStep(
         blogTone: state.blog?.tone ?? '',
         makeWebhookUrl: state.social?.make_webhook_url,
         pinterestBoard: state.social?.board,
+        defaultLink: state.blog?.default_link,
         nocodbBaseId: ctx.nocoKeys?.projectId,
         nocodbTableId: ctx.nocoKeys?.tableId,
         nocodbPromptsTableId: ctx.nocoKeys?.promptsTableId,

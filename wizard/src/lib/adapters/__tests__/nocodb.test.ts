@@ -59,11 +59,12 @@ describe('createNocoDBAdapter', () => {
       mockFetch.mockResolvedValueOnce(mockResponse({ list: [] }));
       // Step 6: Create Articles table
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'table-id-1' }));
-      // Step 7: Create Articles columns (Status, GhostURL, PinURL, Error)
+      // Step 7: Create Articles columns (Board, Status, GhostURL, PinURL, Error)
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-1' }));
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-2' }));
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-3' }));
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-4' }));
+      mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-5' }));
       // Step 8: Insert sample row
       mockFetch.mockResolvedValueOnce(mockResponse({ Id: 1 }));
       // Step 9: Create Prompts table
@@ -146,8 +147,8 @@ describe('createNocoDBAdapter', () => {
 
       await adapter.setup(config);
 
-      // Call 6 = first column (Status)
-      const [url, opts] = mockFetch.mock.calls[6];
+      // Call 7 = Status column (after Board at index 6)
+      const [url, opts] = mockFetch.mock.calls[7];
       expect(url).toBe('http://nocodb:8080/api/v2/meta/tables/table-id-1/columns/');
       const body = JSON.parse(opts.body as string);
       expect(body.title).toBe('Status');
@@ -164,8 +165,8 @@ describe('createNocoDBAdapter', () => {
 
       await adapter.setup(config);
 
-      // Call 11 = create Prompts table
-      const [url, opts] = mockFetch.mock.calls[11];
+      // Call 12 = create Prompts table (shifted +1 due to Board column)
+      const [url, opts] = mockFetch.mock.calls[12];
       expect(url).toBe('http://nocodb:8080/api/v2/meta/bases/base-id-1/tables/');
       expect(opts.method).toBe('POST');
       const body = JSON.parse(opts.body as string);
@@ -184,8 +185,8 @@ describe('createNocoDBAdapter', () => {
 
       await adapter.setup(config);
 
-      // Call 17 = insert default prompts
-      const [url, opts] = mockFetch.mock.calls[17];
+      // Call 18 = insert default prompts (shifted +1 due to Board column)
+      const [url, opts] = mockFetch.mock.calls[18];
       expect(url).toBe('http://nocodb:8080/api/v2/tables/prompts-table-1/records');
       expect(opts.method).toBe('POST');
       const body = JSON.parse(opts.body as string);
@@ -283,11 +284,12 @@ describe('createNocoDBAdapter', () => {
       mockFetch.mockResolvedValueOnce(mockResponse({ list: [] }));
       // Create Articles table
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'table-id-1' }));
-      // Create Articles columns (Status, GhostURL, PinURL, Error)
+      // Create Articles columns (Board, Status, GhostURL, PinURL, Error)
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-1' }));
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-2' }));
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-3' }));
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-4' }));
+      mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-5' }));
       // Insert sample row
       mockFetch.mockResolvedValueOnce(mockResponse({ Id: 1 }));
       // Create Prompts table

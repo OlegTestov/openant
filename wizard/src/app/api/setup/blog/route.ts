@@ -9,6 +9,7 @@ export const blogSchema = z.object({
   language: z.string().min(1, 'Language is required'),
   tone: z.enum(['professional', 'casual', 'academic']),
   publish_interval_minutes: z.number().int().min(10, 'Minimum interval is 10 minutes'),
+  default_link: z.string().url().optional().or(z.literal('')),
 });
 
 export const POST = withAuth(

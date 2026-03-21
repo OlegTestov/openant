@@ -25,6 +25,7 @@ export default function Blog({ onComplete, onBack, initialData }: StepProps) {
         language?: string;
         tone?: string;
         publish_interval_minutes?: number;
+        default_link?: string;
       }
     | undefined;
   const savedMinutes = initial?.publish_interval_minutes;
@@ -39,6 +40,7 @@ export default function Blog({ onComplete, onBack, initialData }: StepProps) {
     savedMinutes ? (defaultUnit === 'hours' ? savedMinutes / 60 : savedMinutes) : 60,
   );
   const [unit, setUnit] = useState<'minutes' | 'hours'>(defaultUnit);
+  const [defaultLink, setDefaultLink] = useState(initial?.default_link ?? '');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const t = useTranslations();
@@ -63,6 +65,7 @@ export default function Blog({ onComplete, onBack, initialData }: StepProps) {
           language,
           tone,
           publish_interval_minutes: publishIntervalMinutes,
+          default_link: defaultLink || undefined,
         }),
       });
 
@@ -79,6 +82,7 @@ export default function Blog({ onComplete, onBack, initialData }: StepProps) {
         language,
         tone,
         publish_interval_minutes: publishIntervalMinutes,
+        default_link: defaultLink || undefined,
       });
     } catch {
       setError(t.common.failedToSave);
@@ -188,6 +192,21 @@ export default function Blog({ onComplete, onBack, initialData }: StepProps) {
               </SelectContent>
             </Select>
           </div>
+        </div>
+
+        <div>
+          <Label htmlFor="default-link">{t.steps.blog.defaultLink}</Label>
+          <Input
+            id="default-link"
+            className="mt-1"
+            value={defaultLink}
+            onChange={(e) => setDefaultLink(e.target.value)}
+            placeholder="https://..."
+            aria-describedby="default-link-hint"
+          />
+          <p id="default-link-hint" className="text-muted-foreground mt-1 text-xs">
+            {t.steps.blog.defaultLinkHint}
+          </p>
         </div>
 
         <Card className="bg-muted mt-4 p-4">

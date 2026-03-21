@@ -14,6 +14,7 @@ const createSchema = z.object({
   topic: z.string().min(1),
   description: z.string().optional(),
   link: z.string().optional(),
+  board: z.string().optional(),
 });
 
 const bulkCreateSchema = z.object({
@@ -25,6 +26,7 @@ const updateSchema = z.object({
   topic: z.string().min(1).optional(),
   description: z.string().optional(),
   link: z.string().optional(),
+  board: z.string().optional(),
 });
 
 const deleteSchema = z.object({

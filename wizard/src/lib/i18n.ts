@@ -57,6 +57,8 @@ export interface Translations {
       publishIntervalHint: string;
       minutes: string;
       hours: string;
+      defaultLink: string;
+      defaultLinkHint: string;
       preview: string;
     };
     telegram: {
@@ -230,6 +232,9 @@ const en: Translations = {
       publishIntervalHint: 'How often to publish the next article from queue',
       minutes: 'minutes',
       hours: 'hours',
+      defaultLink: 'Default Link',
+      defaultLinkHint:
+        'Default URL to embed in blog articles as a call-to-action (used when no per-article link is set)',
       preview: 'Preview',
     },
     telegram: {
@@ -405,6 +410,9 @@ const ru: Translations = {
       publishIntervalHint: 'Как часто публиковать следующую статью из очереди',
       minutes: 'минуты',
       hours: 'часы',
+      defaultLink: 'Ссылка по умолчанию',
+      defaultLinkHint:
+        'URL для встраивания в статьи блога как призыв к действию (используется, если для статьи не задана отдельная ссылка)',
       preview: 'Предпросмотр',
     },
     telegram: {
