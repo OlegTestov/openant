@@ -1,6 +1,6 @@
 # openant — Architecture Overview
 
-> Last updated: 2026-03-14
+> Last updated: 2026-03-21
 
 ---
 
@@ -154,13 +154,13 @@ Schedule Trigger -> Get Next Queued (blank/publishing/error status) -> Has Recor
 
 **Error retry**: Records with `error` status auto-picked up next cycle. "Is Pin Retry?" distinguishes article errors (full retry) from pin errors (pin-only retry, clears Error field).
 
-**System/user prompt split**: Each LLM call uses a `system` message (static, from NocoDB Prompts table) and `user` message (dynamic: topic, description, link). Prompts fully rendered at deploy time.
+**System/user prompt split**: Each LLM call uses a `system` message (static, from NocoDB Prompts table) and `user` message (dynamic: topic, description, link). Prompts fully rendered at deploy time. Article link falls back to default: `article.Link || '{{DEFAULT_LINK}}'`.
 
 **Image generation**: Code node calls LLM API with `modalities: ['text', 'image']`, uploads base64 PNG to Ghost Admin API. Fails silently (article publishes without image). 120s timeout.
 
 **HTML sanitization**: Post-processes article HTML wrapping bare text in `<p>` tags to prevent Ghost Source theme layout issues.
 
-**Pinterest promotion**: If `{{MAKE_WEBHOOK_URL}}` configured, generates pin title/text/image via LLM (system prompts from Prompts table), sends webhook to Make.com (`{ board, title, description, url, imageUrl }`). Make responds with `{ success, pin_id, pin_url }`. Pin errors auto-retry next cycle.
+**Pinterest promotion**: If `{{MAKE_WEBHOOK_URL}}` configured, generates pin title/text/image via LLM (system prompts from Prompts table), sends webhook to Make.com (`{ board, title, description, url, imageUrl }`). Make responds with `{ success, pin_id, pin_url }`. Pin errors auto-retry next cycle. Board name supports per-article override: `article.Board || '{{PINTEREST_BOARD}}'`. Pin URL is always the Ghost article URL.
 
 **Telegram notifications**: After publish/error, checks `{{TELEGRAM_BOT_TOKEN}}`. If set, sends notification with article fields. Uses `onError: continueRegularOutput` so failures don't break pipeline.
 
@@ -171,17 +171,19 @@ Schedule Trigger -> Get Next Queued (blank/publishing/error status) -> Has Recor
 Conversational workflow for creating content plan entries via Telegram:
 
 ```
-Telegram Trigger -> Handle Message (single Code node with inline HTTP)
+Telegram Trigger (message + callback_query) -> Handle Message (single Code node with inline HTTP)
   /start: Save chat_id to NocoDB Prompts.TelegramChatId
   Forwarded message: Save description (text or caption), reply "Send Topic"
-  Topic: Save topic, reply "Send Link or /skip"
-  Link: Create NocoDB article row (POST as array), reply confirmation
+  Topic: Save topic, reply "Send Link" + inline Skip button
+  Link/Skip: Save link, reply "Send Board name" + inline Skip button
+  Board/Skip: Create NocoDB article row { Topic, Description, Link, Board }, reply confirmation
   Fallback: reply "Forward a message to start"
 ```
 
 Uses `require('https')`/`require('http')` for inline HTTP calls (needs `NODE_FUNCTION_ALLOW_BUILTIN`).
 NocoDB auth via `xc-token` header (long-lived API token). NocoDB v2 POST requires array body `[{...}]`.
 State via `$getWorkflowStaticData('global')` keyed by `chat_id` with 1-hour TTL.
+Inline keyboard buttons (`callback_query`) for skip steps; `answerCallbackQuery` acknowledges button presses.
 
 ### Ghost Admin API and TLS
 
@@ -206,6 +208,7 @@ n8n calls Ghost Admin API via HTTPS through Caddy. SaaS domains use a wildcard L
 | `{{GHOST_API_URL}}`           | String replacement         | `WorkflowParams.ghostApiUrl` (SaaS domain, Admin API) |
 | `{{MAKE_WEBHOOK_URL}}`        | String replacement         | `WorkflowParams.makeWebhookUrl`                       |
 | `{{PINTEREST_BOARD}}`         | String replacement         | `WorkflowParams.pinterestBoard`                       |
+| `{{DEFAULT_LINK}}`            | String replacement         | `WorkflowParams.defaultLink`                          |
 | `{{TELEGRAM_BOT_TOKEN}}`      | String replacement         | `WorkflowParams.telegramBotToken`                     |
 | `{{TELEGRAM_CHAT_ID}}`        | String replacement         | `WorkflowParams.telegramChatId`                       |
 | `{{NOCODB_AUTH_TOKEN}}`       | String replacement         | `WorkflowParams.nocodbAuthToken`                      |
@@ -249,7 +252,7 @@ Core pattern: each external service has a TypeScript adapter interface. Replacin
 - **`types.ts`** -- All adapter interfaces. Central contract; changes affect all consumers.
 - **`index.ts`** -- Registry. `createAdapters()` returns `Adapters` object with all three adapters.
 - **`ghost.ts`** -- **Fast path**: if `GHOST_ADMIN_API_KEY` + `GHOST_CONTENT_API_KEY` exist, verifies via JWT (avoids login EmailError on re-deploy). **Full setup**: admin account -> session cookie -> Custom Integration -> settings. `uploadTheme()` uploads openant-source zip (skips if active). JWT via hand-rolled HMAC-SHA256. Helpers: `requireAdminJwt()`, `assertOk()`, `getAdminEmail()`.
-- **`nocodb.ts`** -- Multi-step setup (signup -> signin -> base -> table -> columns -> sample row), removes default bases, FIFO queue via blank-status filter, parallel stats. CRUD for articles and prompts (used by SaaS dashboard).
+- **`nocodb.ts`** -- Multi-step setup (signup -> signin -> base -> table -> columns -> sample row), removes default bases, FIFO queue via blank-status filter, parallel stats. CRUD for articles and prompts (used by SaaS dashboard). Articles table has `Board` column for per-article Pinterest board override.
 - **`n8n.ts`** -- **Fast path**: if `N8N_API_KEY` exists, verifies against `/api/v1/workflows`. **Full setup**: deterministic password (`N<hex>!`), create owner -> login -> manage API keys (skip masked, delete stale) -> create fresh key. Credential management, workflow import with substitution, activation.
 - **`__mocks__/`** -- Mock adapters returning deterministic data. Used for tests and Docker-free UI dev.
 
