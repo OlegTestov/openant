@@ -106,6 +106,7 @@ export interface PromptRow {
   articleTitle: string;
   articleText: string;
   articleImage: string;
+  articleMetaSeo: string;
   pinName: string;
   pinText: string;
   pinImage: string;

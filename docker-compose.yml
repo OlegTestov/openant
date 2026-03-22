@@ -181,6 +181,7 @@ services:
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile
       - ./certs:/opt/openant/certs:ro
+      - ./data/wizard/seo:/opt/openant/seo:ro
       - caddy_data:/data
       - caddy_config:/config
     networks:

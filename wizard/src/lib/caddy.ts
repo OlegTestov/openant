@@ -41,6 +41,14 @@ export function generateCaddyfile(
 
   // SaaS domain blocks (tls internal when SaaS — Cloudflare terminates TLS)
   blocks.push(`${domains.ghost} {${tls}
+    handle /robots.txt {
+        root * /opt/openant/seo
+        file_server
+    }
+    handle /llms.txt {
+        root * /opt/openant/seo
+        file_server
+    }
     reverse_proxy ghost:2368
 }`);
 
@@ -80,4 +88,46 @@ export function generateCaddyfile(
 
 export async function writeCaddyfile(content: string): Promise<void> {
   await fs.writeFile(getCaddyfilePath(), content, 'utf-8');
+}
+
+/** Generate SEO files (robots.txt, llms.txt) for Caddy to serve on the Ghost domain. */
+export async function writeSeoFiles(ghostDomain: string): Promise<void> {
+  const dir = process.env.SEO_FILES_PATH || '/app/data/seo';
+  await fs.mkdir(dir, { recursive: true });
+
+  const robotsTxt = [
+    'User-agent: *',
+    'Allow: /',
+    `Sitemap: ${ghostDomain}/sitemap.xml`,
+    '',
+    'User-agent: GPTBot',
+    'Allow: /',
+    '',
+    'User-agent: ChatGPT-User',
+    'Allow: /',
+    '',
+    'User-agent: Google-Extended',
+    'Allow: /',
+    '',
+    'User-agent: PerplexityBot',
+    'Allow: /',
+    '',
+    'User-agent: ClaudeBot',
+    'Allow: /',
+    '',
+  ].join('\n');
+
+  const llmsTxt = [
+    '# Blog',
+    '',
+    'This is a blog publishing original articles. All content is accessible at the site root.',
+    '',
+    '## Navigation',
+    '- /sitemap.xml - complete list of all pages',
+    '- /rss/ - RSS feed of latest articles',
+    '',
+  ].join('\n');
+
+  await fs.writeFile(`${dir}/robots.txt`, robotsTxt, 'utf-8');
+  await fs.writeFile(`${dir}/llms.txt`, llmsTxt, 'utf-8');
 }

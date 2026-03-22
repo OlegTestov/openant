@@ -14,6 +14,7 @@ const updateSchema = z.object({
   articleTitle: z.string().optional(),
   articleText: z.string().optional(),
   articleImage: z.string().optional(),
+  articleMetaSeo: z.string().optional(),
   pinName: z.string().optional(),
   pinText: z.string().optional(),
   pinImage: z.string().optional(),

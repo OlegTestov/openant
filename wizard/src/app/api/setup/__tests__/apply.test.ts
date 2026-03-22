@@ -72,6 +72,7 @@ vi.mock('@/lib/config', () => ({
 vi.mock('@/lib/caddy', () => ({
   generateCaddyfile: vi.fn(() => 'mock caddyfile'),
   writeCaddyfile: vi.fn(() => Promise.resolve()),
+  writeSeoFiles: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock('@/lib/docker', () => ({

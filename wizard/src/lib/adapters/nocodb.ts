@@ -177,14 +177,20 @@ const DEFAULT_PROMPTS: Record<string, string> = {
     '# INPUT',
     'You will receive a Topic, an optional Description with details, and a Link to embed in the article. The Link is the primary conversion goal — it leads to the resource, product, or service the reader should visit.',
     '',
-    '# ARTICLE STRUCTURE (800–1200 words)',
+    '# ARTICLE STRUCTURE (1000–1500 words)',
     '',
     '## Hook (first 2–3 sentences)',
     '- Start by acknowledging a common pain point or desire the reader likely has — show you understand their situation.',
     '- Create intrigue by hinting at a key insight, surprising fact, or counterintuitive idea that will be revealed later in the article.',
     '',
+    '## Key Takeaways (right after the hook, before the body sections)',
+    '- Add a short summary with a <strong> heading "Key Takeaways" (translated to {language}) followed by a <ul> with 3–4 bullet points.',
+    '- Each <li> must be a complete, standalone factual statement — not a vague teaser.',
+    '- AI search engines extract these as direct answers, so make them specific and actionable.',
+    '- Do NOT use <blockquote> for Key Takeaways — reserve <blockquote> for the final CTA only.',
+    '',
     '## Body (sections with <h2> subheadings)',
-    '- Use 3–6 <h2> subheadings. Where it fits the topic, phrase some as questions readers would search for (e.g., "How does X affect Y?", "What are the signs of Z?").',
+    '- Use 3–6 <h2> subheadings. At least 2 of the H2 headings MUST be phrased as natural questions readers would type into a search engine or ask an AI assistant (e.g., "How does X affect Y?", "What are the best Z for W?").',
     '- Vary content formats across sections for richer, more engaging structure:',
     '  * Bullet or numbered lists (<ul>/<ol>) with concrete, actionable items.',
     '  * Step-by-step instructions when explaining a process.',
@@ -193,6 +199,12 @@ const DEFAULT_PROMPTS: Record<string, string> = {
     '- Use natural bridging phrases between sections to maintain reading flow: "Here is the thing:", "But there is a catch:", "What most people miss:", "And this is where it gets interesting:".',
     '- Include concrete data: real numbers, percentages, specific examples, and facts. Avoid vague claims.',
     '- Where relevant, mention well-known authoritative sources by name (e.g., "according to the World Health Organization", "research from Harvard Business Review shows") to add credibility. Do NOT generate URLs to external sources — the only links in the article should be the provided Link.',
+    '',
+    '## FAQ Section (after the body sections, before the conclusion)',
+    '- Add <h2>Frequently Asked Questions</h2> (translated to {language}).',
+    '- Include 3–4 questions as <h3> tags, each followed by a <p> answer of 1–3 sentences.',
+    '- Questions must be long-tail search queries that complement (not repeat) the H2 headings.',
+    '- Answers must be direct, concise, and self-contained — optimized for featured snippets and AI extraction.',
     '',
     '## Link Placement (CRITICAL — embed the provided Link 2–3 times)',
     'The Link MUST appear 2–3 times in the article using a MIX of formats:',
@@ -215,7 +227,7 @@ const DEFAULT_PROMPTS: Record<string, string> = {
     '',
     '# FORMAT RULES',
     '1. OUTPUT: Return only HTML content. EVERY text paragraph MUST be wrapped in <p></p> tags — no bare text outside of tags. Use <h2> for section headings, <p> for paragraphs, <ul>/<ol>/<li> for lists, <table>/<tr>/<th>/<td> for tables, <blockquote> for the final CTA, <a> for links, <strong> for emphasis. No <html>, <head>, <body>, or <h1> tags.',
-    '2. LENGTH: 800–1200 words. Include at least 3 bulleted or numbered lists with concrete, actionable items.',
+    '2. LENGTH: 1000–1500 words. Include at least 3 bulleted or numbered lists with concrete, actionable items.',
     '3. SEO: Use the primary keyword from the Topic in the first <h2>, in the first 100 words, and 3–5 more times naturally throughout. Use related terms and synonyms.',
     '',
     '# WRITING TECHNIQUES (apply naturally, never name them in the text)',
@@ -238,6 +250,24 @@ const DEFAULT_PROMPTS: Record<string, string> = {
     '- More than 3 paragraphs in a row without a visual break (list, table, or subheading).',
     '',
     'Note: Examples above are in English for illustration. When writing in {language}, adapt all patterns and phrases to sound natural and native — do not literally translate English structures.',
+  ].join('\n'),
+
+  ArticleMetaSEO: [
+    '# ROLE',
+    'You are an SEO meta tag specialist who creates click-optimized meta tags.',
+    '',
+    '# TASK',
+    'Given an article title and its full HTML content, generate an optimized meta_title and meta_description for search engines.',
+    '',
+    '# RULES',
+    '- meta_title: max 60 characters. Include the primary keyword near the beginning. Make it compelling for clicks in search results.',
+    '- meta_description: max 155 characters. Summarize the article value proposition. Include a call-to-action or curiosity hook. Include the primary keyword.',
+    '- Write in {language}.',
+    '- Do not repeat the title verbatim as meta_title — rephrase it to be more search-friendly.',
+    '',
+    '# OUTPUT FORMAT',
+    'Return ONLY a JSON object, no markdown, no code fences:',
+    '{"meta_title": "...", "meta_description": "..."}',
   ].join('\n'),
 
   ArticleImage: [
@@ -417,6 +447,7 @@ async function createPromptsTable(
 
   // Create remaining columns (NocoDB limits columns at table creation)
   const additionalColumns = [
+    { title: 'ArticleMetaSEO', uidt: 'LongText' },
     { title: 'PinName', uidt: 'LongText' },
     { title: 'PinText', uidt: 'LongText' },
     { title: 'PinImage', uidt: 'LongText' },
@@ -890,6 +921,7 @@ export function createNocoDBAdapter(): TableAdapter {
         articleTitle: (row.ArticleTitle as string) || '',
         articleText: (row.ArticleText as string) || '',
         articleImage: (row.ArticleImage as string) || '',
+        articleMetaSeo: (row.ArticleMetaSEO as string) || '',
         pinName: (row.PinName as string) || '',
         pinText: (row.PinText as string) || '',
         pinImage: (row.PinImage as string) || '',
@@ -926,6 +958,7 @@ export function createNocoDBAdapter(): TableAdapter {
       if (prompts.articleTitle !== undefined) body.ArticleTitle = prompts.articleTitle;
       if (prompts.articleText !== undefined) body.ArticleText = prompts.articleText;
       if (prompts.articleImage !== undefined) body.ArticleImage = prompts.articleImage;
+      if (prompts.articleMetaSeo !== undefined) body.ArticleMetaSEO = prompts.articleMetaSeo;
       if (prompts.pinName !== undefined) body.PinName = prompts.pinName;
       if (prompts.pinText !== undefined) body.PinText = prompts.pinText;
       if (prompts.pinImage !== undefined) body.PinImage = prompts.pinImage;

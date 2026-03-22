@@ -184,6 +184,9 @@ describe('createGhostAdapter', () => {
 
       // Step 8: DELETE default post
       mockFetch.mockResolvedValueOnce(mockResponse(null, { status: 204 }));
+
+      // Step 9: Update author name
+      mockFetch.mockResolvedValueOnce(mockResponse({ users: [{ id: '1' }] }));
     }
 
     it('creates admin account via setup endpoint', async () => {
@@ -423,8 +426,8 @@ describe('createGhostAdapter', () => {
       const result = await adapter.setup(config);
 
       expect(result.adminApiKey).toBe(`admin-key-id:${'ab'.repeat(32)}`);
-      // 10 calls: setup status + site verify (failed) + full setup sequence (8)
-      expect(mockFetch).toHaveBeenCalledTimes(10);
+      // 11 calls: setup status + site verify (failed) + full setup sequence (8) + author update (1)
+      expect(mockFetch).toHaveBeenCalledTimes(11);
     });
 
     it('skips fast path when Ghost needs setup despite keys in env', async () => {
@@ -440,8 +443,8 @@ describe('createGhostAdapter', () => {
       const result = await adapter.setup(config);
 
       expect(result.adminApiKey).toBe(`admin-key-id:${'ab'.repeat(32)}`);
-      // 9 calls: setup status + full setup sequence (8)
-      expect(mockFetch).toHaveBeenCalledTimes(9);
+      // 10 calls: setup status + full setup sequence (8) + author update (1)
+      expect(mockFetch).toHaveBeenCalledTimes(10);
       // Second call should be POST to create admin (not site verification)
       expect(mockFetch.mock.calls[1][0]).toBe(
         'http://ghost:2368/ghost/api/admin/authentication/setup/',
@@ -469,12 +472,14 @@ describe('createGhostAdapter', () => {
       // Delete posts
       mockFetch.mockResolvedValueOnce(mockResponse({ posts: [{ id: 'p1' }] }));
       mockFetch.mockResolvedValueOnce(mockResponse(null, { status: 204 }));
+      // Update author name
+      mockFetch.mockResolvedValueOnce(mockResponse({ users: [{ id: '1' }] }));
 
       const adapter = createGhostAdapter();
       await adapter.setup(config);
 
-      // No signIn call — 7 calls: setup + list integrations + settings + theme + delete posts
-      expect(mockFetch).toHaveBeenCalledTimes(7);
+      // No signIn call — 8 calls: setup + list integrations + settings + theme + delete posts + author
+      expect(mockFetch).toHaveBeenCalledTimes(8);
       // Settings call uses cookie from setup response
       expect(mockFetch.mock.calls[2][1].headers.Cookie).toBe('ghost-admin-api-session=from-setup');
     });

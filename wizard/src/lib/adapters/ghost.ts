@@ -172,6 +172,7 @@ const THEME_SETTINGS: Record<string, string | boolean> = {
   background_image: false,
   show_author: false,
   show_post_metadata: false,
+  show_related_articles: true,
 };
 
 async function updateSettingsWithJwt(
@@ -389,6 +390,23 @@ export function createGhostAdapter(): BlogAdapter {
         Cookie: sessionCookie,
         Origin: authUrl,
       });
+
+      // Step 6: Update author name from blog title (for JSON-LD structured data)
+      try {
+        const authorName =
+          config.title.replace(/\s*(Blog|Блог|блог|blog)\s*$/i, '').trim() || config.title;
+        await fetch(`${authUrl}/ghost/api/admin/users/1/`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Cookie: sessionCookie,
+            Origin: authUrl,
+          },
+          body: JSON.stringify({ users: [{ name: authorName }] }),
+        });
+      } catch {
+        // Non-critical — skip silently
+      }
 
       return keys;
     },

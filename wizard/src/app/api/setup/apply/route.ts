@@ -2,7 +2,7 @@ import { promises as fs } from 'fs';
 import { withAuth } from '@/lib/auth';
 import { readState, writeState } from '@/lib/state';
 import { readEnv, writeEnv } from '@/lib/config';
-import { generateCaddyfile, writeCaddyfile } from '@/lib/caddy';
+import { generateCaddyfile, writeCaddyfile, writeSeoFiles } from '@/lib/caddy';
 import { startServices, reloadCaddy } from '@/lib/docker';
 import { createAdapters } from '@/lib/adapters';
 import { createSSEStream, sendSSEEvent, closeSSE } from '@/lib/sse';
@@ -132,6 +132,9 @@ async function executeDeployStep(
         customDomains,
       );
       await writeCaddyfile(caddyfile);
+      if (domains) {
+        await writeSeoFiles(domains.ghost);
+      }
       break;
     }
 
