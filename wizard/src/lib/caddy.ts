@@ -39,7 +39,7 @@ export function generateCaddyfile(
     admin 0.0.0.0:2019
 }`);
 
-  // SaaS domain blocks (tls internal when SaaS — Cloudflare terminates TLS)
+  // SaaS domain blocks (wildcard cert when SaaS)
   blocks.push(`${domains.ghost} {${tls}
     handle /robots.txt {
         root * /opt/openant/seo
@@ -67,6 +67,14 @@ export function generateCaddyfile(
   // Custom domain blocks — Let's Encrypt handles TLS
   if (customDomains) {
     blocks.push(`${customDomains.ghost} {
+    handle /robots.txt {
+        root * /opt/openant/seo
+        file_server
+    }
+    handle /llms.txt {
+        root * /opt/openant/seo
+        file_server
+    }
     reverse_proxy ghost:2368
 }`);
 
@@ -90,8 +98,15 @@ export async function writeCaddyfile(content: string): Promise<void> {
   await fs.writeFile(getCaddyfilePath(), content, 'utf-8');
 }
 
-/** Generate SEO files (robots.txt, llms.txt) for Caddy to serve on the Ghost domain. */
-export async function writeSeoFiles(ghostDomain: string): Promise<void> {
+/**
+ * Generate SEO files (robots.txt, llms.txt) for Caddy to serve on the Ghost domain.
+ * Wizard writes to /app/data/seo → host ./data/wizard/seo → Caddy /opt/openant/seo.
+ */
+export async function writeSeoFiles(
+  ghostDomain: string,
+  blogTitle?: string,
+  blogDescription?: string,
+): Promise<void> {
   const dir = process.env.SEO_FILES_PATH || '/app/data/seo';
   await fs.mkdir(dir, { recursive: true });
 
@@ -117,14 +132,17 @@ export async function writeSeoFiles(ghostDomain: string): Promise<void> {
     '',
   ].join('\n');
 
+  const title = blogTitle || 'Blog';
+  const description = blogDescription || 'This is a blog publishing original articles.';
+
   const llmsTxt = [
-    '# Blog',
+    `# ${title}`,
     '',
-    'This is a blog publishing original articles. All content is accessible at the site root.',
+    `${description} All content is accessible at the site root.`,
     '',
     '## Navigation',
-    '- /sitemap.xml - complete list of all pages',
-    '- /rss/ - RSS feed of latest articles',
+    `- ${ghostDomain}/sitemap.xml - complete list of all pages`,
+    `- ${ghostDomain}/rss/ - RSS feed of latest articles`,
     '',
   ].join('\n');
 

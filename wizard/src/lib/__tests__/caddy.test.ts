@@ -1,14 +1,16 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { generateCaddyfile, writeCaddyfile, type ServiceDomains } from '../caddy';
+import { generateCaddyfile, writeCaddyfile, writeSeoFiles, type ServiceDomains } from '../caddy';
 
-const { mockWriteFile } = vi.hoisted(() => ({
+const { mockWriteFile, mockMkdir } = vi.hoisted(() => ({
   mockWriteFile: vi.fn(() => Promise.resolve()),
+  mockMkdir: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock('fs', () => {
   const mock = {
     promises: {
       writeFile: mockWriteFile,
+      mkdir: mockMkdir,
     },
   };
   return { ...mock, default: mock };
@@ -191,5 +193,129 @@ describe('writeCaddyfile', () => {
     await writeCaddyfile('test content');
 
     expect(mockWriteFile).toHaveBeenCalledWith('/app/Caddyfile', 'test content', 'utf-8');
+  });
+});
+
+describe('generateCaddyfile SEO handlers', () => {
+  it('SaaS Ghost block includes robots.txt and llms.txt handlers', () => {
+    const result = generateCaddyfile(DEFAULT_DOMAINS, undefined, true);
+    const ghostBlock = result.split('\n\n')[1];
+
+    expect(ghostBlock).toContain('handle /robots.txt');
+    expect(ghostBlock).toContain('handle /llms.txt');
+    expect(ghostBlock).toContain('root * /opt/openant/seo');
+    expect(ghostBlock).toContain('file_server');
+  });
+
+  it('custom domain Ghost block includes robots.txt and llms.txt handlers', () => {
+    const customDomains: ServiceDomains = {
+      ghost: 'blog.mysite.com',
+      nocodb: 'table.mysite.com',
+      n8n: 'auto.mysite.com',
+      wizard: 'setup.mysite.com',
+    };
+    const result = generateCaddyfile(DEFAULT_DOMAINS, undefined, true, customDomains);
+    const blocks = result.split('\n\n');
+    // Custom Ghost block is the 5th block (index 5: global, saas ghost, nocodb, n8n, wizard, custom ghost)
+    const customGhostBlock = blocks[5];
+
+    expect(customGhostBlock).toContain('blog.mysite.com {');
+    expect(customGhostBlock).toContain('handle /robots.txt');
+    expect(customGhostBlock).toContain('handle /llms.txt');
+    expect(customGhostBlock).toContain('root * /opt/openant/seo');
+  });
+
+  it('non-Ghost blocks do not include SEO handlers', () => {
+    const result = generateCaddyfile(DEFAULT_DOMAINS);
+    const blocks = result.split('\n\n').slice(2); // skip global + ghost
+
+    for (const block of blocks) {
+      expect(block).not.toContain('handle /robots.txt');
+      expect(block).not.toContain('handle /llms.txt');
+    }
+  });
+});
+
+describe('writeSeoFiles', () => {
+  it('creates directory and writes robots.txt and llms.txt', async () => {
+    vi.stubEnv('SEO_FILES_PATH', '/tmp/seo-test');
+    mockWriteFile.mockClear();
+
+    await writeSeoFiles('https://blog.example.com');
+
+    expect(mockMkdir).toHaveBeenCalledWith('/tmp/seo-test', { recursive: true });
+    expect(mockWriteFile).toHaveBeenCalledTimes(2);
+    expect(mockWriteFile).toHaveBeenCalledWith(
+      '/tmp/seo-test/robots.txt',
+      expect.stringContaining('Sitemap: https://blog.example.com/sitemap.xml'),
+      'utf-8',
+    );
+    expect(mockWriteFile).toHaveBeenCalledWith(
+      '/tmp/seo-test/llms.txt',
+      expect.stringContaining('https://blog.example.com/sitemap.xml'),
+      'utf-8',
+    );
+  });
+
+  it('robots.txt includes AI crawler rules', async () => {
+    vi.stubEnv('SEO_FILES_PATH', '/tmp/seo-test');
+
+    await writeSeoFiles('https://example.com');
+
+    expect(mockWriteFile).toHaveBeenCalledWith(
+      '/tmp/seo-test/robots.txt',
+      expect.stringContaining('User-agent: GPTBot'),
+      'utf-8',
+    );
+    expect(mockWriteFile).toHaveBeenCalledWith(
+      '/tmp/seo-test/robots.txt',
+      expect.stringContaining('User-agent: ClaudeBot'),
+      'utf-8',
+    );
+    expect(mockWriteFile).toHaveBeenCalledWith(
+      '/tmp/seo-test/robots.txt',
+      expect.stringContaining('User-agent: PerplexityBot'),
+      'utf-8',
+    );
+  });
+
+  it('llms.txt uses blogTitle and blogDescription when provided', async () => {
+    vi.stubEnv('SEO_FILES_PATH', '/tmp/seo-test');
+
+    await writeSeoFiles('https://example.com', 'My Awesome Blog', 'Articles about tech.');
+
+    expect(mockWriteFile).toHaveBeenCalledWith(
+      '/tmp/seo-test/llms.txt',
+      expect.stringContaining('# My Awesome Blog'),
+      'utf-8',
+    );
+    expect(mockWriteFile).toHaveBeenCalledWith(
+      '/tmp/seo-test/llms.txt',
+      expect.stringContaining('Articles about tech. All content is accessible'),
+      'utf-8',
+    );
+  });
+
+  it('llms.txt uses defaults when blogTitle/blogDescription omitted', async () => {
+    vi.stubEnv('SEO_FILES_PATH', '/tmp/seo-test');
+
+    await writeSeoFiles('https://example.com');
+
+    expect(mockWriteFile).toHaveBeenCalledWith(
+      '/tmp/seo-test/llms.txt',
+      expect.stringContaining('# Blog'),
+      'utf-8',
+    );
+    expect(mockWriteFile).toHaveBeenCalledWith(
+      '/tmp/seo-test/llms.txt',
+      expect.stringContaining('This is a blog publishing original articles.'),
+      'utf-8',
+    );
+  });
+
+  it('uses default path when SEO_FILES_PATH not set', async () => {
+    await writeSeoFiles('https://example.com');
+
+    expect(mockMkdir).toHaveBeenCalledWith('/app/data/seo', { recursive: true });
   });
 });

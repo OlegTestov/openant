@@ -391,7 +391,8 @@ export function createGhostAdapter(): BlogAdapter {
         Origin: authUrl,
       });
 
-      // Step 6: Update author name from blog title (for JSON-LD structured data)
+      // Step 6: Update author name from blog title (for JSON-LD structured data).
+      // Ghost owner is always user ID 1 in single-user blogs (created at install time).
       try {
         const authorName =
           config.title.replace(/\s*(Blog|Блог|блог|blog)\s*$/i, '').trim() || config.title;

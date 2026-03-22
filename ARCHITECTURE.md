@@ -1,6 +1,6 @@
 # openant — Architecture Overview
 
-> Last updated: 2026-03-21
+> Last updated: 2026-03-22
 
 ---
 
@@ -137,7 +137,7 @@ Two templates in `n8n/workflows/`, imported during deploy step 11 with placehold
 
 ### generate-article.template.json
 
-Pipeline with system/user prompt split, image generation, optional Pinterest promotion, and error retry:
+Pipeline with system/user prompt split, SEO meta generation, image generation, optional Pinterest promotion, and error retry:
 
 ```
 Schedule Trigger -> Get Next Queued (blank/publishing/error status) -> Has Records?
@@ -145,7 +145,8 @@ Schedule Trigger -> Get Next Queued (blank/publishing/error status) -> Has Recor
     -> true: Update Status: promoting -> retry pin generation flow
     -> false: Update status: generating -> Get Prompts -> Generate Title (LLM)
        -> Generate Article (LLM) -> Generate & Upload Image -> publishing
-       -> Build Ghost JWT -> POST to Ghost -> published -> Check Pinterest
+       -> Generate Meta (LLM, optional) -> Build Ghost JWT -> POST to Ghost
+       -> published -> Check Pinterest
          -> false: completed (no pin)
          -> true: Generate Pin Title/Text/Image -> Make Webhook -> Save Pin URL -> completed
   -> article-stage errors: Status: error (no GhostURL -> full retry next cycle)
@@ -157,6 +158,12 @@ Schedule Trigger -> Get Next Queued (blank/publishing/error status) -> Has Recor
 **System/user prompt split**: Each LLM call uses a `system` message (static, from NocoDB Prompts table) and `user` message (dynamic: topic, description, link). Prompts fully rendered at deploy time. Article link falls back to default: `article.Link || '{{DEFAULT_LINK}}'`.
 
 **Image generation**: Code node calls LLM API with `modalities: ['text', 'image']`, uploads base64 PNG to Ghost Admin API. Fails silently (article publishes without image). 120s timeout.
+
+**SEO meta generation**: Separate LLM call (Generate Meta node, `onError: "continueErrorOutput"`) produces optimized `meta_title` (≤60 chars) and `meta_description` (≤155 chars) using the `ArticleMetaSEO` prompt. Graceful degradation: if Generate Meta fails, Build Ghost JWT falls back to truncated article title/content.
+
+**FAQ Schema**: Build Ghost JWT extracts FAQ pairs (`<h3>` + `<p>`) from article HTML before HTML sanitization and generates `FAQPage` JSON-LD. Injected via Ghost `codeinjection_head` (not inline HTML — Ghost strips `<script>` tags from content).
+
+**Ghost post fields**: `POST /ghost/api/admin/posts/` includes `meta_title`, `meta_description`, `tags` (topic-based), and `codeinjection_head` (FAQ Schema JSON-LD).
 
 **HTML sanitization**: Post-processes article HTML wrapping bare text in `<p>` tags to prevent Ghost Source theme layout issues.
 
@@ -219,18 +226,19 @@ n8n calls Ghost Admin API via HTTPS through Caddy. SaaS domains use a wildcard L
 
 ### NocoDB Prompts table
 
-Created during deploy with 7 system prompt columns. `{language}` and `{tone}` placeholders substituted at deploy time.
+Created during deploy with 8 system prompt columns. `{language}` and `{tone}` placeholders substituted at deploy time.
 
-| Column           | Purpose                                     |
-| ---------------- | ------------------------------------------- |
-| `ArticleTitle`   | SEO headline generation prompt              |
-| `ArticleText`    | Full article HTML generation prompt         |
-| `ArticleImage`   | Blog cover image generation prompt          |
-| `PinName`        | Pinterest pin title prompt                  |
-| `PinText`        | Pinterest pin description prompt            |
-| `PinImage`       | Pinterest pin image generation prompt       |
-| `ThreadText`     | Social media post prompt                    |
-| `TelegramChatId` | Auto-detected chat ID from `/start` command |
+| Column           | Purpose                                         |
+| ---------------- | ----------------------------------------------- |
+| `ArticleTitle`   | SEO headline generation prompt                  |
+| `ArticleText`    | Full article HTML generation prompt (with FAQ)  |
+| `ArticleMetaSEO` | Meta title + meta description generation prompt |
+| `ArticleImage`   | Blog cover image generation prompt              |
+| `PinName`        | Pinterest pin title prompt                      |
+| `PinText`        | Pinterest pin description prompt                |
+| `PinImage`       | Pinterest pin image generation prompt           |
+| `ThreadText`     | Social media post prompt                        |
+| `TelegramChatId` | Auto-detected chat ID from `/start` command     |
 
 ---
 
@@ -251,7 +259,7 @@ Core pattern: each external service has a TypeScript adapter interface. Replacin
 
 - **`types.ts`** -- All adapter interfaces. Central contract; changes affect all consumers.
 - **`index.ts`** -- Registry. `createAdapters()` returns `Adapters` object with all three adapters.
-- **`ghost.ts`** -- **Fast path**: if `GHOST_ADMIN_API_KEY` + `GHOST_CONTENT_API_KEY` exist, verifies via JWT (avoids login EmailError on re-deploy). **Full setup**: admin account -> session cookie -> Custom Integration -> settings. `uploadTheme()` uploads openant-source zip (skips if active). JWT via hand-rolled HMAC-SHA256. Helpers: `requireAdminJwt()`, `assertOk()`, `getAdminEmail()`.
+- **`ghost.ts`** -- **Fast path**: if `GHOST_ADMIN_API_KEY` + `GHOST_CONTENT_API_KEY` exist, verifies via JWT (avoids login EmailError on re-deploy). **Full setup**: admin account -> session cookie -> Custom Integration -> settings -> delete default posts -> update author name from blog title (E-E-A-T). Theme settings include `show_related_articles: true`. `uploadTheme()` uploads openant-source zip (skips if active). JWT via hand-rolled HMAC-SHA256. Helpers: `requireAdminJwt()`, `assertOk()`, `getAdminEmail()`.
 - **`nocodb.ts`** -- Multi-step setup (signup -> signin -> base -> table -> columns -> sample row), removes default bases, FIFO queue via blank-status filter, parallel stats. CRUD for articles and prompts (used by SaaS dashboard). Articles table has `Board` column for per-article Pinterest board override.
 - **`n8n.ts`** -- **Fast path**: if `N8N_API_KEY` exists, verifies against `/api/v1/workflows`. **Full setup**: deterministic password (`N<hex>!`), create owner -> login -> manage API keys (skip masked, delete stale) -> create fresh key. Credential management, workflow import with substitution, activation.
 - **`__mocks__/`** -- Mock adapters returning deterministic data. Used for tests and Docker-free UI dev.
@@ -276,8 +284,9 @@ Core pattern: each external service has a TypeScript adapter interface. Replacin
 
 ### Caddyfile generator (`src/lib/caddy.ts`)
 
-- `generateCaddyfile(domains, mode?, saas?, customDomains?)` -- IP mode (null domains): `:80` -> Ghost. Domain mode: 4 server blocks. SaaS adds `tls /opt/openant/certs/fullchain.pem /opt/openant/certs/privkey.pem` (wildcard cert). Optional 4th param adds custom domain blocks with Let's Encrypt.
+- `generateCaddyfile(domains, mode?, saas?, customDomains?)` -- IP mode (null domains): `:80` -> Ghost. Domain mode: 4 server blocks. SaaS adds `tls /opt/openant/certs/fullchain.pem /opt/openant/certs/privkey.pem` (wildcard cert). Optional 4th param adds custom domain blocks with Let's Encrypt. Ghost blocks (both SaaS and custom) include `handle /robots.txt` and `handle /llms.txt` for AI crawler optimization (served from `/opt/openant/seo`).
 - `writeCaddyfile(content)` -- Writes to `CADDYFILE_PATH` (default: `/app/Caddyfile`).
+- `writeSeoFiles(ghostDomain, blogTitle?, blogDescription?)` -- Generates `robots.txt` (with AI crawler rules for GPTBot, ClaudeBot, PerplexityBot, etc.) and `llms.txt` (blog info for LLM agents). Written to `SEO_FILES_PATH` (default: `/app/data/seo`), mapped to Caddy via Docker volume `./data/wizard/seo:/opt/openant/seo:ro`.
 
 ### SSE streaming (`src/lib/sse.ts`)
 
@@ -519,7 +528,7 @@ All providers are OpenAI-compatible (no adapter needed):
 | `npm run format`           | Prettier auto-format                |
 | `npm run format:check`     | Verify formatting                   |
 | `npm run check`            | typecheck + lint + format:check     |
-| `npm test`                 | Run unit tests (37 files)           |
+| `npm test`                 | Run unit tests (41 files)           |
 | `npm run test:watch`       | Watch mode                          |
 | `npm run test:coverage`    | Tests with coverage                 |
 | `npm run test:integration` | Integration tests (requires Docker) |
@@ -530,7 +539,7 @@ All providers are OpenAI-compatible (no adapter needed):
 
 ### Unit tests
 
-377 tests across 39 files:
+413 tests across 41 files:
 
 | File                                              | Tests | What it verifies                                                                                                    |
 | ------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------- |
@@ -563,7 +572,7 @@ All providers are OpenAI-compatible (no adapter needed):
 | `app/setup/steps/__tests__/Review.test.tsx`       | 3     | Config sections, Edit navigation, key masking                                                                       |
 | `app/setup/steps/__tests__/Deploy.test.tsx`       | 7     | Deploy button, progress, checkmarks, error/retry, URLs, dashboard link                                              |
 | `app/api/setup/__tests__/apply.test.ts`           | 24    | SSE format, all 12 steps, errors, startFrom, auth, URL generation, managed mode                                     |
-| `lib/__tests__/caddy.test.ts`                     | 17    | IP/domain mode, SaaS wildcard cert TLS, custom domains, writeCaddyfile                                              |
+| `lib/__tests__/caddy.test.ts`                     | 25    | IP/domain mode, SaaS wildcard cert TLS, custom domains, writeCaddyfile, SEO handlers, writeSeoFiles                 |
 | `lib/__tests__/sse.test.ts`                       | 4     | createSSEStream, sendSSEEvent format, closeSSE                                                                      |
 | `lib/__tests__/credentials.test.ts`               | 7     | Env var priority, SHA-256 fallback, admin email, all services                                                       |
 | `lib/__tests__/i18n.test.ts`                      | 4     | English/Russian locale, all keys, no empty strings                                                                  |
@@ -649,20 +658,20 @@ GitHub Actions on push/PR to `main`. Three parallel jobs:
 
 ### Pipeline steps
 
-| #   | Step               | Action                                                         |
-| --- | ------------------ | -------------------------------------------------------------- |
-| 1   | Save .env          | Merge config vars (preserves existing adapter keys)            |
-| 2   | Generate Caddyfile | IP or domain mode; SaaS adds wildcard cert TLS                 |
-| 3   | Check services     | Verify Ghost, NocoDB, n8n healthy                              |
-| 4   | Reload Caddy       | Apply Caddyfile via Docker exec                                |
-| 5   | Ghost setup        | Admin account + Custom Integration (fast path: verify via JWT) |
-| 6   | Upload theme       | Upload openant-source zip (skip if active)                     |
-| 7   | Ghost settings     | No-op (configured in step 5)                                   |
-| 8   | NocoDB setup       | Admin, base, table, remove defaults, sample row                |
-| 9   | n8n setup          | Auto-provision API key (fast path: verify existing)            |
-| 10  | n8n credentials    | 2-3 credentials in parallel (LLM, NocoDB, optionally Telegram) |
-| 11  | n8n workflows      | Import + activate generate-article + optionally telegram-bot   |
-| 12  | Finalize           | Merge adapter keys to .env, set `deployed: true`               |
+| #   | Step               | Action                                                           |
+| --- | ------------------ | ---------------------------------------------------------------- |
+| 1   | Save .env          | Merge config vars; GHOST_URL prefers custom domain               |
+| 2   | Generate Caddyfile | IP or domain mode; SaaS adds wildcard cert TLS; writes SEO files |
+| 3   | Check services     | Verify Ghost, NocoDB, n8n healthy                                |
+| 4   | Reload Caddy       | Apply Caddyfile via Docker exec                                  |
+| 5   | Ghost setup        | Admin account + Custom Integration (fast path: verify via JWT)   |
+| 6   | Upload theme       | Upload openant-source zip (skip if active)                       |
+| 7   | Ghost settings     | No-op (configured in step 5)                                     |
+| 8   | NocoDB setup       | Admin, base, table, remove defaults, sample row                  |
+| 9   | n8n setup          | Auto-provision API key (fast path: verify existing)              |
+| 10  | n8n credentials    | 2-3 credentials in parallel (LLM, NocoDB, optionally Telegram)   |
+| 11  | n8n workflows      | Import + activate generate-article + optionally telegram-bot     |
+| 12  | Finalize           | Merge adapter keys to .env, set `deployed: true`                 |
 
 ### Context hydration
 

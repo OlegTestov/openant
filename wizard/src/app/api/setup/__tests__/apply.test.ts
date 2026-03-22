@@ -320,7 +320,7 @@ describe('POST /api/setup/apply', () => {
       expect.any(String),
       expect.objectContaining({
         DOMAIN: 'slug.openant.app',
-        GHOST_URL: 'https://slug-blog.openant.app',
+        GHOST_URL: 'https://blog.example.com',
         LLM_API_KEY: 'sk-test-key',
         LLM_MODEL: 'gpt-4o-mini',
         BLOG_TITLE: 'My Blog',
@@ -385,7 +385,7 @@ describe('POST /api/setup/apply', () => {
       title: 'My Blog',
       description: 'A great blog',
       language: 'en',
-      url: 'https://slug-blog.openant.app',
+      url: 'https://blog.example.com',
       adminEmail: 'admin@slug.openant.app',
     });
   });

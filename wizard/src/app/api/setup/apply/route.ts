@@ -60,12 +60,20 @@ function isManaged(): boolean {
 
 function buildEnvVars(state: SetupState): Record<string, string> {
   const domains = getServiceDomains(state);
+  const customDomains = getCustomDomains(state);
   const serverIp = process.env.SERVER_IP || '';
   const managed = isManaged();
 
+  // Ghost URL determines {{@site.url}} in theme — must be the public-facing domain
+  const ghostUrl = customDomains?.ghost
+    ? `https://${customDomains.ghost}`
+    : domains
+      ? `https://${domains.ghost}`
+      : `http://${serverIp}`;
+
   return {
     DOMAIN: getEffectiveDomain(state) ?? '',
-    GHOST_URL: domains ? `https://${domains.ghost}` : `http://${serverIp}`,
+    GHOST_URL: ghostUrl,
     NOCODB_PUBLIC_URL: domains ? `https://${domains.nocodb}` : `http://${serverIp}:8080`,
     N8N_HOST: domains ? domains.n8n : serverIp,
     N8N_WEBHOOK_URL: domains ? `https://${domains.n8n}` : `http://${serverIp}:5678`,
@@ -133,7 +141,10 @@ async function executeDeployStep(
       );
       await writeCaddyfile(caddyfile);
       if (domains) {
-        await writeSeoFiles(domains.ghost);
+        const seoGhostDomain = customDomains?.ghost
+          ? `https://${customDomains.ghost}`
+          : `https://${domains.ghost}`;
+        await writeSeoFiles(seoGhostDomain, state.blog?.title, state.blog?.description);
       }
       break;
     }
@@ -150,9 +161,13 @@ async function executeDeployStep(
 
     case 5: {
       const svcDomains = getServiceDomains(state);
-      const blogUrl = svcDomains
-        ? `https://${svcDomains.ghost}`
-        : `http://${process.env.SERVER_IP}`;
+      const custDomains = getCustomDomains(state);
+      // Ghost URL must match GHOST_URL env var (custom domain preferred)
+      const blogUrl = custDomains?.ghost
+        ? `https://${custDomains.ghost}`
+        : svcDomains
+          ? `https://${svcDomains.ghost}`
+          : `http://${process.env.SERVER_IP}`;
       const effectiveDomain = getEffectiveDomain(state);
       const ghostResult = await adapters.blog.setup({
         title: state.blog?.title ?? '',
