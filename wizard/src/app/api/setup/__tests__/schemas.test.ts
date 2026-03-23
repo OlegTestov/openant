@@ -177,6 +177,18 @@ describe('blogSchema', () => {
     ).toThrow();
   });
 
+  it('rejects description over 200 characters', () => {
+    expect(() =>
+      blogSchema.parse({
+        title: 'Blog',
+        description: 'a'.repeat(201),
+        language: 'en',
+        tone: 'professional',
+        publish_interval_minutes: 60,
+      }),
+    ).toThrow();
+  });
+
   it('allows optional description', () => {
     const result = blogSchema.parse({
       title: 'Blog',

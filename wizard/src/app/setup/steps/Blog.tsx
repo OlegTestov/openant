@@ -131,8 +131,10 @@ export default function Blog({ onComplete, onBack, initialData }: StepProps) {
             className="mt-1"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
+            maxLength={200}
             placeholder="A blog about..."
           />
+          <p className="mt-1 text-right text-xs text-muted-foreground">{description.length}/200</p>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

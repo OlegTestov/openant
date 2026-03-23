@@ -5,7 +5,7 @@ import { readState, writeState } from '@/lib/state';
 
 export const blogSchema = z.object({
   title: z.string().min(1, 'Title is required').max(100, 'Title must be 100 characters or less'),
-  description: z.string().optional(),
+  description: z.string().max(200, 'Description must be 200 characters or less').optional(),
   language: z.string().min(1, 'Language is required'),
   tone: z.enum(['professional', 'casual', 'academic']),
   publish_interval_minutes: z.number().int().min(10, 'Minimum interval is 10 minutes'),
