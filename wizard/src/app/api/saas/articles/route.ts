@@ -15,6 +15,7 @@ const createSchema = z.object({
   description: z.string().optional(),
   link: z.string().optional(),
   board: z.string().optional(),
+  draft: z.boolean().optional(),
 });
 
 const bulkCreateSchema = z.object({
@@ -60,9 +61,13 @@ export const POST = withAuth(
       return Response.json({ success: true, data: created });
     }
 
-    // Single create: { topic, description?, link? }
-    const body = createSchema.parse(raw);
-    const article = await adapters.table.createArticle(body);
+    // Single create: { topic, description?, link?, draft? }
+    const { draft, ...createInput } = createSchema.parse(raw);
+    const article = await adapters.table.createArticle(createInput);
+    if (draft) {
+      await adapters.table.updateStatus(article.id, 'draft');
+      article.status = 'draft';
+    }
     return Response.json({ success: true, data: article });
   }),
 );
