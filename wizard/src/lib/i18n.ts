@@ -164,6 +164,21 @@ export interface Translations {
     dnsResolved: string;
     dnsWrongIp: string;
     dnsPending: string;
+    drafts: string;
+    articleManagement: string;
+    markAsDraft: string;
+    removeFromDraft: string;
+    topic: string;
+    status: string;
+    noArticles: string;
+    statusDraft: string;
+    statusQueued: string;
+    statusGenerating: string;
+    statusPublishing: string;
+    statusPublished: string;
+    statusPromoting: string;
+    statusCompleted: string;
+    statusError: string;
   };
   services: {
     ghost: string;
@@ -342,6 +357,21 @@ const en: Translations = {
     dnsResolved: 'DNS configured correctly',
     dnsWrongIp: 'DNS points to wrong IP',
     dnsPending: 'Waiting for DNS propagation...',
+    drafts: 'Drafts',
+    articleManagement: 'Article Management',
+    markAsDraft: 'Mark as draft',
+    removeFromDraft: 'Queue for publishing',
+    topic: 'Topic',
+    status: 'Status',
+    noArticles: 'No articles yet',
+    statusDraft: 'Draft',
+    statusQueued: 'Queued',
+    statusGenerating: 'Generating',
+    statusPublishing: 'Publishing',
+    statusPublished: 'Published',
+    statusPromoting: 'Promoting',
+    statusCompleted: 'Completed',
+    statusError: 'Error',
   },
   services: {
     ghost: 'Ghost',
@@ -520,6 +550,21 @@ const ru: Translations = {
     dnsResolved: 'DNS настроен правильно',
     dnsWrongIp: 'DNS указывает на другой IP',
     dnsPending: 'Ожидание распространения DNS...',
+    drafts: 'Черновики',
+    articleManagement: 'Управление статьями',
+    markAsDraft: 'В черновик',
+    removeFromDraft: 'На публикацию',
+    topic: 'Тема',
+    status: 'Статус',
+    noArticles: 'Статей пока нет',
+    statusDraft: 'Черновик',
+    statusQueued: 'В очереди',
+    statusGenerating: 'Генерация',
+    statusPublishing: 'Публикация',
+    statusPublished: 'Опубликовано',
+    statusPromoting: 'Продвижение',
+    statusCompleted: 'Завершено',
+    statusError: 'Ошибка',
   },
   services: {
     ghost: 'Ghost',

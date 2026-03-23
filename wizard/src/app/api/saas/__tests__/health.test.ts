@@ -6,6 +6,7 @@ const mockTableHealthCheck = vi.fn().mockResolvedValue(true);
 const mockAutomationHealthCheck = vi.fn().mockResolvedValue(true);
 const mockGetStats = vi.fn().mockResolvedValue({
   queue: 3,
+  draft: 0,
   generating: 0,
   publishing: 0,
   published: 5,

@@ -394,7 +394,7 @@ Server Component redirects: `deployed: false` -> `/setup`, `deployed: true` -> `
 
 ### Dashboard (`src/app/dashboard/page.tsx`)
 
-Client component: service health via `ServiceStatus` components, article stats by status, quick links, 30s auto-refresh, reconfigure button (resets deploy state), SaaS badge when `OPENANT_SAAS_MODE=true`.
+Client component: service health via `ServiceStatus` components, article stats by status (including drafts), article management list with draft toggle for queued articles, quick links, 30s auto-refresh, reconfigure button (resets deploy state), SaaS badge when `OPENANT_SAAS_MODE=true`.
 
 ### Wizard container (`src/app/setup/page.tsx`)
 
@@ -498,6 +498,7 @@ All providers are OpenAI-compatible (no adapter needed):
 | `POST /api/setup/apply`                    | Yes  | SSE deploy pipeline, supports `?startFrom=N`                          |
 | `GET /api/dashboard/status`                | Yes  | Service health, URLs, credentials, `saas_mode`. Managed: n8n hidden   |
 | `GET /api/dashboard/stats`                 | Yes  | Article counts by status                                              |
+| `GET/PATCH /api/dashboard/articles`        | Yes  | List articles; toggle draft status for queued/draft articles          |
 | `POST /api/dashboard/reconfigure`          | Yes  | Reset deploy state, preserve config                                   |
 | `GET /api/saas/health`                     | No   | 404 if SaaS off; health + stats + autopublish/telegramWorkflow status |
 | `GET/POST/PATCH/DELETE /api/saas/articles` | Yes  | Articles CRUD. DELETE guarded: queue/error status only                |

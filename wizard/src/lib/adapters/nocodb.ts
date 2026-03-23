@@ -12,6 +12,7 @@ import type {
 import { AdapterError } from '@/lib/errors';
 
 const ALL_STATUSES: ArticleStatus[] = [
+  'draft',
   'generating',
   'publishing',
   'published',
@@ -743,7 +744,10 @@ export function createNocoDBAdapter(): TableAdapter {
       const tableId = getEnvOrThrow('NOCODB_TABLE_ID', 'updateStatus');
       const baseUrl = getNocoDbUrl();
 
-      const body: Record<string, unknown> = { Id: Number(rowId), Status: status };
+      const body: Record<string, unknown> = {
+        Id: Number(rowId),
+        Status: status === 'queue' ? null : status,
+      };
       if (extra?.ghostUrl) body.GhostURL = extra.ghostUrl;
       if (extra?.pinUrl) body.PinURL = extra.pinUrl;
       if (extra?.error) body.Error = extra.error;

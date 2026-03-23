@@ -20,6 +20,7 @@ export function createMockNocoDBAdapter(): TableAdapter {
     async getStats() {
       return {
         queue: 0,
+        draft: 0,
         generating: 0,
         publishing: 0,
         published: 0,

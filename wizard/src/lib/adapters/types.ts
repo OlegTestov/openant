@@ -80,6 +80,7 @@ export interface ArticleRow {
 
 export type ArticleStatus =
   | 'queue'
+  | 'draft'
   | 'generating'
   | 'publishing'
   | 'published'

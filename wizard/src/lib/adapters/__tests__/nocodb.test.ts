@@ -459,8 +459,16 @@ describe('createNocoDBAdapter', () => {
     it('returns count for each status (blank = queue)', async () => {
       // First call: blank status count (queue)
       mockFetch.mockResolvedValueOnce(mockResponse({ pageInfo: { totalRows: 5 } }));
-      // Then 6 calls for each non-queue status
-      const statuses = ['generating', 'publishing', 'published', 'promoting', 'completed', 'error'];
+      // Then 7 calls for each non-queue status (draft, generating, publishing, published, promoting, completed, error)
+      const statuses = [
+        'draft',
+        'generating',
+        'publishing',
+        'published',
+        'promoting',
+        'completed',
+        'error',
+      ];
       for (let i = 0; i < statuses.length; i++) {
         mockFetch.mockResolvedValueOnce(mockResponse({ pageInfo: { totalRows: (i + 1) * 10 } }));
       }
@@ -470,18 +478,19 @@ describe('createNocoDBAdapter', () => {
 
       expect(stats).toEqual({
         queue: 5,
-        generating: 10,
-        publishing: 20,
-        published: 30,
-        promoting: 40,
-        completed: 50,
-        error: 60,
+        draft: 10,
+        generating: 20,
+        publishing: 30,
+        published: 40,
+        promoting: 50,
+        completed: 60,
+        error: 70,
       });
     });
 
     it('queries blank status for queue count', async () => {
-      // blank + 6 statuses = 7 calls
-      for (let i = 0; i < 7; i++) {
+      // blank + 7 statuses = 8 calls
+      for (let i = 0; i < 8; i++) {
         mockFetch.mockResolvedValueOnce(mockResponse({ pageInfo: { totalRows: 0 } }));
       }
       const adapter = createNocoDBAdapter();
@@ -493,7 +502,7 @@ describe('createNocoDBAdapter', () => {
     });
 
     it('returns 0 for statuses with no records', async () => {
-      for (let i = 0; i < 7; i++) {
+      for (let i = 0; i < 8; i++) {
         mockFetch.mockResolvedValueOnce(mockResponse({ pageInfo: { totalRows: 0 } }));
       }
       const adapter = createNocoDBAdapter();
@@ -504,7 +513,7 @@ describe('createNocoDBAdapter', () => {
     });
 
     it('handles missing pageInfo gracefully', async () => {
-      for (let i = 0; i < 7; i++) {
+      for (let i = 0; i < 8; i++) {
         mockFetch.mockResolvedValueOnce(mockResponse({}));
       }
       const adapter = createNocoDBAdapter();
