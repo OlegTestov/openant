@@ -27,6 +27,7 @@ const updateSchema = z.object({
   description: z.string().optional(),
   link: z.string().optional(),
   board: z.string().optional(),
+  draft: z.boolean().optional(),
 });
 
 const deleteSchema = z.object({
@@ -72,9 +73,37 @@ export const PATCH = withAuth(
     if (guard) return guard;
 
     const body = updateSchema.parse(await req.json());
-    const { id, ...input } = body;
+    const { id, draft, ...input } = body;
     const adapters = createAdapters();
-    await adapters.table.updateArticle(id, input);
+
+    // Handle draft toggle
+    if (draft !== undefined) {
+      const articles = await adapters.table.listArticles();
+      const article = articles.find((a) => a.id === id);
+      if (!article) {
+        return Response.json(
+          { success: false, error: 'Article not found', code: 'NOT_FOUND' },
+          { status: 404 },
+        );
+      }
+      if (article.status !== 'queue' && article.status !== 'draft') {
+        return Response.json(
+          {
+            success: false,
+            error: 'Can only toggle draft for queued or draft articles',
+            code: 'STATUS_NOT_ALLOWED',
+          },
+          { status: 400 },
+        );
+      }
+      await adapters.table.updateStatus(id, draft ? 'draft' : 'queue');
+    }
+
+    // Handle field updates (topic, description, link, board)
+    if (Object.keys(input).length > 0) {
+      await adapters.table.updateArticle(id, input);
+    }
+
     return Response.json({ success: true });
   }),
 );
