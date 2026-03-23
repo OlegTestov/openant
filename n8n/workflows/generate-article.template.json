@@ -8,7 +8,7 @@
       "position": [250, 300],
       "parameters": {
         "rule": {
-          "interval": [{ "field": "minutes", "minutesInterval": 300 }]
+          "interval": [{ "field": "hours", "hoursInterval": 5 }]
         }
       }
     },
@@ -23,7 +23,10 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "(Status,blank)~or(Status,eq,publishing)~or(Status,eq,error)" },
+            {
+              "name": "where",
+              "value": "(Status,blank)~or(Status,eq,publishing)~or(Status,eq,error)"
+            },
             { "name": "sort", "value": "CreatedAt" },
             { "name": "limit", "value": "1" }
           ]
@@ -91,9 +94,7 @@
         "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_PROMPTS_TABLE_ID}}/records",
         "sendQuery": true,
         "queryParameters": {
-          "parameters": [
-            { "name": "limit", "value": "1" }
-          ]
+          "parameters": [{ "name": "limit", "value": "1" }]
         },
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth"
@@ -611,9 +612,7 @@
         "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_PROMPTS_TABLE_ID}}/records",
         "sendQuery": true,
         "queryParameters": {
-          "parameters": [
-            { "name": "limit", "value": "1" }
-          ]
+          "parameters": [{ "name": "limit", "value": "1" }]
         },
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth"
@@ -706,7 +705,13 @@
     "Check Pinterest (retry)": {
       "main": [
         [{ "node": "Prepare Pin Retry", "type": "main", "index": 0 }],
-        [{ "node": "Update Status: completed (no pin)", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Update Status: completed (no pin)",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Prepare Pin Retry": {
@@ -746,7 +751,9 @@
       ]
     },
     "Generate & Upload Image": {
-      "main": [[{ "node": "Update Status: publishing", "type": "main", "index": 0 }]]
+      "main": [
+        [{ "node": "Update Status: publishing", "type": "main", "index": 0 }]
+      ]
     },
     "Update Status: publishing": {
       "main": [[{ "node": "Generate Meta", "type": "main", "index": 0 }]]
@@ -770,15 +777,23 @@
       ]
     },
     "Update Status: published": {
-      "main": [[
-        { "node": "Check Pinterest", "type": "main", "index": 0 },
-        { "node": "Notify: Published", "type": "main", "index": 0 }
-      ]]
+      "main": [
+        [
+          { "node": "Check Pinterest", "type": "main", "index": 0 },
+          { "node": "Notify: Published", "type": "main", "index": 0 }
+        ]
+      ]
     },
     "Check Pinterest": {
       "main": [
         [{ "node": "Prepare Pin Prompts", "type": "main", "index": 0 }],
-        [{ "node": "Update Status: completed (no pin)", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Update Status: completed (no pin)",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Prepare Pin Prompts": {

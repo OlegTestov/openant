@@ -1,6 +1,6 @@
 # openant — Architecture Overview
 
-> Last updated: 2026-03-22
+> Last updated: 2026-03-23
 
 ---
 
@@ -203,26 +203,26 @@ n8n calls Ghost Admin API via HTTPS through Caddy. SaaS domains use a wildcard L
 
 ### Placeholder substitution
 
-| Placeholder                   | Type                       | Source                                                |
-| ----------------------------- | -------------------------- | ----------------------------------------------------- |
-| `{{NOCODB_TABLE_ID}}`         | String replacement         | `WorkflowParams.nocodbTableId`                        |
-| `{{NOCODB_PROMPTS_TABLE_ID}}` | String replacement         | `WorkflowParams.nocodbPromptsTableId`                 |
-| `{{LLM_API_URL}}`             | String replacement         | `WorkflowParams.llmApiUrl`                            |
-| `{{LLM_API_KEY}}`             | String replacement         | `WorkflowParams.llmApiKey`                            |
-| `{{LLM_IMAGE_MODEL}}`         | String replacement         | `WorkflowParams.llmImageModel`                        |
-| `{{GHOST_ADMIN_API_KEY}}`     | String replacement         | `WorkflowParams.ghostAdminApiKey`                     |
-| `{{GHOST_URL}}`               | String replacement         | `WorkflowParams.ghostUrl` (public links)              |
-| `{{GHOST_API_URL}}`           | String replacement         | `WorkflowParams.ghostApiUrl` (SaaS domain, Admin API) |
-| `{{MAKE_WEBHOOK_URL}}`        | String replacement         | `WorkflowParams.makeWebhookUrl`                       |
-| `{{PINTEREST_BOARD}}`         | String replacement         | `WorkflowParams.pinterestBoard`                       |
-| `{{DEFAULT_LINK}}`            | String replacement         | `WorkflowParams.defaultLink`                          |
-| `{{TELEGRAM_BOT_TOKEN}}`      | String replacement         | `WorkflowParams.telegramBotToken`                     |
-| `{{TELEGRAM_CHAT_ID}}`        | String replacement         | `WorkflowParams.telegramChatId`                       |
-| `{{NOCODB_AUTH_TOKEN}}`       | String replacement         | `WorkflowParams.nocodbAuthToken`                      |
-| `minutesInterval`             | Structured (schedule node) | `WorkflowParams.scheduleIntervalMinutes`              |
-| `model`                       | Structured (OpenAI node)   | `WorkflowParams.llmModel`                             |
-| `url` (Make node)             | Structured (HTTP node)     | `WorkflowParams.makeWebhookUrl`                       |
-| `credentials.*.id`            | Structured (all nodes)     | `WorkflowParams.credentialIds`                        |
+| Placeholder                   | Type                       | Source                                                                                    |
+| ----------------------------- | -------------------------- | ----------------------------------------------------------------------------------------- |
+| `{{NOCODB_TABLE_ID}}`         | String replacement         | `WorkflowParams.nocodbTableId`                                                            |
+| `{{NOCODB_PROMPTS_TABLE_ID}}` | String replacement         | `WorkflowParams.nocodbPromptsTableId`                                                     |
+| `{{LLM_API_URL}}`             | String replacement         | `WorkflowParams.llmApiUrl`                                                                |
+| `{{LLM_API_KEY}}`             | String replacement         | `WorkflowParams.llmApiKey`                                                                |
+| `{{LLM_IMAGE_MODEL}}`         | String replacement         | `WorkflowParams.llmImageModel`                                                            |
+| `{{GHOST_ADMIN_API_KEY}}`     | String replacement         | `WorkflowParams.ghostAdminApiKey`                                                         |
+| `{{GHOST_URL}}`               | String replacement         | `WorkflowParams.ghostUrl` (public links)                                                  |
+| `{{GHOST_API_URL}}`           | String replacement         | `WorkflowParams.ghostApiUrl` (SaaS domain, Admin API)                                     |
+| `{{MAKE_WEBHOOK_URL}}`        | String replacement         | `WorkflowParams.makeWebhookUrl`                                                           |
+| `{{PINTEREST_BOARD}}`         | String replacement         | `WorkflowParams.pinterestBoard`                                                           |
+| `{{DEFAULT_LINK}}`            | String replacement         | `WorkflowParams.defaultLink`                                                              |
+| `{{TELEGRAM_BOT_TOKEN}}`      | String replacement         | `WorkflowParams.telegramBotToken`                                                         |
+| `{{TELEGRAM_CHAT_ID}}`        | String replacement         | `WorkflowParams.telegramChatId`                                                           |
+| `{{NOCODB_AUTH_TOKEN}}`       | String replacement         | `WorkflowParams.nocodbAuthToken`                                                          |
+| `interval` (schedule node)    | Structured (schedule node) | `WorkflowParams.scheduleIntervalMinutes` — auto-converts to `hoursInterval` when ≥ 60 min |
+| `model`                       | Structured (OpenAI node)   | `WorkflowParams.llmModel`                                                                 |
+| `url` (Make node)             | Structured (HTTP node)     | `WorkflowParams.makeWebhookUrl`                                                           |
+| `credentials.*.id`            | Structured (all nodes)     | `WorkflowParams.credentialIds`                                                            |
 
 ### NocoDB Prompts table
 

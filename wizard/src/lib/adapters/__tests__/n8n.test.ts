@@ -371,7 +371,44 @@ describe('createN8nAdapter', () => {
       const scheduleNode = body.nodes.find(
         (n: { type: string }) => n.type === 'n8n-nodes-base.scheduleTrigger',
       );
-      expect(scheduleNode.parameters.rule.interval[0].minutesInterval).toBe(60);
+      expect(scheduleNode.parameters.rule.interval[0]).toEqual({
+        field: 'hours',
+        hoursInterval: 1,
+      });
+    });
+
+    it('uses minutes field when interval < 60', async () => {
+      mockListWorkflows();
+      mockFetch.mockResolvedValueOnce(mockResponse({ id: 'wf-1' }));
+      const adapter = createN8nAdapter();
+
+      await adapter.importWorkflow(template, { ...params, scheduleIntervalMinutes: 30 });
+
+      const body = JSON.parse(mockFetch.mock.calls[1][1].body as string);
+      const scheduleNode = body.nodes.find(
+        (n: { type: string }) => n.type === 'n8n-nodes-base.scheduleTrigger',
+      );
+      expect(scheduleNode.parameters.rule.interval[0]).toEqual({
+        field: 'minutes',
+        minutesInterval: 30,
+      });
+    });
+
+    it('uses hours field for multi-hour intervals', async () => {
+      mockListWorkflows();
+      mockFetch.mockResolvedValueOnce(mockResponse({ id: 'wf-1' }));
+      const adapter = createN8nAdapter();
+
+      await adapter.importWorkflow(template, { ...params, scheduleIntervalMinutes: 360 });
+
+      const body = JSON.parse(mockFetch.mock.calls[1][1].body as string);
+      const scheduleNode = body.nodes.find(
+        (n: { type: string }) => n.type === 'n8n-nodes-base.scheduleTrigger',
+      );
+      expect(scheduleNode.parameters.rule.interval[0]).toEqual({
+        field: 'hours',
+        hoursInterval: 6,
+      });
     });
 
     it('substitutes llmModel in OpenAI node', async () => {

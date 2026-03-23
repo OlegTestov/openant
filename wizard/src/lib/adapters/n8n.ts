@@ -238,12 +238,24 @@ export function createN8nAdapter(): AutomationAdapter {
       if (workflow.nodes) {
         for (const node of workflow.nodes) {
           // Schedule Trigger: set interval
+          // n8n ignores minutesInterval values >= 60, so convert to hours when appropriate
           if (node.type === 'n8n-nodes-base.scheduleTrigger' && node.parameters) {
             const rule = node.parameters.rule as
-              | { interval?: Array<{ minutesInterval?: number }> }
+              | {
+                  interval?: Array<{
+                    field?: string;
+                    minutesInterval?: number;
+                    hoursInterval?: number;
+                  }>;
+                }
               | undefined;
             if (rule?.interval?.[0]) {
-              rule.interval[0].minutesInterval = params.scheduleIntervalMinutes;
+              const minutes = params.scheduleIntervalMinutes;
+              if (minutes >= 60 && minutes % 60 === 0) {
+                rule.interval[0] = { field: 'hours', hoursInterval: minutes / 60 };
+              } else {
+                rule.interval[0] = { field: 'minutes', minutesInterval: minutes };
+              }
             }
           }
 
