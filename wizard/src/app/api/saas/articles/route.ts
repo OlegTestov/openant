@@ -124,7 +124,13 @@ export const DELETE = withAuth(
     // Only allow deletion of articles in queue or error status
     const articles = await adapters.table.listArticles();
     const article = articles.find((a) => a.id === body.id);
-    if (article && article.status !== 'queue' && article.status !== 'error') {
+    if (
+      article &&
+      article.status !== 'queue' &&
+      article.status !== 'error' &&
+      article.status !== 'completed' &&
+      article.status !== 'draft'
+    ) {
       return Response.json(
         { success: false, error: 'Cannot delete article in progress', code: 'DELETE_NOT_ALLOWED' },
         { status: 400 },
