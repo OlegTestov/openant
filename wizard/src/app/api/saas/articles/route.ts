@@ -12,7 +12,7 @@ function saasGuard(): Response | null {
 
 const createSchema = z.object({
   topic: z.string().min(1),
-  description: z.string().optional(),
+  description: z.string().max(4096).optional(),
   link: z.string().optional(),
   board: z.string().optional(),
   draft: z.boolean().optional(),
