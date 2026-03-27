@@ -59,6 +59,10 @@ export interface Translations {
       hours: string;
       defaultLink: string;
       defaultLinkHint: string;
+      defaultLinkName: string;
+      defaultLinkNameHint: string;
+      defaultLinkNamePlaceholder: string;
+      defaultLinkNameExamples: string;
       preview: string;
     };
     telegram: {
@@ -250,6 +254,12 @@ const en: Translations = {
       defaultLink: 'Default Link',
       defaultLinkHint:
         'Default URL to embed in blog articles as a call-to-action (used when no per-article link is set)',
+      defaultLinkName: 'Resource Name',
+      defaultLinkNameHint:
+        'Describe what your link leads to. The AI will use this in calls-to-action instead of guessing.',
+      defaultLinkNamePlaceholder: 'e.g. Telegram channel "Marketing Pro"',
+      defaultLinkNameExamples:
+        'Examples:\n\u2022 Telegram channel "Ivan Ivanov \u2014 Level 90 Marketer"\n\u2022 Psychologist Anna Petrova\'s website \u2014 consultations and articles\n\u2022 Umbrella Corp online store \u2014 live forever',
       preview: 'Preview',
     },
     telegram: {
@@ -443,6 +453,12 @@ const ru: Translations = {
       defaultLink: 'Ссылка по умолчанию',
       defaultLinkHint:
         'URL для встраивания в статьи блога как призыв к действию (используется, если для статьи не задана отдельная ссылка)',
+      defaultLinkName: 'Название ресурса',
+      defaultLinkNameHint:
+        'Опишите, куда ведёт ссылка. ИИ будет использовать это в призывах к действию вместо того, чтобы угадывать.',
+      defaultLinkNamePlaceholder: 'напр. Телеграм-канал \u00abМаркетинг Про\u00bb',
+      defaultLinkNameExamples:
+        'Примеры:\n\u2022 Телеграм-канал \u00abИван Иванов \u2014 маркетолог 90-го уровня\u00bb\n\u2022 Сайт психолога Анны Петровой \u2014 консультации и статьи\n\u2022 Интернет-магазин \u00abКорпорация Амбрела\u00bb \u2014 живите вечно',
       preview: 'Предпросмотр',
     },
     telegram: {

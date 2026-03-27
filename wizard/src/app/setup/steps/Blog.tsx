@@ -26,6 +26,7 @@ export default function Blog({ onComplete, onBack, initialData }: StepProps) {
         tone?: string;
         publish_interval_minutes?: number;
         default_link?: string;
+        default_link_name?: string;
       }
     | undefined;
   const savedMinutes = initial?.publish_interval_minutes;
@@ -41,6 +42,7 @@ export default function Blog({ onComplete, onBack, initialData }: StepProps) {
   );
   const [unit, setUnit] = useState<'minutes' | 'hours'>(defaultUnit);
   const [defaultLink, setDefaultLink] = useState(initial?.default_link ?? '');
+  const [defaultLinkName, setDefaultLinkName] = useState(initial?.default_link_name ?? '');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const t = useTranslations();
@@ -66,6 +68,7 @@ export default function Blog({ onComplete, onBack, initialData }: StepProps) {
           tone,
           publish_interval_minutes: publishIntervalMinutes,
           default_link: defaultLink || undefined,
+          default_link_name: defaultLinkName || undefined,
         }),
       });
 
@@ -83,6 +86,7 @@ export default function Blog({ onComplete, onBack, initialData }: StepProps) {
         tone,
         publish_interval_minutes: publishIntervalMinutes,
         default_link: defaultLink || undefined,
+        default_link_name: defaultLinkName || undefined,
       });
     } catch {
       setError(t.common.failedToSave);
@@ -210,6 +214,27 @@ export default function Blog({ onComplete, onBack, initialData }: StepProps) {
             {t.steps.blog.defaultLinkHint}
           </p>
         </div>
+
+        {defaultLink && (
+          <div>
+            <Label htmlFor="default-link-name">{t.steps.blog.defaultLinkName}</Label>
+            <Input
+              id="default-link-name"
+              className="mt-1"
+              value={defaultLinkName}
+              onChange={(e) => setDefaultLinkName(e.target.value)}
+              maxLength={200}
+              placeholder={t.steps.blog.defaultLinkNamePlaceholder}
+              aria-describedby="default-link-name-hint"
+            />
+            <p id="default-link-name-hint" className="text-muted-foreground mt-1 text-xs">
+              {t.steps.blog.defaultLinkNameHint}
+            </p>
+            <p className="text-muted-foreground mt-1 whitespace-pre-line text-xs">
+              {t.steps.blog.defaultLinkNameExamples}
+            </p>
+          </div>
+        )}
 
         <Card className="bg-muted mt-4 p-4">
           <h3 className="text-lg font-bold">{title || 'Your Blog Title'}</h3>

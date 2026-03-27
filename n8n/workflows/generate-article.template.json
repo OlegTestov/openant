@@ -110,7 +110,7 @@
       "position": [1250, 250],
       "onError": "continueErrorOutput",
       "parameters": {
-        "jsCode": "const prompts = $('Get Prompts').first().json.list[0];\nconst article = $('Get Next Queued').first().json.list[0];\nconst link = article.Link || '{{DEFAULT_LINK}}';\n\nreturn [{ json: {\n  titleSystem: prompts.ArticleTitle || '',\n  titleUser: 'Topic: ' + (article.Topic || '') + '\\nDescription: ' + (article.Description || ''),\n  textSystem: prompts.ArticleText || '',\n  textUser: 'Topic: ' + (article.Topic || '') + '\\nDescription: ' + (article.Description || '') + '\\nLink to include: ' + link,\n  imageSystem: prompts.ArticleImage || '',\n  imageUser: 'Topic: ' + (article.Topic || '') + '\\nDescription: ' + (article.Description || ''),\n  metaSeoSystem: prompts.ArticleMetaSEO || '',\n}}];"
+        "jsCode": "const prompts = $('Get Prompts').first().json.list[0];\nconst article = $('Get Next Queued').first().json.list[0];\nconst link = article.Link || '{{DEFAULT_LINK}}';\nconst linkName = '{{DEFAULT_LINK_NAME}}';\nconst linkInfo = link ? ('\\nLink to include: ' + link + (linkName ? ' (' + linkName + ')' : '')) : '';\n\nreturn [{ json: {\n  titleSystem: prompts.ArticleTitle || '',\n  titleUser: 'Topic: ' + (article.Topic || '') + '\\nDescription: ' + (article.Description || ''),\n  textSystem: prompts.ArticleText || '',\n  textUser: 'Topic: ' + (article.Topic || '') + '\\nDescription: ' + (article.Description || '') + linkInfo,\n  imageSystem: prompts.ArticleImage || '',\n  imageUser: 'Topic: ' + (article.Topic || '') + '\\nDescription: ' + (article.Description || ''),\n  metaSeoSystem: prompts.ArticleMetaSEO || '',\n}}];"
       }
     },
     {

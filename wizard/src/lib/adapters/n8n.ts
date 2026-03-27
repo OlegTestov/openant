@@ -311,6 +311,7 @@ export function createN8nAdapter(): AutomationAdapter {
         .replace(/\{\{MAKE_WEBHOOK_URL\}\}/g, params.makeWebhookUrl ?? '')
         .replace(/\{\{PINTEREST_BOARD\}\}/g, params.pinterestBoard ?? '')
         .replace(/\{\{DEFAULT_LINK\}\}/g, params.defaultLink ?? '')
+        .replace(/\{\{DEFAULT_LINK_NAME\}\}/g, params.defaultLinkName ?? '')
         .replace(/\{\{TELEGRAM_BOT_TOKEN\}\}/g, params.telegramBotToken ?? '')
         // TELEGRAM_CHAT_ID removed — fetched from NocoDB at runtime
         .replace(/\{\{NOCODB_AUTH_TOKEN\}\}/g, params.nocodbAuthToken ?? '');

@@ -176,7 +176,7 @@ const DEFAULT_PROMPTS: Record<string, string> = {
     'Write in {language}. Use a {tone} tone throughout. Write as a knowledgeable practitioner sharing real insights — like a trusted expert friend, not a generic content mill.',
     '',
     '# INPUT',
-    'You will receive a Topic, an optional Description with details, and a Link to embed in the article. The Link is the primary conversion goal — it leads to the resource, product, or service the reader should visit.',
+    'You will receive a Topic, an optional Description with details, and a Link to embed in the article. The Link may include a resource name in parentheses — use that name in CTAs and anchor text instead of guessing. The Link is the primary conversion goal — it leads to the resource, product, or service the reader should visit.',
     '',
     '# ARTICLE STRUCTURE (1000–1500 words)',
     '',

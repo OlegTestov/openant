@@ -150,6 +150,7 @@ export interface WorkflowParams {
   makeWebhookUrl?: string;
   pinterestBoard?: string;
   defaultLink?: string;
+  defaultLinkName?: string;
   nocodbBaseId?: string;
   nocodbTableId?: string;
   nocodbPromptsTableId?: string;

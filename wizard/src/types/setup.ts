@@ -27,6 +27,7 @@ export interface SetupState {
     tone: string;
     publish_interval_minutes: number;
     default_link?: string;
+    default_link_name?: string;
   };
   telegram?: {
     bot_token?: string;

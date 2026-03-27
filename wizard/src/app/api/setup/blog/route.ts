@@ -10,6 +10,7 @@ export const blogSchema = z.object({
   tone: z.enum(['professional', 'casual', 'academic']),
   publish_interval_minutes: z.number().int().min(10, 'Minimum interval is 10 minutes'),
   default_link: z.string().url().optional().or(z.literal('')),
+  default_link_name: z.string().max(200).optional().or(z.literal('')),
 });
 
 export const POST = withAuth(
