@@ -660,7 +660,7 @@
       "position": [1550, -100],
       "onError": "continueErrorOutput",
       "parameters": {
-        "jsCode": "const prompts = $('Get Prompts (retry)').first().json.list[0];\nconst article = $('Get Next Queued').first().json.list[0];\nconst title = article.Topic || '';\nconst ghostUrl = article.ArticleURL || article.GhostURL || '';\nconst board = article.Board || '{{PINTEREST_BOARD}}';\n\nreturn [{ json: {\n  pinNameSystem: prompts.PinName || '',\n  pinNameUser: 'Topic: ' + title + '\\nDescription: ' + (article.Description || ''),\n  pinTextSystem: prompts.PinText || '',\n  pinTextUser: 'Topic: ' + title + '\\nDescription: ' + (article.Description || '') + '\\nArticle URL: ' + ghostUrl,\n  pinImageSystem: prompts.PinImage || '',\n  pinImageUser: 'Topic: ' + title + '\\nDescription: ' + (article.Description || ''),\n  ghostUrl: ghostUrl,\n  board: board,\n}}];"
+        "jsCode": "const prompts = $('Get Prompts (retry)').first().json.list[0];\nconst article = $('Get Next Queued').first().json.list[0];\nconst title = article.Topic || '';\nconst ghostUrl = article.ArticleURL || '';\nconst board = article.Board || '{{PINTEREST_BOARD}}';\n\nreturn [{ json: {\n  pinNameSystem: prompts.PinName || '',\n  pinNameUser: 'Topic: ' + title + '\\nDescription: ' + (article.Description || ''),\n  pinTextSystem: prompts.PinText || '',\n  pinTextUser: 'Topic: ' + title + '\\nDescription: ' + (article.Description || '') + '\\nArticle URL: ' + ghostUrl,\n  pinImageSystem: prompts.PinImage || '',\n  pinImageUser: 'Topic: ' + title + '\\nDescription: ' + (article.Description || ''),\n  ghostUrl: ghostUrl,\n  board: board,\n}}];"
       }
     },
     {
