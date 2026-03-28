@@ -41,6 +41,8 @@ const setupStateSchema = z.object({
       language: z.string(),
       tone: z.string(),
       publish_interval_minutes: z.number(),
+      default_link: z.string().optional(),
+      default_link_name: z.string().optional(),
     })
     .optional(),
   telegram: z
