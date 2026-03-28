@@ -139,6 +139,7 @@ describe('createNocoDBAdapter', () => {
         { title: 'Topic', uidt: 'SingleLineText', pv: true },
         { title: 'Description', uidt: 'LongText' },
         { title: 'Link', uidt: 'URL' },
+        { title: 'ArticleURL', uidt: 'URL' },
       ]);
     });
 
@@ -251,6 +252,10 @@ describe('createNocoDBAdapter', () => {
             { id: 'prompts-table-1', title: 'Prompts' },
           ],
         }),
+      );
+      // List columns for migration check — ArticleURL already exists
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({ list: [{ title: 'ArticleURL' }] }),
       );
       // List API tokens — finds existing "openant" token
       mockFetch.mockResolvedValueOnce(

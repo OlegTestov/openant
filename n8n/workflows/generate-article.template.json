@@ -548,10 +548,26 @@
       }
     },
     {
+      "name": "Is Pin Only?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [750, 300],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.list[0].ArticleURL }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      }
+    },
+    {
       "name": "Is Pin Retry?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [750, 250],
+      "position": [950, 400],
       "parameters": {
         "conditions": {
           "string": [
@@ -644,7 +660,7 @@
       "position": [1550, -100],
       "onError": "continueErrorOutput",
       "parameters": {
-        "jsCode": "const prompts = $('Get Prompts (retry)').first().json.list[0];\nconst article = $('Get Next Queued').first().json.list[0];\nconst title = article.Topic || '';\nconst ghostUrl = article.GhostURL || '';\nconst board = article.Board || '{{PINTEREST_BOARD}}';\n\nreturn [{ json: {\n  pinNameSystem: prompts.PinName || '',\n  pinNameUser: 'Topic: ' + title + '\\nDescription: ' + (article.Description || ''),\n  pinTextSystem: prompts.PinText || '',\n  pinTextUser: 'Topic: ' + title + '\\nDescription: ' + (article.Description || '') + '\\nArticle URL: ' + ghostUrl,\n  pinImageSystem: prompts.PinImage || '',\n  pinImageUser: 'Topic: ' + title + '\\nDescription: ' + (article.Description || ''),\n  ghostUrl: ghostUrl,\n  board: board,\n}}];"
+        "jsCode": "const prompts = $('Get Prompts (retry)').first().json.list[0];\nconst article = $('Get Next Queued').first().json.list[0];\nconst title = article.Topic || '';\nconst ghostUrl = article.GhostURL || article.ArticleURL || '';\nconst board = article.Board || '{{PINTEREST_BOARD}}';\n\nreturn [{ json: {\n  pinNameSystem: prompts.PinName || '',\n  pinNameUser: 'Topic: ' + title + '\\nDescription: ' + (article.Description || ''),\n  pinTextSystem: prompts.PinText || '',\n  pinTextUser: 'Topic: ' + title + '\\nDescription: ' + (article.Description || '') + '\\nArticle URL: ' + ghostUrl,\n  pinImageSystem: prompts.PinImage || '',\n  pinImageUser: 'Topic: ' + title + '\\nDescription: ' + (article.Description || ''),\n  ghostUrl: ghostUrl,\n  board: board,\n}}];"
       }
     },
     {
@@ -685,7 +701,13 @@
       "main": [[{ "node": "Has Records?", "type": "main", "index": 0 }]]
     },
     "Has Records?": {
-      "main": [[{ "node": "Is Pin Retry?", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Is Pin Only?", "type": "main", "index": 0 }]]
+    },
+    "Is Pin Only?": {
+      "main": [
+        [{ "node": "Update Status: promoting", "type": "main", "index": 0 }],
+        [{ "node": "Is Pin Retry?", "type": "main", "index": 0 }]
+      ]
     },
     "Is Pin Retry?": {
       "main": [

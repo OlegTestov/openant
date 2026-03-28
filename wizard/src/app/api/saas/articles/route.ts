@@ -14,6 +14,7 @@ const createSchema = z.object({
   topic: z.string().min(1),
   description: z.string().max(4096).optional(),
   link: z.string().optional(),
+  articleUrl: z.string().url().optional(),
   board: z.string().optional(),
   draft: z.boolean().optional(),
 });
@@ -27,6 +28,7 @@ const updateSchema = z.object({
   topic: z.string().min(1).optional(),
   description: z.string().optional(),
   link: z.string().optional(),
+  articleUrl: z.string().url().optional().or(z.literal('')),
   board: z.string().optional(),
   draft: z.boolean().optional(),
 });

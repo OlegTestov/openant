@@ -87,6 +87,7 @@ async function createArticlesTable(
           { title: 'Topic', uidt: 'SingleLineText', pv: true },
           { title: 'Description', uidt: 'LongText' },
           { title: 'Link', uidt: 'URL' },
+          { title: 'ArticleURL', uidt: 'URL' },
         ],
       }),
     },
@@ -498,6 +499,7 @@ function mapRowToArticle(row: Record<string, unknown>): ArticleRow {
     topic: row.Topic as string,
     description: (row.Description as string) || undefined,
     link: (row.Link as string) || undefined,
+    articleUrl: (row.ArticleURL as string) || undefined,
     board: (row.Board as string) || undefined,
     status: (row.Status as ArticleStatus) || 'queue',
     ghostUrl: (row.GhostURL as string) || undefined,
@@ -511,6 +513,7 @@ function mapArticleInputToRow(input: ArticleCreateInput): Record<string, unknown
   const body: Record<string, unknown> = { Topic: input.topic };
   if (input.description) body.Description = input.description;
   if (input.link) body.Link = input.link;
+  if (input.articleUrl) body.ArticleURL = input.articleUrl;
   if (input.board) body.Board = input.board;
   return body;
 }
@@ -634,6 +637,27 @@ export function createNocoDBAdapter(): TableAdapter {
       const existingArticles = existingTables.find((t) => t.title === 'Articles');
       if (existingArticles) {
         tableId = existingArticles.id;
+        // Migrate: add ArticleURL column if missing (for existing instances)
+        const colsRes = await nocoFetch(
+          `${baseUrl}/api/v2/meta/tables/${tableId}/columns/`,
+          authToken,
+          {},
+          'xc-auth',
+        );
+        if (colsRes.ok) {
+          const colsData = (await colsRes.json()) as {
+            list?: Array<{ title: string }>;
+          };
+          const cols = colsData.list ?? [];
+          if (!cols.some((c) => c.title === 'ArticleURL')) {
+            await nocoFetch(
+              `${baseUrl}/api/v2/meta/tables/${tableId}/columns/`,
+              authToken,
+              { method: 'POST', body: JSON.stringify({ title: 'ArticleURL', uidt: 'URL' }) },
+              'xc-auth',
+            );
+          }
+        }
       } else {
         tableId = await createArticlesTable(baseUrl, authToken, baseId);
         tableCreated = true;
@@ -872,6 +896,7 @@ export function createNocoDBAdapter(): TableAdapter {
       if (input.topic !== undefined) body.Topic = input.topic;
       if (input.description !== undefined) body.Description = input.description;
       if (input.link !== undefined) body.Link = input.link;
+      if (input.articleUrl !== undefined) body.ArticleURL = input.articleUrl;
       if (input.board !== undefined) body.Board = input.board;
 
       const res = await nocoFetch(`${baseUrl}/api/v2/tables/${tableId}/records`, authToken, {

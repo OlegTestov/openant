@@ -70,6 +70,7 @@ export interface ArticleRow {
   topic: string;
   description?: string;
   link?: string;
+  articleUrl?: string;
   board?: string;
   status: ArticleStatus;
   ghostUrl?: string;
@@ -92,6 +93,7 @@ export interface ArticleCreateInput {
   topic: string;
   description?: string;
   link?: string;
+  articleUrl?: string;
   board?: string;
 }
 
@@ -99,6 +101,7 @@ export interface ArticleUpdateInput {
   topic?: string;
   description?: string;
   link?: string;
+  articleUrl?: string;
   board?: string;
 }
 
