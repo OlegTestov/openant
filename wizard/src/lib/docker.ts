@@ -163,6 +163,14 @@ export async function startServices(): Promise<void> {
     waitForUrl(urls.nocodb + '/api/v1/health', 'NocoDB'),
     waitForUrl(urls.n8n + '/healthz', 'n8n'),
   ]);
+
+  // Re-register webhook-based triggers (Telegram) in case n8n was recreated
+  try {
+    const adapters = createAdapters();
+    await adapters.automation.reactivateWorkflows();
+  } catch {
+    // Best-effort
+  }
 }
 
 /**
