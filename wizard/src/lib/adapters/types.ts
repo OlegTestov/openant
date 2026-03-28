@@ -73,7 +73,6 @@ export interface ArticleRow {
   articleUrl?: string;
   board?: string;
   status: ArticleStatus;
-  ghostUrl?: string;
   pinUrl?: string;
   error?: string;
   createdAt: string;

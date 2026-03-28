@@ -499,10 +499,9 @@ function mapRowToArticle(row: Record<string, unknown>): ArticleRow {
     topic: row.Topic as string,
     description: (row.Description as string) || undefined,
     link: (row.Link as string) || undefined,
-    articleUrl: (row.ArticleURL as string) || undefined,
+    articleUrl: (row.ArticleURL as string) || (row.GhostURL as string) || undefined,
     board: (row.Board as string) || undefined,
     status: (row.Status as ArticleStatus) || 'queue',
-    ghostUrl: (row.GhostURL as string) || undefined,
     pinUrl: (row.PinURL as string) || undefined,
     error: (row.Error as string) || undefined,
     createdAt: row.CreatedAt as string,
@@ -752,8 +751,8 @@ export function createNocoDBAdapter(): TableAdapter {
         topic: row.Topic as string,
         description: (row.Description as string) || undefined,
         link: (row.Link as string) || undefined,
+        articleUrl: (row.ArticleURL as string) || (row.GhostURL as string) || undefined,
         status: (row.Status as ArticleStatus) || 'queue',
-        ghostUrl: (row.GhostURL as string) || undefined,
         pinUrl: (row.PinURL as string) || undefined,
         error: (row.Error as string) || undefined,
         createdAt: row.CreatedAt as string,
@@ -773,7 +772,7 @@ export function createNocoDBAdapter(): TableAdapter {
         Id: Number(rowId),
         Status: status === 'queue' ? null : status,
       };
-      if (extra?.ghostUrl) body.GhostURL = extra.ghostUrl;
+      if (extra?.articleUrl) body.ArticleURL = extra.articleUrl;
       if (extra?.pinUrl) body.PinURL = extra.pinUrl;
       if (extra?.error) body.Error = extra.error;
 

@@ -21,7 +21,7 @@ const publishedArticle: ArticleRow = {
   id: '3',
   topic: 'Published Topic',
   status: 'published',
-  ghostUrl: 'https://example.com/post',
+  articleUrl: 'https://example.com/post',
   createdAt: '2026-01-03T00:00:00Z',
 };
 

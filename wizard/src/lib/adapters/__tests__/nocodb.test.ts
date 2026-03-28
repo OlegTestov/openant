@@ -366,7 +366,7 @@ describe('createNocoDBAdapter', () => {
         description: 'A test',
         link: 'https://example.com',
         status: 'queue',
-        ghostUrl: undefined,
+        articleUrl: undefined,
         pinUrl: undefined,
         error: undefined,
         createdAt: '2026-01-15T10:00:00Z',
@@ -411,7 +411,7 @@ describe('createNocoDBAdapter', () => {
         id: '7',
         topic: 'Article',
         status: 'generating',
-        ghostUrl: 'https://blog.com/post',
+        articleUrl: 'https://blog.com/post',
         pinUrl: 'https://pin.com/123',
         error: 'some error',
       });
@@ -432,19 +432,19 @@ describe('createNocoDBAdapter', () => {
       expect(body).toMatchObject({ Id: 42, Status: 'publishing' });
     });
 
-    it('includes extra fields when provided (ghostUrl, pinUrl, error)', async () => {
+    it('includes extra fields when provided (articleUrl, pinUrl, error)', async () => {
       mockFetch.mockResolvedValueOnce(mockResponse({}));
       const adapter = createNocoDBAdapter();
 
       await adapter.updateStatus('42', 'published', {
-        ghostUrl: 'https://blog.com/post',
+        articleUrl: 'https://blog.com/post',
         pinUrl: 'https://pin.com/123',
         error: 'some error',
       });
 
       const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
       expect(body).toMatchObject({
-        GhostURL: 'https://blog.com/post',
+        ArticleURL: 'https://blog.com/post',
         PinURL: 'https://pin.com/123',
         Error: 'some error',
       });
