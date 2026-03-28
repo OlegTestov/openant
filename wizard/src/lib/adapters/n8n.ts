@@ -295,26 +295,29 @@ export function createN8nAdapter(): AutomationAdapter {
         }
       }
 
+      // Escape a value for safe insertion into a JSON-serialized string
+      const jsonSafe = (val: string): string => JSON.stringify(val).slice(1, -1); // strips outer quotes, keeps escaped chars
+
       // String-level substitution for language, tone, NocoDB, Ghost, and LLM markers
       const serialized = JSON.stringify(workflow)
-        .replace(/\{\{BLOG_LANGUAGE\}\}/g, params.blogLanguage)
-        .replace(/\{\{BLOG_TONE\}\}/g, params.blogTone)
-        .replace(/\{\{NOCODB_BASE_ID\}\}/g, params.nocodbBaseId ?? '')
-        .replace(/\{\{NOCODB_TABLE_ID\}\}/g, params.nocodbTableId ?? '')
-        .replace(/\{\{NOCODB_PROMPTS_TABLE_ID\}\}/g, params.nocodbPromptsTableId ?? '')
-        .replace(/\{\{GHOST_ADMIN_API_KEY\}\}/g, params.ghostAdminApiKey ?? '')
-        .replace(/\{\{GHOST_API_URL\}\}/g, params.ghostApiUrl ?? params.ghostUrl ?? '')
-        .replace(/\{\{GHOST_URL\}\}/g, params.ghostUrl ?? '')
-        .replace(/\{\{LLM_API_URL\}\}/g, params.llmApiUrl ?? '')
-        .replace(/\{\{LLM_API_KEY\}\}/g, params.llmApiKey ?? '')
-        .replace(/\{\{LLM_IMAGE_MODEL\}\}/g, params.llmImageModel ?? '')
-        .replace(/\{\{MAKE_WEBHOOK_URL\}\}/g, params.makeWebhookUrl ?? '')
-        .replace(/\{\{PINTEREST_BOARD\}\}/g, params.pinterestBoard ?? '')
-        .replace(/\{\{DEFAULT_LINK\}\}/g, params.defaultLink ?? '')
-        .replace(/\{\{DEFAULT_LINK_NAME\}\}/g, params.defaultLinkName ?? '')
-        .replace(/\{\{TELEGRAM_BOT_TOKEN\}\}/g, params.telegramBotToken ?? '')
+        .replace(/\{\{BLOG_LANGUAGE\}\}/g, jsonSafe(params.blogLanguage))
+        .replace(/\{\{BLOG_TONE\}\}/g, jsonSafe(params.blogTone))
+        .replace(/\{\{NOCODB_BASE_ID\}\}/g, jsonSafe(params.nocodbBaseId ?? ''))
+        .replace(/\{\{NOCODB_TABLE_ID\}\}/g, jsonSafe(params.nocodbTableId ?? ''))
+        .replace(/\{\{NOCODB_PROMPTS_TABLE_ID\}\}/g, jsonSafe(params.nocodbPromptsTableId ?? ''))
+        .replace(/\{\{GHOST_ADMIN_API_KEY\}\}/g, jsonSafe(params.ghostAdminApiKey ?? ''))
+        .replace(/\{\{GHOST_API_URL\}\}/g, jsonSafe(params.ghostApiUrl ?? params.ghostUrl ?? ''))
+        .replace(/\{\{GHOST_URL\}\}/g, jsonSafe(params.ghostUrl ?? ''))
+        .replace(/\{\{LLM_API_URL\}\}/g, jsonSafe(params.llmApiUrl ?? ''))
+        .replace(/\{\{LLM_API_KEY\}\}/g, jsonSafe(params.llmApiKey ?? ''))
+        .replace(/\{\{LLM_IMAGE_MODEL\}\}/g, jsonSafe(params.llmImageModel ?? ''))
+        .replace(/\{\{MAKE_WEBHOOK_URL\}\}/g, jsonSafe(params.makeWebhookUrl ?? ''))
+        .replace(/\{\{PINTEREST_BOARD\}\}/g, jsonSafe(params.pinterestBoard ?? ''))
+        .replace(/\{\{DEFAULT_LINK\}\}/g, jsonSafe(params.defaultLink ?? ''))
+        .replace(/\{\{DEFAULT_LINK_NAME\}\}/g, jsonSafe(params.defaultLinkName ?? ''))
+        .replace(/\{\{TELEGRAM_BOT_TOKEN\}\}/g, jsonSafe(params.telegramBotToken ?? ''))
         // TELEGRAM_CHAT_ID removed — fetched from NocoDB at runtime
-        .replace(/\{\{NOCODB_AUTH_TOKEN\}\}/g, params.nocodbAuthToken ?? '');
+        .replace(/\{\{NOCODB_AUTH_TOKEN\}\}/g, jsonSafe(params.nocodbAuthToken ?? ''));
       const finalWorkflow = JSON.parse(serialized) as N8nWorkflow;
 
       // Ensure required fields are present for n8n API
