@@ -254,9 +254,7 @@ describe('createNocoDBAdapter', () => {
         }),
       );
       // List columns for migration check — ArticleURL already exists
-      mockFetch.mockResolvedValueOnce(
-        mockResponse({ list: [{ title: 'ArticleURL' }] }),
-      );
+      mockFetch.mockResolvedValueOnce(mockResponse({ list: [{ title: 'ArticleURL' }] }));
       // List API tokens — finds existing "openant" token
       mockFetch.mockResolvedValueOnce(
         mockResponse({ list: [{ token: 'existing-api-token', description: 'openant' }] }),
