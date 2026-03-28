@@ -50,11 +50,21 @@ const RESTART_CONTAINERS = [
  */
 export async function restartServices(): Promise<void> {
   const urls = getServiceUrls();
+  const projectDir = process.env.HOST_PROJECT_DIR || '/opt/openant';
 
   try {
-    await execAsync(`docker restart ${RESTART_CONTAINERS.join(' ')}`, { timeout: 60_000 });
-  } catch (error) {
-    throw new AdapterError('docker', 'restart', 'Failed to restart containers', error);
+    // Use `docker compose up -d` to recreate containers with latest .env values.
+    // Falls back to `docker restart` if compose isn't available (dev env).
+    await execAsync(
+      `nsenter -t 1 -m -- docker compose -f ${projectDir}/docker-compose.yml up -d --no-build ghost ghost-db nocodb db n8n caddy`,
+      { timeout: 120_000 },
+    );
+  } catch {
+    try {
+      await execAsync(`docker restart ${RESTART_CONTAINERS.join(' ')}`, { timeout: 60_000 });
+    } catch (error) {
+      throw new AdapterError('docker', 'restart', 'Failed to restart containers', error);
+    }
   }
 
   // Wait for services to become healthy again
@@ -134,28 +144,20 @@ export async function updateAndRestart(): Promise<void> {
 
 export async function startServices(): Promise<void> {
   const urls = getServiceUrls();
+  const projectDir = process.env.HOST_PROJECT_DIR || '/opt/openant';
 
-  // Services are started by install-dev.sh before the wizard runs.
-  // We verify that services are healthy.
+  // Recreate containers so they pick up any .env changes (e.g. GHOST_URL after
+  // configuring a custom domain). `docker compose up -d` is idempotent: unchanged
+  // containers are left running, changed ones are recreated.
   try {
-    const checks = await Promise.all([
-      fetch(urls.ghost + '/ghost/api/admin/site/', {
-        signal: AbortSignal.timeout(2000),
-        redirect: 'manual',
-      }).then((r) => r.status < 400),
-      fetch(urls.nocodb + '/api/v1/health', { signal: AbortSignal.timeout(2000) }).then(
-        (r) => r.ok,
-      ),
-      fetch(urls.n8n + '/healthz', { signal: AbortSignal.timeout(2000) }).then((r) => r.ok),
-    ]);
-    if (checks.every(Boolean)) {
-      return;
-    }
+    await execAsync(
+      `nsenter -t 1 -m -- docker compose -f ${projectDir}/docker-compose.yml up -d --no-build ghost ghost-db nocodb db n8n caddy`,
+      { timeout: 120_000 },
+    );
   } catch {
-    // At least one service not reachable
+    // Fallback: if nsenter/compose fails (dev env), just verify health
   }
 
-  // If services aren't healthy, wait for them to come up
   await Promise.all([
     waitForUrl(urls.ghost + '/ghost/api/admin/site/', 'Ghost'),
     waitForUrl(urls.nocodb + '/api/v1/health', 'NocoDB'),
