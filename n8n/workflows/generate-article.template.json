@@ -5,10 +5,18 @@
       "name": "Schedule Trigger",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [250, 300],
+      "position": [
+        250,
+        300
+      ],
       "parameters": {
         "rule": {
-          "interval": [{ "field": "hours", "hoursInterval": 5 }]
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 5
+            }
+          ]
         }
       }
     },
@@ -16,7 +24,10 @@
       "name": "Get Next Queued",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [450, 300],
+      "position": [
+        450,
+        300
+      ],
       "parameters": {
         "method": "GET",
         "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
@@ -27,22 +38,34 @@
               "name": "where",
               "value": "(Status,blank)~or(Status,eq,publishing)~or(Status,eq,error)"
             },
-            { "name": "sort", "value": "CreatedAt" },
-            { "name": "limit", "value": "1" }
+            {
+              "name": "sort",
+              "value": "CreatedAt"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
           ]
         },
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth"
       },
       "credentials": {
-        "httpHeaderAuth": { "id": "", "name": "NocoDB" }
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "NocoDB"
+        }
       }
     },
     {
       "name": "Has Records?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [650, 300],
+      "position": [
+        650,
+        300
+      ],
       "parameters": {
         "conditions": {
           "number": [
@@ -59,7 +82,10 @@
       "name": "Update Status: generating",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [850, 250],
+      "position": [
+        850,
+        250
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
@@ -80,34 +106,51 @@
         "genericAuthType": "httpHeaderAuth"
       },
       "credentials": {
-        "httpHeaderAuth": { "id": "", "name": "NocoDB" }
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "NocoDB"
+        }
       }
     },
     {
       "name": "Get Prompts",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1050, 250],
+      "position": [
+        1050,
+        250
+      ],
       "onError": "continueErrorOutput",
       "parameters": {
         "method": "GET",
         "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_PROMPTS_TABLE_ID}}/records",
         "sendQuery": true,
         "queryParameters": {
-          "parameters": [{ "name": "limit", "value": "1" }]
+          "parameters": [
+            {
+              "name": "limit",
+              "value": "1"
+            }
+          ]
         },
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth"
       },
       "credentials": {
-        "httpHeaderAuth": { "id": "", "name": "NocoDB" }
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "NocoDB"
+        }
       }
     },
     {
       "name": "Prepare Prompts",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1250, 250],
+      "position": [
+        1250,
+        250
+      ],
       "onError": "continueErrorOutput",
       "parameters": {
         "jsCode": "const prompts = $('Get Prompts').first().json.list[0];\nconst article = $('Get Next Queued').first().json.list[0];\nconst link = article.Link || '{{DEFAULT_LINK}}';\nconst linkName = '{{DEFAULT_LINK_NAME}}';\nconst linkInfo = link ? ('\\nLink to include: ' + link + (linkName ? ' (' + linkName + ')' : '')) : '';\nconst today = new Date().toISOString().split('T')[0];\n\nreturn [{ json: {\n  titleSystem: prompts.ArticleTitle || '',\n  titleUser: 'Topic: ' + (article.Topic || '') + '\\nDescription: ' + (article.Description || '') + '\\nCurrent date: ' + today,\n  textSystem: prompts.ArticleText || '',\n  textUser: 'Topic: ' + (article.Topic || '') + '\\nDescription: ' + (article.Description || '') + linkInfo + '\\nCurrent date: ' + today,\n  imageSystem: prompts.ArticleImage || '',\n  imageUser: 'Topic: ' + (article.Topic || '') + '\\nDescription: ' + (article.Description || ''),\n  metaSeoSystem: prompts.ArticleMetaSEO || '',\n}}];"
@@ -117,7 +160,10 @@
       "name": "Generate Title",
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 1.4,
-      "position": [1450, 250],
+      "position": [
+        1450,
+        250
+      ],
       "onError": "continueErrorOutput",
       "retryOnFail": true,
       "maxTries": 3,
@@ -125,7 +171,11 @@
       "parameters": {
         "resource": "text",
         "operation": "message",
-        "modelId": { "__rl": true, "mode": "id", "value": "gpt-4o-mini" },
+        "modelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4o-mini"
+        },
         "messages": {
           "values": [
             {
@@ -140,14 +190,20 @@
         }
       },
       "credentials": {
-        "openAiApi": { "id": "", "name": "LLM API" }
+        "openAiApi": {
+          "id": "",
+          "name": "LLM API"
+        }
       }
     },
     {
       "name": "Generate Article",
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 1.4,
-      "position": [1650, 250],
+      "position": [
+        1650,
+        250
+      ],
       "onError": "continueErrorOutput",
       "retryOnFail": true,
       "maxTries": 3,
@@ -155,7 +211,11 @@
       "parameters": {
         "resource": "text",
         "operation": "message",
-        "modelId": { "__rl": true, "mode": "id", "value": "gpt-4o-mini" },
+        "modelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4o-mini"
+        },
         "messages": {
           "values": [
             {
@@ -170,14 +230,20 @@
         }
       },
       "credentials": {
-        "openAiApi": { "id": "", "name": "LLM API" }
+        "openAiApi": {
+          "id": "",
+          "name": "LLM API"
+        }
       }
     },
     {
       "name": "Generate & Upload Image",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1850, 250],
+      "position": [
+        1850,
+        250
+      ],
       "parameters": {
         "jsCode": "const crypto = require('crypto');\nconst https = require('https');\nconst http = require('http');\nconst { URL } = require('url');\n\nfunction httpPost(urlStr, headers, body) {\n  return new Promise((resolve, reject) => {\n    const u = new URL(urlStr);\n    const mod = u.protocol === 'https:' ? https : http;\n    const opts = { method: 'POST', hostname: u.hostname, port: u.port || (u.protocol === 'https:' ? 443 : 80), path: u.pathname + u.search, headers };\n    const req = mod.request(opts, (res) => {\n      const chunks = [];\n      res.on('data', (c) => chunks.push(c));\n      res.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString() }));\n    });\n    req.on('error', reject);\n    req.setTimeout(120000, () => { req.destroy(); reject(new Error('Timeout')); });\n    if (body) req.write(body);\n    req.end();\n  });\n}\n\nconst imageSystemPrompt = $('Prepare Prompts').first().json.imageSystem || '';\nconst imagePromptBase = $('Prepare Prompts').first().json.imageUser || '';\nconst title = $('Generate Title').first().json.message.content.trim();\nconst imagePrompt = imagePromptBase + '\\n\\nArticle title: ' + title;\nlet featureImageUrl = '';\ntry {\n  const apiUrl = '{{LLM_API_URL}}';\n  const apiKey = '{{LLM_API_KEY}}';\n  const imageModel = '{{LLM_IMAGE_MODEL}}';\n  if (!apiUrl || !apiKey || !imageModel) throw new Error('Missing LLM image config');\n  const llmBody = JSON.stringify({ model: imageModel, messages: [{ role: 'system', content: imageSystemPrompt }, { role: 'user', content: imagePrompt }], modalities: ['text', 'image'], image_config: { image_size: '1K', aspect_ratio: '1:1' } });\n  const llmRes = await httpPost(apiUrl + '/chat/completions', {\n    'Content-Type': 'application/json',\n    'Authorization': 'Bearer ' + apiKey,\n    'Content-Length': Buffer.byteLength(llmBody),\n  }, llmBody);\n  if (llmRes.status !== 200) throw new Error('LLM API: ' + llmRes.status);\n  const llmData = JSON.parse(llmRes.body);\n  llmRes.body = null;\n  let base64Data = '';\n  let mimeType = 'image/png';\n  const msg = llmData.choices?.[0]?.message;\n  const images = msg?.images;\n  if (Array.isArray(images) && images.length > 0) {\n    const imgObj = images[0];\n    const imgUrl = typeof imgObj.image_url === 'object' ? imgObj.image_url.url : (typeof imgObj.image_url === 'string' ? imgObj.image_url : '');\n    if (imgUrl) {\n      const m = imgUrl.match(/^data:(image\\/[a-z]+);base64,(.+)/s);\n      if (m) { mimeType = m[1]; base64Data = m[2]; }\n    }\n  }\n  if (!base64Data) {\n    const content = msg?.content;\n    if (Array.isArray(content)) {\n      for (const part of content) {\n        if (part.type === 'image_url' && part.image_url?.url) {\n          const m = part.image_url.url.match(/^data:(image\\/[a-z]+);base64,(.+)/s);\n          if (m) { mimeType = m[1]; base64Data = m[2]; break; }\n        }\n      }\n    } else if (typeof content === 'string') {\n      const m = content.match(/data:(image\\/[a-z]+);base64,([A-Za-z0-9+\\/=]+)/);\n      if (m) { mimeType = m[1]; base64Data = m[2]; }\n    }\n  }\n  if (!base64Data) throw new Error('No image data in LLM response');\n  const ghostKey = '{{GHOST_ADMIN_API_KEY}}';\n  const [kid, secret] = ghostKey.split(':');\n  const hdr = Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT',kid})).toString('base64url');\n  const now = Math.floor(Date.now()/1000);\n  const pay = Buffer.from(JSON.stringify({iat:now,exp:now+300,aud:'/admin/'})).toString('base64url');\n  const hmac = crypto.createHmac('sha256', Buffer.from(secret, 'hex'));\n  hmac.update(hdr + '.' + pay);\n  const jwt = hdr + '.' + pay + '.' + hmac.digest('base64url');\n  const imageBuffer = Buffer.from(base64Data, 'base64');\n  base64Data = '';\n  const ext = mimeType === 'image/jpeg' ? 'jpg' : 'png';\n  const boundary = '----n8n' + Date.now();\n  const formBody = Buffer.concat([\n    Buffer.from('--' + boundary + '\\r\\nContent-Disposition: form-data; name=\"file\"; filename=\"article.' + ext + '\"\\r\\nContent-Type: ' + mimeType + '\\r\\n\\r\\n'),\n    imageBuffer,\n    Buffer.from('\\r\\n--' + boundary + '\\r\\nContent-Disposition: form-data; name=\"purpose\"\\r\\nContent-Type: text/plain\\r\\n\\r\\nimage\\r\\n--' + boundary + '--\\r\\n'),\n  ]);\n  const ghostRes = await httpPost('{{GHOST_API_URL}}/ghost/api/admin/images/upload/', {\n    'Authorization': 'Ghost ' + jwt,\n    'Content-Type': 'multipart/form-data; boundary=' + boundary,\n    'Content-Length': formBody.length,\n  }, formBody);\n  if (ghostRes.status === 201 || ghostRes.status === 200) {\n    const gd = JSON.parse(ghostRes.body);\n    featureImageUrl = gd.images?.[0]?.url || '';\n  } else { throw new Error('Ghost upload: ' + ghostRes.status); }\n} catch (e) {\n  console.log('Image generation skipped:', e.message);\n}\nreturn [{ json: { featureImageUrl } }];"
       }
@@ -186,7 +252,10 @@
       "name": "Update Status: publishing",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2050, 250],
+      "position": [
+        2050,
+        250
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
@@ -207,14 +276,20 @@
         "genericAuthType": "httpHeaderAuth"
       },
       "credentials": {
-        "httpHeaderAuth": { "id": "", "name": "NocoDB" }
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "NocoDB"
+        }
       }
     },
     {
       "name": "Generate Meta",
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 1.4,
-      "position": [2150, 250],
+      "position": [
+        2150,
+        250
+      ],
       "onError": "continueErrorOutput",
       "retryOnFail": true,
       "maxTries": 2,
@@ -222,7 +297,11 @@
       "parameters": {
         "resource": "text",
         "operation": "message",
-        "modelId": { "__rl": true, "mode": "id", "value": "gpt-4o-mini" },
+        "modelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4o-mini"
+        },
         "messages": {
           "values": [
             {
@@ -237,14 +316,20 @@
         }
       },
       "credentials": {
-        "openAiApi": { "id": "", "name": "LLM API" }
+        "openAiApi": {
+          "id": "",
+          "name": "LLM API"
+        }
       }
     },
     {
       "name": "Build Ghost JWT",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2350, 250],
+      "position": [
+        2350,
+        250
+      ],
       "onError": "continueErrorOutput",
       "parameters": {
         "jsCode": "const crypto = require('crypto');\nconst key = '{{GHOST_ADMIN_API_KEY}}';\nconst [id, secret] = key.split(':');\nconst header = Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT',kid:id})).toString('base64url');\nconst now = Math.floor(Date.now()/1000);\nconst payload = Buffer.from(JSON.stringify({iat:now,exp:now+300,aud:'/admin/'})).toString('base64url');\nconst hmac = crypto.createHmac('sha256', Buffer.from(secret, 'hex'));\nhmac.update(`${header}.${payload}`);\nconst sig = hmac.digest('base64url');\nconst jwt = `${header}.${payload}.${sig}`;\nconst articleTitle = $('Generate Title').first().json.message.content.trim();\nlet articleHtml = $('Generate Article').first().json.message.content;\narticleHtml = articleHtml.replace(/^```html?\\n?/i, '').replace(/\\n?```\\s*$/, '').trim();\n// Extract FAQ pairs BEFORE wrap-loose-text (wrapping inserts empty <p> between h3 and p)\nconst faqRegex = /<h3[^>]*>(.*?)<\\/h3>\\s*<p[^>]*>(.*?)<\\/p>/gs;\nconst faqs = [];\nlet faqMatch;\nwhile ((faqMatch = faqRegex.exec(articleHtml)) !== null) {\n  const q = faqMatch[1].replace(/<[^>]*>/g, '').trim();\n  const a = faqMatch[2].replace(/<[^>]*>/g, '').trim();\n  if (q && a) faqs.push({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } });\n}\nlet faqSchemaTag = '';\nif (faqs.length > 0) {\n  faqSchemaTag = '<script type=\"application/ld+json\">' + JSON.stringify({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faqs }) + '</script>';\n}\n// Wrap loose text (not inside block tags) in <p> tags\narticleHtml = articleHtml.replace(/(<\\/(h[1-6]|ul|ol|blockquote|div|table|pre|hr)>)\\s*([^<]+?)\\s*(?=<(h[1-6]|ul|ol|blockquote|div|table|pre|hr|p|$))/gi, (m, closeTag, t1, text, t2) => text.trim() ? closeTag + '\\n<p>' + text.trim() + '</p>\\n' : m);\n// Wrap leading bare text before the first block tag\narticleHtml = articleHtml.replace(/^([^<]+?)(?=<(h[1-6]|ul|ol|blockquote|div|table|pre|hr|p))/, (m, text) => text.trim() ? '<p>' + text.trim() + '</p>\\n' : m);\n// Parse meta from LLM response (may not exist if Generate Meta failed)\nlet metaTitle = articleTitle;\nlet metaDescription = '';\nlet tags = [];\ntry {\n  const metaNode = $('Generate Meta');\n  if (metaNode && metaNode.first() && metaNode.first().json && metaNode.first().json.message) {\n    const metaRaw = metaNode.first().json.message.content.trim();\n    const cleaned = metaRaw.replace(/^```json?\\n?/i, '').replace(/\\n?```\\s*$/, '');\n    const metaJson = JSON.parse(cleaned);\n    if (metaJson.meta_title) metaTitle = metaJson.meta_title.substring(0, 60);\n    if (metaJson.meta_description) metaDescription = metaJson.meta_description.substring(0, 155);\n    if (Array.isArray(metaJson.tags)) {\n      tags = metaJson.tags.filter(t => typeof t === 'string' && t.trim()).map(t => t.trim().substring(0, 191)).slice(0, 10);\n    }\n  }\n} catch(e) { /* fallback to article title */ }\nconst topic = $('Get Next Queued').first().json.list[0].Topic || '';\nconst featureImageUrl = $('Generate & Upload Image').first().json.featureImageUrl || '';\nreturn [{ json: { jwt, articleTitle, articleHtml, featureImageUrl, metaTitle, metaDescription, topic, tags, faqSchemaTag } }];"
@@ -254,7 +339,10 @@
       "name": "POST to Ghost",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2450, 250],
+      "position": [
+        2450,
+        250
+      ],
       "onError": "continueErrorOutput",
       "retryOnFail": true,
       "maxTries": 3,
@@ -265,21 +353,32 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "=Ghost {{ $json.jwt }}" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "Authorization",
+              "value": "=Ghost {{ $json.jwt }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ posts: [{ title: $json.articleTitle, html: $json.articleHtml, status: 'published', feature_image: $json.featureImageUrl || null, meta_title: $json.metaTitle || null, meta_description: $json.metaDescription || null, tags: ($json.tags && $json.tags.length > 0) ? $json.tags.map(t => ({ name: t })) : ($json.topic ? [{ name: $json.topic.substring(0, 191) }] : []), codeinjection_head: $json.faqSchemaTag || null }] }) }}",
-        "options": { "allowUnauthorizedCerts": true }
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
       }
     },
     {
       "name": "Update Status: error",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1650, 500],
+      "position": [
+        1650,
+        500
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
@@ -300,14 +399,20 @@
         "genericAuthType": "httpHeaderAuth"
       },
       "credentials": {
-        "httpHeaderAuth": { "id": "", "name": "NocoDB" }
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "NocoDB"
+        }
       }
     },
     {
       "name": "Update Status: published",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2650, 250],
+      "position": [
+        2650,
+        250
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
@@ -332,14 +437,20 @@
         "genericAuthType": "httpHeaderAuth"
       },
       "credentials": {
-        "httpHeaderAuth": { "id": "", "name": "NocoDB" }
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "NocoDB"
+        }
       }
     },
     {
       "name": "Check Pinterest",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [2850, 250],
+      "position": [
+        2850,
+        250
+      ],
       "parameters": {
         "conditions": {
           "string": [
@@ -355,7 +466,10 @@
       "name": "Update Status: completed (no pin)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [3050, 450],
+      "position": [
+        3050,
+        450
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
@@ -376,14 +490,20 @@
         "genericAuthType": "httpHeaderAuth"
       },
       "credentials": {
-        "httpHeaderAuth": { "id": "", "name": "NocoDB" }
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "NocoDB"
+        }
       }
     },
     {
       "name": "Prepare Pin Prompts",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3050, 200],
+      "position": [
+        3050,
+        200
+      ],
       "onError": "continueErrorOutput",
       "parameters": {
         "jsCode": "const prompts = $('Get Prompts').first().json.list[0];\nconst article = $('Get Next Queued').first().json.list[0];\nconst title = $('Generate Title').first().json.message.content.trim();\nconst ghostUrl = '{{GHOST_URL}}/' + ($('POST to Ghost').first().json.posts[0].slug || '') + '/';\nconst board = article.Board || '{{PINTEREST_BOARD}}';\nconst today = new Date().toISOString().split('T')[0];\n\nreturn [{ json: {\n  pinNameSystem: prompts.PinName || '',\n  pinNameUser: 'Topic: ' + (article.Topic || '') + '\\nDescription: ' + (article.Description || '') + '\\nArticle title: ' + title + '\\nCurrent date: ' + today,\n  pinTextSystem: prompts.PinText || '',\n  pinTextUser: 'Topic: ' + (article.Topic || '') + '\\nDescription: ' + (article.Description || '') + '\\nArticle title: ' + title + '\\nArticle URL: ' + ghostUrl + '\\nCurrent date: ' + today,\n  pinImageSystem: prompts.PinImage || '',\n  pinImageUser: 'Topic: ' + (article.Topic || '') + '\\nDescription: ' + (article.Description || '') + '\\nArticle title: ' + title,\n  ghostUrl: ghostUrl,\n  board: board,\n}}];"
@@ -393,7 +513,10 @@
       "name": "Generate Pin Title",
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 1.4,
-      "position": [3250, 200],
+      "position": [
+        3250,
+        200
+      ],
       "onError": "continueErrorOutput",
       "retryOnFail": true,
       "maxTries": 3,
@@ -401,7 +524,11 @@
       "parameters": {
         "resource": "text",
         "operation": "message",
-        "modelId": { "__rl": true, "mode": "id", "value": "gpt-4o-mini" },
+        "modelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4o-mini"
+        },
         "messages": {
           "values": [
             {
@@ -416,14 +543,20 @@
         }
       },
       "credentials": {
-        "openAiApi": { "id": "", "name": "LLM API" }
+        "openAiApi": {
+          "id": "",
+          "name": "LLM API"
+        }
       }
     },
     {
       "name": "Generate Pin Text",
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 1.4,
-      "position": [3450, 200],
+      "position": [
+        3450,
+        200
+      ],
       "onError": "continueErrorOutput",
       "retryOnFail": true,
       "maxTries": 3,
@@ -431,7 +564,11 @@
       "parameters": {
         "resource": "text",
         "operation": "message",
-        "modelId": { "__rl": true, "mode": "id", "value": "gpt-4o-mini" },
+        "modelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4o-mini"
+        },
         "messages": {
           "values": [
             {
@@ -446,14 +583,20 @@
         }
       },
       "credentials": {
-        "openAiApi": { "id": "", "name": "LLM API" }
+        "openAiApi": {
+          "id": "",
+          "name": "LLM API"
+        }
       }
     },
     {
       "name": "Generate & Upload Pin Image",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3650, 200],
+      "position": [
+        3650,
+        200
+      ],
       "onError": "continueErrorOutput",
       "parameters": {
         "jsCode": "const crypto = require('crypto');\nconst https = require('https');\nconst http = require('http');\nconst { URL } = require('url');\n\nfunction httpPost(urlStr, headers, body) {\n  return new Promise((resolve, reject) => {\n    const u = new URL(urlStr);\n    const mod = u.protocol === 'https:' ? https : http;\n    const opts = { method: 'POST', hostname: u.hostname, port: u.port || (u.protocol === 'https:' ? 443 : 80), path: u.pathname + u.search, headers };\n    const req = mod.request(opts, (res) => {\n      const chunks = [];\n      res.on('data', (c) => chunks.push(c));\n      res.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString() }));\n    });\n    req.on('error', reject);\n    req.setTimeout(120000, () => { req.destroy(); reject(new Error('Timeout')); });\n    if (body) req.write(body);\n    req.end();\n  });\n}\n\nconst pinImageSystem = $('Pin Prompt Data').first().json.pinImageSystem || '';\nconst pinImageUser = $('Pin Prompt Data').first().json.pinImageUser || '';\nconst pinTitle = $('Generate Pin Title').first().json.message.content.trim();\nconst imagePrompt = pinImageUser + '\\n\\nPin title: ' + pinTitle;\nlet pinImageUrl = '';\ntry {\n  const apiUrl = '{{LLM_API_URL}}';\n  const apiKey = '{{LLM_API_KEY}}';\n  const imageModel = '{{LLM_IMAGE_MODEL}}';\n  if (!apiUrl || !apiKey || !imageModel) throw new Error('Missing LLM image config');\n  const llmBody = JSON.stringify({ model: imageModel, messages: [{ role: 'system', content: pinImageSystem }, { role: 'user', content: imagePrompt }], modalities: ['text', 'image'], image_config: { image_size: '1K', aspect_ratio: '2:3' } });\n  const llmRes = await httpPost(apiUrl + '/chat/completions', {\n    'Content-Type': 'application/json',\n    'Authorization': 'Bearer ' + apiKey,\n    'Content-Length': Buffer.byteLength(llmBody),\n  }, llmBody);\n  if (llmRes.status !== 200) throw new Error('LLM API: ' + llmRes.status);\n  const llmData = JSON.parse(llmRes.body);\n  llmRes.body = null;\n  let base64Data = '';\n  let mimeType = 'image/png';\n  const msg = llmData.choices?.[0]?.message;\n  const images = msg?.images;\n  if (Array.isArray(images) && images.length > 0) {\n    const imgObj = images[0];\n    const imgUrl = typeof imgObj.image_url === 'object' ? imgObj.image_url.url : (typeof imgObj.image_url === 'string' ? imgObj.image_url : '');\n    if (imgUrl) {\n      const m = imgUrl.match(/^data:(image\\/[a-z]+);base64,(.+)/s);\n      if (m) { mimeType = m[1]; base64Data = m[2]; }\n    }\n  }\n  if (!base64Data) {\n    const content = msg?.content;\n    if (Array.isArray(content)) {\n      for (const part of content) {\n        if (part.type === 'image_url' && part.image_url?.url) {\n          const m = part.image_url.url.match(/^data:(image\\/[a-z]+);base64,(.+)/s);\n          if (m) { mimeType = m[1]; base64Data = m[2]; break; }\n        }\n      }\n    } else if (typeof content === 'string') {\n      const m = content.match(/data:(image\\/[a-z]+);base64,([A-Za-z0-9+\\/=]+)/);\n      if (m) { mimeType = m[1]; base64Data = m[2]; }\n    }\n  }\n  if (!base64Data) throw new Error('No image data in LLM response');\n  const ghostKey = '{{GHOST_ADMIN_API_KEY}}';\n  const [kid, secret] = ghostKey.split(':');\n  const hdr = Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT',kid})).toString('base64url');\n  const now = Math.floor(Date.now()/1000);\n  const pay = Buffer.from(JSON.stringify({iat:now,exp:now+300,aud:'/admin/'})).toString('base64url');\n  const hmac = crypto.createHmac('sha256', Buffer.from(secret, 'hex'));\n  hmac.update(hdr + '.' + pay);\n  const jwt = hdr + '.' + pay + '.' + hmac.digest('base64url');\n  const imageBuffer = Buffer.from(base64Data, 'base64');\n  base64Data = '';\n  const ext = mimeType === 'image/jpeg' ? 'jpg' : 'png';\n  const boundary = '----n8n' + Date.now();\n  const formBody = Buffer.concat([\n    Buffer.from('--' + boundary + '\\r\\nContent-Disposition: form-data; name=\"file\"; filename=\"pin.' + ext + '\"\\r\\nContent-Type: ' + mimeType + '\\r\\n\\r\\n'),\n    imageBuffer,\n    Buffer.from('\\r\\n--' + boundary + '\\r\\nContent-Disposition: form-data; name=\"purpose\"\\r\\nContent-Type: text/plain\\r\\n\\r\\nimage\\r\\n--' + boundary + '--\\r\\n'),\n  ]);\n  const ghostRes = await httpPost('{{GHOST_API_URL}}/ghost/api/admin/images/upload/', {\n    'Authorization': 'Ghost ' + jwt,\n    'Content-Type': 'multipart/form-data; boundary=' + boundary,\n    'Content-Length': formBody.length,\n  }, formBody);\n  if (ghostRes.status === 201 || ghostRes.status === 200) {\n    const gd = JSON.parse(ghostRes.body);\n    pinImageUrl = gd.images?.[0]?.url || '';\n  } else { throw new Error('Ghost upload: ' + ghostRes.status); }\n} catch (e) {\n  console.log('Pin image generation skipped:', e.message);\n}\nreturn [{ json: { pinImageUrl } }];"
@@ -463,7 +606,10 @@
       "name": "Send to Make Webhook",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [3850, 200],
+      "position": [
+        3850,
+        200
+      ],
       "onError": "continueErrorOutput",
       "parameters": {
         "method": "POST",
@@ -477,7 +623,10 @@
       "name": "Save Pin URL",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [4050, 200],
+      "position": [
+        4050,
+        200
+      ],
       "onError": "continueErrorOutput",
       "parameters": {
         "jsCode": "const response = $input.first().json;\nconst pinUrl = response?.pin_url || '';\nreturn [{ json: { pinUrl } }];"
@@ -487,7 +636,10 @@
       "name": "Update Status: completed",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [4250, 200],
+      "position": [
+        4250,
+        200
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
@@ -512,14 +664,20 @@
         "genericAuthType": "httpHeaderAuth"
       },
       "credentials": {
-        "httpHeaderAuth": { "id": "", "name": "NocoDB" }
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "NocoDB"
+        }
       }
     },
     {
       "name": "Update Status: error (pin)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [3450, 500],
+      "position": [
+        3450,
+        500
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
@@ -544,14 +702,20 @@
         "genericAuthType": "httpHeaderAuth"
       },
       "credentials": {
-        "httpHeaderAuth": { "id": "", "name": "NocoDB" }
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "NocoDB"
+        }
       }
     },
     {
       "name": "Is Pin Only?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [750, 300],
+      "position": [
+        750,
+        300
+      ],
       "parameters": {
         "conditions": {
           "string": [
@@ -567,7 +731,10 @@
       "name": "Is Pin Retry?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [950, 400],
+      "position": [
+        950,
+        400
+      ],
       "parameters": {
         "conditions": {
           "string": [
@@ -589,7 +756,10 @@
       "name": "Update Status: promoting",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [950, -100],
+      "position": [
+        950,
+        -100
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
@@ -614,34 +784,51 @@
         "genericAuthType": "httpHeaderAuth"
       },
       "credentials": {
-        "httpHeaderAuth": { "id": "", "name": "NocoDB" }
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "NocoDB"
+        }
       }
     },
     {
       "name": "Get Prompts (retry)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1150, -100],
+      "position": [
+        1150,
+        -100
+      ],
       "onError": "continueErrorOutput",
       "parameters": {
         "method": "GET",
         "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_PROMPTS_TABLE_ID}}/records",
         "sendQuery": true,
         "queryParameters": {
-          "parameters": [{ "name": "limit", "value": "1" }]
+          "parameters": [
+            {
+              "name": "limit",
+              "value": "1"
+            }
+          ]
         },
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth"
       },
       "credentials": {
-        "httpHeaderAuth": { "id": "", "name": "NocoDB" }
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "NocoDB"
+        }
       }
     },
     {
       "name": "Check Pinterest (retry)",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [1350, -100],
+      "position": [
+        1350,
+        -100
+      ],
       "parameters": {
         "conditions": {
           "string": [
@@ -657,17 +844,23 @@
       "name": "Prepare Pin Retry",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1550, -100],
+      "position": [
+        1550,
+        -100
+      ],
       "onError": "continueErrorOutput",
       "parameters": {
-        "jsCode": "const prompts = $('Get Prompts (retry)').first().json.list[0];\nconst article = $('Get Next Queued').first().json.list[0];\nconst title = article.Topic || '';\nconst ghostUrl = article.ArticleURL || '';\nconst board = article.Board || '{{PINTEREST_BOARD}}';\nconst today = new Date().toISOString().split('T')[0];\n\nreturn [{ json: {\n  pinNameSystem: prompts.PinName || '',\n  pinNameUser: 'Topic: ' + title + '\\nDescription: ' + (article.Description || '') + '\\nCurrent date: ' + today,\n  pinTextSystem: prompts.PinText || '',\n  pinTextUser: 'Topic: ' + title + '\\nDescription: ' + (article.Description || '') + '\\nArticle URL: ' + ghostUrl + '\\nCurrent date: ' + today,\n  pinImageSystem: prompts.PinImage || '',\n  pinImageUser: 'Topic: ' + title + '\\nDescription: ' + (article.Description || ''),\n  ghostUrl: ghostUrl,\n  board: board,\n}}];"
+        "jsCode": "const crypto = require('crypto');\nconst https = require('https');\nconst http = require('http');\nconst { URL } = require('url');\n\nfunction httpReq(urlStr, method, headers, body) {\n  return new Promise((resolve, reject) => {\n    const u = new URL(urlStr);\n    const mod = u.protocol === 'https:' ? https : http;\n    const opts = { method, hostname: u.hostname, port: u.port || (u.protocol === 'https:' ? 443 : 80), path: u.pathname + u.search, headers };\n    const req = mod.request(opts, (res) => {\n      const chunks = [];\n      res.on('data', (c) => chunks.push(c));\n      res.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString() }));\n    });\n    req.on('error', reject);\n    req.setTimeout(30000, () => { req.destroy(); reject(new Error('Timeout')); });\n    if (body) req.write(body);\n    req.end();\n  });\n}\n\nconst prompts = $('Get Prompts (retry)').first().json.list[0];\nconst article = $('Get Next Queued').first().json.list[0];\n\n// Resolve \"latest\" to actual Ghost article URL\nif (article.ArticleURL && article.ArticleURL.toLowerCase() === 'latest') {\n  const key = '{{GHOST_ADMIN_API_KEY}}';\n  const [kid, secret] = key.split(':');\n  const header = Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT',kid})).toString('base64url');\n  const now = Math.floor(Date.now()/1000);\n  const payload = Buffer.from(JSON.stringify({iat:now,exp:now+300,aud:'/admin/'})).toString('base64url');\n  const hmac = crypto.createHmac('sha256', Buffer.from(secret, 'hex'));\n  hmac.update(header + '.' + payload);\n  const sig = hmac.digest('base64url');\n  const jwt = header + '.' + payload + '.' + sig;\n\n  const ghostRes = await httpReq(\n    '{{GHOST_API_URL}}/ghost/api/admin/posts/?limit=1&order=published_at%20desc&filter=status:published&fields=slug,url',\n    'GET', { 'Authorization': 'Ghost ' + jwt }\n  );\n  if (ghostRes.status !== 200) throw new Error('Ghost API error: ' + ghostRes.status);\n  const ghostData = JSON.parse(ghostRes.body);\n  if (!ghostData.posts || ghostData.posts.length === 0) {\n    throw new Error('No published articles found \\u2014 cannot resolve \"latest\"');\n  }\n  article.ArticleURL = ghostData.posts[0].url;\n\n  // Update NocoDB so user sees which article was used\n  const patchBody = JSON.stringify({ Id: article.Id, ArticleURL: article.ArticleURL });\n  await httpReq(\n    'http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records',\n    'PATCH',\n    { 'Content-Type': 'application/json', 'xc-token': '{{NOCODB_AUTH_TOKEN}}', 'Content-Length': Buffer.byteLength(patchBody) },\n    patchBody\n  );\n}\n\nconst title = article.Topic || '';\nconst ghostUrl = article.ArticleURL || '';\nconst board = article.Board || '{{PINTEREST_BOARD}}';\nconst today = new Date().toISOString().split('T')[0];\n\nreturn [{ json: {\n  pinNameSystem: prompts.PinName || '',\n  pinNameUser: 'Topic: ' + title + '\\nDescription: ' + (article.Description || '') + '\\nCurrent date: ' + today,\n  pinTextSystem: prompts.PinText || '',\n  pinTextUser: 'Topic: ' + title + '\\nDescription: ' + (article.Description || '') + '\\nArticle URL: ' + ghostUrl + '\\nCurrent date: ' + today,\n  pinImageSystem: prompts.PinImage || '',\n  pinImageUser: 'Topic: ' + title + '\\nDescription: ' + (article.Description || ''),\n  ghostUrl: ghostUrl,\n  board: board,\n}}];"
       }
     },
     {
       "name": "Pin Prompt Data",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2950, 200],
+      "position": [
+        2950,
+        200
+      ],
       "parameters": {
         "jsCode": "return $input.all();"
       }
@@ -676,7 +869,10 @@
       "name": "Notify: Published",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2850, 550],
+      "position": [
+        2850,
+        550
+      ],
       "onError": "continueRegularOutput",
       "parameters": {
         "jsCode": "const https = require('https');\nconst http = require('http');\n\nfunction httpReq(urlStr, method, headers, body) {\n  return new Promise((resolve, reject) => {\n    const u = new URL(urlStr);\n    const mod = u.protocol === 'https:' ? https : http;\n    const opts = { method, hostname: u.hostname, port: u.port || (u.protocol === 'https:' ? 443 : 80), path: u.pathname + u.search, headers };\n    const req = mod.request(opts, (res) => {\n      const chunks = [];\n      res.on('data', (c) => chunks.push(c));\n      res.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString() }));\n    });\n    req.on('error', reject);\n    req.setTimeout(15000, () => { req.destroy(); reject(new Error('Timeout')); });\n    if (body) req.write(body);\n    req.end();\n  });\n}\n\ntry {\n  const botToken = '{{TELEGRAM_BOT_TOKEN}}';\n  if (!botToken) return [];\n  let chatId = '';\n  {\n    const res = await httpReq('http://nocodb:8080/api/v2/tables/{{NOCODB_PROMPTS_TABLE_ID}}/records?limit=1&fields=TelegramChatId', 'GET', { 'xc-token': '{{NOCODB_AUTH_TOKEN}}', 'Content-Type': 'application/json' });\n    if (res.status === 200) { chatId = JSON.parse(res.body).list?.[0]?.TelegramChatId || ''; }\n  }\n  if (!chatId) return [];\n  const article = $('Get Next Queued').first().json.list[0];\n  const ghostSlug = $('POST to Ghost').first().json.posts?.[0]?.slug || '';\n  const ghostUrl = ghostSlug ? '{{GHOST_URL}}/' + ghostSlug + '/' : '';\n  const text = '\\u2705 Article published\\n\\nTopic: ' + (article.Topic || '') + '\\nDescription: ' + (article.Description || '') + '\\nLink: ' + (article.Link || '') + '\\nURL: ' + ghostUrl + '\\nStatus: published';\n  const body = JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' });\n  await httpReq('https://api.telegram.org/bot' + botToken + '/sendMessage', 'POST', { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }, body);\n} catch (e) { console.log('Telegram notification skipped:', e.message); }\nreturn [];"
@@ -686,7 +882,10 @@
       "name": "Notify: Error",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1850, 600],
+      "position": [
+        1850,
+        600
+      ],
       "onError": "continueRegularOutput",
       "parameters": {
         "jsCode": "const https = require('https');\nconst http = require('http');\n\nfunction httpReq(urlStr, method, headers, body) {\n  return new Promise((resolve, reject) => {\n    const u = new URL(urlStr);\n    const mod = u.protocol === 'https:' ? https : http;\n    const opts = { method, hostname: u.hostname, port: u.port || (u.protocol === 'https:' ? 443 : 80), path: u.pathname + u.search, headers };\n    const req = mod.request(opts, (res) => {\n      const chunks = [];\n      res.on('data', (c) => chunks.push(c));\n      res.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString() }));\n    });\n    req.on('error', reject);\n    req.setTimeout(15000, () => { req.destroy(); reject(new Error('Timeout')); });\n    if (body) req.write(body);\n    req.end();\n  });\n}\n\ntry {\n  const botToken = '{{TELEGRAM_BOT_TOKEN}}';\n  if (!botToken) return [];\n  let chatId = '';\n  {\n    const res = await httpReq('http://nocodb:8080/api/v2/tables/{{NOCODB_PROMPTS_TABLE_ID}}/records?limit=1&fields=TelegramChatId', 'GET', { 'xc-token': '{{NOCODB_AUTH_TOKEN}}', 'Content-Type': 'application/json' });\n    if (res.status === 200) { chatId = JSON.parse(res.body).list?.[0]?.TelegramChatId || ''; }\n  }\n  if (!chatId) return [];\n  const article = $('Get Next Queued').first().json.list[0];\n  const text = '\\u274c Article error\\n\\nTopic: ' + (article.Topic || '') + '\\nDescription: ' + (article.Description || '') + '\\nLink: ' + (article.Link || '') + '\\nStatus: error\\nError: ' + (article.Error || 'Unknown error');\n  const body = JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' });\n  await httpReq('https://api.telegram.org/bot' + botToken + '/sendMessage', 'POST', { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }, body);\n} catch (e) { console.log('Telegram notification skipped:', e.message); }\nreturn [];"
@@ -695,38 +894,112 @@
   ],
   "connections": {
     "Schedule Trigger": {
-      "main": [[{ "node": "Get Next Queued", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Get Next Queued",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Get Next Queued": {
-      "main": [[{ "node": "Has Records?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Has Records?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Has Records?": {
-      "main": [[{ "node": "Is Pin Only?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Is Pin Only?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Is Pin Only?": {
       "main": [
-        [{ "node": "Update Status: promoting", "type": "main", "index": 0 }],
-        [{ "node": "Is Pin Retry?", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Update Status: promoting",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is Pin Retry?",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Is Pin Retry?": {
       "main": [
-        [{ "node": "Update Status: promoting", "type": "main", "index": 0 }],
-        [{ "node": "Update Status: generating", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Update Status: promoting",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Status: generating",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Update Status: promoting": {
-      "main": [[{ "node": "Get Prompts (retry)", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Get Prompts (retry)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Get Prompts (retry)": {
       "main": [
-        [{ "node": "Check Pinterest (retry)", "type": "main", "index": 0 }],
-        [{ "node": "Update Status: error (pin)", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Check Pinterest (retry)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Status: error (pin)",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Check Pinterest (retry)": {
       "main": [
-        [{ "node": "Prepare Pin Retry", "type": "main", "index": 0 }],
+        [
+          {
+            "node": "Prepare Pin Retry",
+            "type": "main",
+            "index": 0
+          }
+        ],
         [
           {
             "node": "Update Status: completed (no pin)",
@@ -738,77 +1011,217 @@
     },
     "Prepare Pin Retry": {
       "main": [
-        [{ "node": "Pin Prompt Data", "type": "main", "index": 0 }],
-        [{ "node": "Update Status: error (pin)", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Pin Prompt Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Status: error (pin)",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Pin Prompt Data": {
-      "main": [[{ "node": "Generate Pin Title", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Generate Pin Title",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Update Status: generating": {
-      "main": [[{ "node": "Get Prompts", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Get Prompts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Get Prompts": {
       "main": [
-        [{ "node": "Prepare Prompts", "type": "main", "index": 0 }],
-        [{ "node": "Update Status: error", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Prepare Prompts",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Status: error",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Prepare Prompts": {
       "main": [
-        [{ "node": "Generate Title", "type": "main", "index": 0 }],
-        [{ "node": "Update Status: error", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Generate Title",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Status: error",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Generate Title": {
       "main": [
-        [{ "node": "Generate Article", "type": "main", "index": 0 }],
-        [{ "node": "Update Status: error", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Generate Article",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Status: error",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Generate Article": {
       "main": [
-        [{ "node": "Generate & Upload Image", "type": "main", "index": 0 }],
-        [{ "node": "Update Status: error", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Generate & Upload Image",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Status: error",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Generate & Upload Image": {
       "main": [
-        [{ "node": "Update Status: publishing", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Update Status: publishing",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Update Status: publishing": {
-      "main": [[{ "node": "Generate Meta", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Generate Meta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Generate Meta": {
       "main": [
-        [{ "node": "Build Ghost JWT", "type": "main", "index": 0 }],
-        [{ "node": "Build Ghost JWT", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Build Ghost JWT",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Ghost JWT",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Build Ghost JWT": {
       "main": [
-        [{ "node": "POST to Ghost", "type": "main", "index": 0 }],
-        [{ "node": "Update Status: error", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "POST to Ghost",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Status: error",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "POST to Ghost": {
       "main": [
-        [{ "node": "Update Status: published", "type": "main", "index": 0 }],
-        [{ "node": "Update Status: error", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Update Status: published",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Status: error",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Update Status: published": {
       "main": [
         [
-          { "node": "Check Pinterest", "type": "main", "index": 0 },
-          { "node": "Notify: Published", "type": "main", "index": 0 }
+          {
+            "node": "Check Pinterest",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notify: Published",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Check Pinterest": {
       "main": [
-        [{ "node": "Prepare Pin Prompts", "type": "main", "index": 0 }],
+        [
+          {
+            "node": "Prepare Pin Prompts",
+            "type": "main",
+            "index": 0
+          }
+        ],
         [
           {
             "node": "Update Status: completed (no pin)",
@@ -820,42 +1233,122 @@
     },
     "Prepare Pin Prompts": {
       "main": [
-        [{ "node": "Pin Prompt Data", "type": "main", "index": 0 }],
-        [{ "node": "Update Status: error (pin)", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Pin Prompt Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Status: error (pin)",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Generate Pin Title": {
       "main": [
-        [{ "node": "Generate Pin Text", "type": "main", "index": 0 }],
-        [{ "node": "Update Status: error (pin)", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Generate Pin Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Status: error (pin)",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Generate Pin Text": {
       "main": [
-        [{ "node": "Generate & Upload Pin Image", "type": "main", "index": 0 }],
-        [{ "node": "Update Status: error (pin)", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Generate & Upload Pin Image",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Status: error (pin)",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Generate & Upload Pin Image": {
       "main": [
-        [{ "node": "Send to Make Webhook", "type": "main", "index": 0 }],
-        [{ "node": "Update Status: error (pin)", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Send to Make Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Status: error (pin)",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Send to Make Webhook": {
       "main": [
-        [{ "node": "Save Pin URL", "type": "main", "index": 0 }],
-        [{ "node": "Update Status: error (pin)", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Save Pin URL",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Status: error (pin)",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Save Pin URL": {
       "main": [
-        [{ "node": "Update Status: completed", "type": "main", "index": 0 }],
-        [{ "node": "Update Status: error (pin)", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Update Status: completed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Status: error (pin)",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Update Status: error": {
-      "main": [[{ "node": "Notify: Error", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Notify: Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   }
 }
