@@ -555,6 +555,9 @@ describe('createN8nAdapter', () => {
 
     it('sends PUT when existing workflow found', async () => {
       mockListWorkflows([{ id: 'wf-existing', name: 'Test Workflow', active: false }]);
+      // GET existing workflow (to preserve node IDs)
+      mockFetch.mockResolvedValueOnce(mockResponse({ nodes: [] }));
+      // PUT update
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'wf-existing' }));
       const adapter = createN8nAdapter();
 
@@ -572,17 +575,19 @@ describe('createN8nAdapter', () => {
       mockListWorkflows([{ id: 'wf-active', name: 'Test Workflow', active: true }]);
       // deactivate call
       mockFetch.mockResolvedValueOnce(mockResponse({}));
+      // GET existing workflow (to preserve node IDs)
+      mockFetch.mockResolvedValueOnce(mockResponse({ nodes: [] }));
       // PUT update call
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'wf-active' }));
       const adapter = createN8nAdapter();
 
       await adapter.importWorkflow(template, params);
 
-      // call[0] = list, call[1] = deactivate, call[2] = PUT
+      // call[0] = list, call[1] = deactivate, call[2] = GET existing, call[3] = PUT
       expect(mockFetch.mock.calls[1][0]).toBe(
         'http://n8n:5678/api/v1/workflows/wf-active/deactivate',
       );
-      expect(mockFetch.mock.calls[2][1]).toEqual(expect.objectContaining({ method: 'PUT' }));
+      expect(mockFetch.mock.calls[3][1]).toEqual(expect.objectContaining({ method: 'PUT' }));
     });
 
     it('returns workflow ID', async () => {

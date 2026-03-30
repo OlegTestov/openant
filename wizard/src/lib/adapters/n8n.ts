@@ -9,6 +9,7 @@ import type {
 import { AdapterError } from '@/lib/errors';
 
 interface N8nWorkflowNode {
+  id?: string;
   type?: string;
   name?: string;
   parameters?: Record<string, unknown>;
@@ -348,6 +349,22 @@ export function createN8nAdapter(): AutomationAdapter {
             );
             if (!deactivateRes.ok) {
               console.warn(`Failed to deactivate workflow ${existing.id}: ${deactivateRes.status}`);
+            }
+          }
+
+          // Preserve existing node IDs so n8n's Telegram webhook secret_token
+          // (derived from workflowId + nodeId) stays stable across updates.
+          const existingRes = await fetch(`${getN8nUrl()}/api/v1/workflows/${existing.id}`, {
+            headers: { 'X-N8N-API-KEY': apiKey },
+          });
+          if (existingRes.ok) {
+            const existingWf = (await existingRes.json()) as N8nWorkflow;
+            const existingNodes = existingWf.nodes ?? [];
+            for (const node of finalWorkflow.nodes ?? []) {
+              const match = existingNodes.find((n) => n.name === node.name && n.type === node.type);
+              if (match?.id) {
+                node.id = match.id;
+              }
             }
           }
         }
