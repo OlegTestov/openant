@@ -157,7 +157,9 @@ export default function Domain({ onComplete, onBack, initialData }: StepProps) {
         {!saasMode && !useDomain && (
           <Alert>
             <AlertDescription>
-              <p>{t.steps.domain.ipMode.replace('{ip}', serverIp || '<SERVER_IP>')}</p>
+              <p translate="no">
+                {t.steps.domain.ipMode.replace('{ip}', serverIp || '<SERVER_IP>')}
+              </p>
               <p className="mt-1">{t.steps.domain.noHttps}</p>
             </AlertDescription>
           </Alert>
@@ -254,7 +256,7 @@ export default function Domain({ onComplete, onBack, initialData }: StepProps) {
                           </th>
                         </tr>
                       </thead>
-                      <tbody>
+                      <tbody translate="no">
                         {getDnsRecords().map((record) => (
                           <tr key={record} className="border-b last:border-b-0">
                             <td className="px-3 py-2 font-mono">A</td>
@@ -274,7 +276,7 @@ export default function Domain({ onComplete, onBack, initialData }: StepProps) {
                 {dnsResult.matches_server ? (
                   <Badge>{t.steps.domain.dnsOk}</Badge>
                 ) : dnsResult.resolved ? (
-                  <Badge variant="destructive">
+                  <Badge variant="destructive" translate="no">
                     {t.steps.domain.dnsWrong
                       .replace('{ip}', dnsResult.ip || '')
                       .replace('{serverIp}', serverIp || '')}

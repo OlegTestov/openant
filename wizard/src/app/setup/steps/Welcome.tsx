@@ -74,6 +74,7 @@ export default function Welcome({ onComplete, initialData }: StepProps) {
           onValueChange={(value) => {
             setLanguage(value);
             localStorage.setItem('language', value);
+            document.documentElement.lang = value;
           }}
         >
           <SelectTrigger className="mx-auto w-48" aria-label={t.steps.welcome.selectLanguage}>

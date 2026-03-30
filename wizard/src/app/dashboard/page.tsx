@@ -77,7 +77,7 @@ function CredentialRow({
           ))}
         </div>
       </div>
-      <div className="text-sm text-muted-foreground space-y-0.5">
+      <div className="text-sm text-muted-foreground space-y-0.5" translate="no">
         <div>
           Email: <code className="bg-muted px-1 rounded">{credential.email}</code>
         </div>
@@ -277,11 +277,18 @@ export default function DashboardPage() {
               }
             />
             <p className="text-muted-foreground mt-2 text-sm">
-              {data.dns_check.matches_server
-                ? t.dashboard.dnsResolved
-                : data.dns_check.resolved
-                  ? `${t.dashboard.dnsWrongIp} (${data.dns_check.ip} → ${data.dns_check.server_ip})`
-                  : t.dashboard.dnsPending}
+              {data.dns_check.matches_server ? (
+                t.dashboard.dnsResolved
+              ) : data.dns_check.resolved ? (
+                <>
+                  {t.dashboard.dnsWrongIp}{' '}
+                  <span translate="no">
+                    ({data.dns_check.ip} → {data.dns_check.server_ip})
+                  </span>
+                </>
+              ) : (
+                t.dashboard.dnsPending
+              )}
             </p>
           </CardContent>
         </Card>

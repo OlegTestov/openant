@@ -84,7 +84,7 @@ function ServiceAccessRow({
           Open &rarr;
         </a>
       </div>
-      <div className="text-xs text-muted-foreground space-y-0.5">
+      <div className="text-xs text-muted-foreground space-y-0.5" translate="no">
         <div>
           Email: <code className="bg-muted px-1 rounded">{credential.email}</code>
         </div>
@@ -224,7 +224,7 @@ export default function Deploy({ onComplete }: StepProps) {
       {error && (
         <Alert variant="destructive" className="mt-4">
           <AlertDescription>
-            <p>
+            <p translate="no">
               {t.steps.deploy.errorAt
                 .replace('{step}', String(error.step))
                 .replace('{message}', error.message)}
