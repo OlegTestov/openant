@@ -147,11 +147,14 @@ async function executeDeployStep(
         const seoGhostDomain = customDomains?.ghost
           ? `https://${customDomains.ghost}`
           : `https://${domains.ghost}`;
+        // Read INDEXNOW_KEY from .env (step 1 may have just generated it)
+        const currentEnv = await readEnv(getEnvPath());
+        const indexNowKey = currentEnv.INDEXNOW_KEY || process.env.INDEXNOW_KEY;
         await writeSeoFiles(
           seoGhostDomain,
           state.blog?.title,
           state.blog?.description,
-          process.env.INDEXNOW_KEY,
+          indexNowKey,
         );
       }
       break;
@@ -344,7 +347,7 @@ async function executeDeployStep(
         telegramBotToken: state.telegram?.bot_token || process.env.TELEGRAM_BOT_TOKEN,
         // telegramChatId removed — NocoDB Prompts.TelegramChatId is the source of truth
         nocodbAuthToken: ctx.nocoKeys?.authToken,
-        indexNowKey: process.env.INDEXNOW_KEY || '',
+        indexNowKey: process.env.INDEXNOW_KEY || (await readEnv(getEnvPath())).INDEXNOW_KEY || '',
       };
 
       const importAndActivate = async (template: object) => {
