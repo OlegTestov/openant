@@ -439,16 +439,18 @@ export function createN8nAdapter(): AutomationAdapter {
           const { data } = (await res.json()) as {
             data: Array<{ id: string; active: boolean }>;
           };
-          const active = data.filter((wf) => wf.active);
-          if (active.length === 0) return;
+          if (data.length === 0) return;
 
-          for (const wf of active) {
-            await fetch(`${url}/api/v1/workflows/${wf.id}/deactivate`, {
-              method: 'POST',
-              headers,
-            });
-            // Let n8n fully unregister webhook before re-registering
-            await new Promise((r) => setTimeout(r, 2000));
+          for (const wf of data) {
+            if (wf.active) {
+              // Re-cycle active workflows to re-register webhooks
+              await fetch(`${url}/api/v1/workflows/${wf.id}/deactivate`, {
+                method: 'POST',
+                headers,
+              });
+              // Let n8n fully unregister webhook before re-registering
+              await new Promise((r) => setTimeout(r, 2000));
+            }
             await fetch(`${url}/api/v1/workflows/${wf.id}/activate`, {
               method: 'POST',
               headers,

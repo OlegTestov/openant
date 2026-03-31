@@ -658,7 +658,7 @@ describe('createN8nAdapter', () => {
       vi.useRealTimers();
     });
 
-    it('deactivates and reactivates all active workflows', async () => {
+    it('reactivates active workflows and activates inactive ones', async () => {
       // List workflows
       mockFetch.mockResolvedValueOnce(
         mockResponse({
@@ -669,22 +669,24 @@ describe('createN8nAdapter', () => {
           ],
         }),
       );
-      // deactivate wf-1, activate wf-1, deactivate wf-3, activate wf-3
+      // deactivate wf-1, activate wf-1, activate wf-2, deactivate wf-3, activate wf-3
       mockFetch.mockResolvedValue(mockResponse({}));
 
       const adapter = createN8nAdapter();
       const promise = adapter.reactivateWorkflows();
-      // 10s initial + 2s between deactivate/activate per workflow
+      // 10s initial + 2s between deactivate/activate per active workflow
       await vi.advanceTimersByTimeAsync(30_000);
       await promise;
 
       // call[0] = list, call[1] = deactivate wf-1, call[2] = activate wf-1,
-      // call[3] = deactivate wf-3, call[4] = activate wf-3
-      expect(mockFetch).toHaveBeenCalledTimes(5);
+      // call[3] = activate wf-2 (no deactivate — was inactive),
+      // call[4] = deactivate wf-3, call[5] = activate wf-3
+      expect(mockFetch).toHaveBeenCalledTimes(6);
       expect(mockFetch.mock.calls[1][0]).toBe('http://n8n:5678/api/v1/workflows/wf-1/deactivate');
       expect(mockFetch.mock.calls[2][0]).toBe('http://n8n:5678/api/v1/workflows/wf-1/activate');
-      expect(mockFetch.mock.calls[3][0]).toBe('http://n8n:5678/api/v1/workflows/wf-3/deactivate');
-      expect(mockFetch.mock.calls[4][0]).toBe('http://n8n:5678/api/v1/workflows/wf-3/activate');
+      expect(mockFetch.mock.calls[3][0]).toBe('http://n8n:5678/api/v1/workflows/wf-2/activate');
+      expect(mockFetch.mock.calls[4][0]).toBe('http://n8n:5678/api/v1/workflows/wf-3/deactivate');
+      expect(mockFetch.mock.calls[5][0]).toBe('http://n8n:5678/api/v1/workflows/wf-3/activate');
     });
 
     it('handles empty workflow list', async () => {
