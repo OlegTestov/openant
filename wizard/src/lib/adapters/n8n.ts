@@ -318,7 +318,8 @@ export function createN8nAdapter(): AutomationAdapter {
         .replace(/\{\{DEFAULT_LINK_NAME\}\}/g, jsonSafe(params.defaultLinkName ?? ''))
         .replace(/\{\{TELEGRAM_BOT_TOKEN\}\}/g, jsonSafe(params.telegramBotToken ?? ''))
         // TELEGRAM_CHAT_ID removed — fetched from NocoDB at runtime
-        .replace(/\{\{NOCODB_AUTH_TOKEN\}\}/g, jsonSafe(params.nocodbAuthToken ?? ''));
+        .replace(/\{\{NOCODB_AUTH_TOKEN\}\}/g, jsonSafe(params.nocodbAuthToken ?? ''))
+        .replace(/\{\{INDEXNOW_KEY\}\}/g, jsonSafe(params.indexNowKey ?? ''));
       const finalWorkflow = JSON.parse(serialized) as N8nWorkflow;
 
       // Ensure required fields are present for n8n API

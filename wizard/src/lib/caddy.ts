@@ -49,6 +49,10 @@ export function generateCaddyfile(
         root * /opt/openant/seo
         file_server
     }
+    handle /*.txt {
+        root * /opt/openant/seo
+        file_server
+    }
     reverse_proxy ghost:2368
 }`);
 
@@ -72,6 +76,10 @@ export function generateCaddyfile(
         file_server
     }
     handle /llms.txt {
+        root * /opt/openant/seo
+        file_server
+    }
+    handle /*.txt {
         root * /opt/openant/seo
         file_server
     }
@@ -106,6 +114,7 @@ export async function writeSeoFiles(
   ghostDomain: string,
   blogTitle?: string,
   blogDescription?: string,
+  indexNowKey?: string,
 ): Promise<void> {
   const dir = process.env.SEO_FILES_PATH || '/app/data/seo';
   await fs.mkdir(dir, { recursive: true });
@@ -148,4 +157,8 @@ export async function writeSeoFiles(
 
   await fs.writeFile(`${dir}/robots.txt`, robotsTxt, 'utf-8');
   await fs.writeFile(`${dir}/llms.txt`, llmsTxt, 'utf-8');
+
+  if (indexNowKey) {
+    await fs.writeFile(`${dir}/${indexNowKey}.txt`, indexNowKey, 'utf-8');
+  }
 }

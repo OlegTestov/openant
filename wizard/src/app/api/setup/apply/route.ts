@@ -1,4 +1,5 @@
 import { promises as fs } from 'fs';
+import crypto from 'crypto';
 import { withAuth } from '@/lib/auth';
 import { readState, writeState } from '@/lib/state';
 import { readEnv, writeEnv } from '@/lib/config';
@@ -94,6 +95,8 @@ function buildEnvVars(state: SetupState): Record<string, string> {
     PINTEREST_ENABLED: String(state.social?.pinterest_enabled ?? false),
     THREADS_ENABLED: String(state.social?.threads_enabled ?? false),
 
+    INDEXNOW_KEY: process.env.INDEXNOW_KEY || crypto.randomUUID().replace(/-/g, ''),
+
     TELEGRAM_BOT_TOKEN: state.telegram?.bot_token ?? process.env.TELEGRAM_BOT_TOKEN ?? '',
     // TELEGRAM_CHAT_ID removed — NocoDB Prompts.TelegramChatId is the source of truth
   };
@@ -144,7 +147,12 @@ async function executeDeployStep(
         const seoGhostDomain = customDomains?.ghost
           ? `https://${customDomains.ghost}`
           : `https://${domains.ghost}`;
-        await writeSeoFiles(seoGhostDomain, state.blog?.title, state.blog?.description);
+        await writeSeoFiles(
+          seoGhostDomain,
+          state.blog?.title,
+          state.blog?.description,
+          process.env.INDEXNOW_KEY,
+        );
       }
       break;
     }
@@ -336,6 +344,7 @@ async function executeDeployStep(
         telegramBotToken: state.telegram?.bot_token || process.env.TELEGRAM_BOT_TOKEN,
         // telegramChatId removed — NocoDB Prompts.TelegramChatId is the source of truth
         nocodbAuthToken: ctx.nocoKeys?.authToken,
+        indexNowKey: process.env.INDEXNOW_KEY || '',
       };
 
       const importAndActivate = async (template: object) => {

@@ -318,4 +318,56 @@ describe('writeSeoFiles', () => {
 
     expect(mockMkdir).toHaveBeenCalledWith('/app/data/seo', { recursive: true });
   });
+
+  it('writes IndexNow key file when indexNowKey is provided', async () => {
+    vi.stubEnv('SEO_FILES_PATH', '/tmp/seo-test');
+    mockWriteFile.mockClear();
+
+    await writeSeoFiles('https://example.com', 'Blog', 'Desc', 'abc123key');
+
+    expect(mockWriteFile).toHaveBeenCalledTimes(3);
+    expect(mockWriteFile).toHaveBeenCalledWith('/tmp/seo-test/abc123key.txt', 'abc123key', 'utf-8');
+  });
+
+  it('does not write key file when indexNowKey is undefined', async () => {
+    vi.stubEnv('SEO_FILES_PATH', '/tmp/seo-test');
+    mockWriteFile.mockClear();
+
+    await writeSeoFiles('https://example.com', 'Blog', 'Desc');
+
+    expect(mockWriteFile).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('generateCaddyfile IndexNow handler', () => {
+  it('Ghost block includes /*.txt handler for IndexNow key file', () => {
+    const result = generateCaddyfile(DEFAULT_DOMAINS);
+    const ghostBlock = result.split('\n\n')[1];
+
+    expect(ghostBlock).toContain('handle /*.txt');
+  });
+
+  it('custom domain Ghost block includes /*.txt handler', () => {
+    const customDomains: ServiceDomains = {
+      ghost: 'blog.mysite.com',
+      nocodb: 'table.mysite.com',
+      n8n: 'auto.mysite.com',
+      wizard: 'setup.mysite.com',
+    };
+    const result = generateCaddyfile(DEFAULT_DOMAINS, undefined, true, customDomains);
+    const blocks = result.split('\n\n');
+    const customGhostBlock = blocks[5];
+
+    expect(customGhostBlock).toContain('blog.mysite.com {');
+    expect(customGhostBlock).toContain('handle /*.txt');
+  });
+
+  it('non-Ghost blocks do not include /*.txt handler', () => {
+    const result = generateCaddyfile(DEFAULT_DOMAINS);
+    const blocks = result.split('\n\n').slice(2); // skip global + ghost
+
+    for (const block of blocks) {
+      expect(block).not.toContain('handle /*.txt');
+    }
+  });
 });

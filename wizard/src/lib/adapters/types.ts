@@ -162,6 +162,7 @@ export interface WorkflowParams {
   telegramBotToken?: string;
   // telegramChatId removed — NocoDB Prompts.TelegramChatId is the source of truth
   nocodbAuthToken?: string;
+  indexNowKey?: string;
 }
 
 // ── Distribution ──────────────────────────────────

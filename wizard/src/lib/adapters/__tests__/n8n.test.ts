@@ -535,6 +535,30 @@ describe('createN8nAdapter', () => {
       expect(codeNode.parameters.code).toBe('Write in English with professional tone');
     });
 
+    it('substitutes INDEXNOW_KEY marker', async () => {
+      const templateWithKey = {
+        name: 'Test Workflow',
+        nodes: [
+          {
+            type: 'n8n-nodes-base.code',
+            name: 'Ping',
+            parameters: { jsCode: 'const key = "{{INDEXNOW_KEY}}";' },
+          },
+        ],
+      };
+      mockListWorkflows();
+      mockFetch.mockResolvedValueOnce(mockResponse({ id: 'wf-1' }));
+      const adapter = createN8nAdapter();
+
+      await adapter.importWorkflow(templateWithKey, {
+        ...params,
+        indexNowKey: 'abc123testkey',
+      });
+
+      const body = JSON.parse(mockFetch.mock.calls[1][1].body as string);
+      expect(body.nodes[0].parameters.jsCode).toBe('const key = "abc123testkey";');
+    });
+
     it('sends POST when no existing workflow found', async () => {
       mockListWorkflows();
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'wf-1' }));
