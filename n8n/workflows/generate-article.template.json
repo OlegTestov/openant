@@ -65,6 +65,12 @@
               "operation": "larger",
               "value2": 0
             }
+          ],
+          "string": [
+            {
+              "value1": "={{ ($json.list[0]?.Topic || '') + ($json.list[0]?.Description || '') }}",
+              "operation": "isNotEmpty"
+            }
           ]
         }
       }
