@@ -416,7 +416,12 @@ export function createN8nAdapter(): AutomationAdapter {
       });
 
       if (!res.ok) {
-        throw new AdapterError('n8n', 'activateWorkflow', `Activation failed: ${res.status}`);
+        const body = await res.text().catch(() => '');
+        throw new AdapterError(
+          'n8n',
+          'activateWorkflow',
+          `Activation failed: ${res.status}${body ? ` — ${body}` : ''}`,
+        );
       }
     },
 

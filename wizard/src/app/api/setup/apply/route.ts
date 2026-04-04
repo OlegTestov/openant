@@ -270,6 +270,14 @@ async function executeDeployStep(
       const llmApiKey = isManaged() ? process.env.LLM_API_KEY || '' : (state.llm?.api_key ?? '');
       const llmApiUrl = isManaged() ? process.env.LLM_API_URL || '' : (state.llm?.api_url ?? '');
 
+      if (!llmApiKey || !llmApiUrl) {
+        throw new Error(
+          isManaged()
+            ? '[n8n] LLM credentials not configured on this server. Please contact support.'
+            : '[n8n] LLM API key and URL are required.',
+        );
+      }
+
       // Create all credentials in parallel (independent n8n API calls)
       const credPromises: Array<Promise<[string, string]>> = [
         adapters.automation
