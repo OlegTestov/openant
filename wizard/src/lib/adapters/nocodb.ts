@@ -495,7 +495,7 @@ async function createPromptsTable(
 function mapRowToArticle(row: Record<string, unknown>): ArticleRow {
   return {
     id: String(row.Id),
-    topic: row.Topic as string,
+    topic: (row.Topic as string) || undefined,
     description: (row.Description as string) || undefined,
     link: (row.Link as string) || undefined,
     articleUrl: (row.ArticleURL as string) || undefined,
@@ -508,7 +508,8 @@ function mapRowToArticle(row: Record<string, unknown>): ArticleRow {
 }
 
 function mapArticleInputToRow(input: ArticleCreateInput): Record<string, unknown> {
-  const body: Record<string, unknown> = { Topic: input.topic };
+  const body: Record<string, unknown> = {};
+  if (input.topic) body.Topic = input.topic;
   if (input.description) body.Description = input.description;
   if (input.link) body.Link = input.link;
   if (input.articleUrl) body.ArticleURL = input.articleUrl;
@@ -747,7 +748,7 @@ export function createNocoDBAdapter(): TableAdapter {
       const row = data.list[0];
       return {
         id: String(row.Id),
-        topic: row.Topic as string,
+        topic: (row.Topic as string) || undefined,
         description: (row.Description as string) || undefined,
         link: (row.Link as string) || undefined,
         articleUrl: (row.ArticleURL as string) || undefined,

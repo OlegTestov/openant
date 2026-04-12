@@ -10,14 +10,19 @@ function saasGuard(): Response | null {
   return null;
 }
 
-const createSchema = z.object({
-  topic: z.string().min(1),
-  description: z.string().max(4096).optional(),
-  link: z.string().optional(),
-  articleUrl: z.string().url().or(z.literal('latest')).optional(),
-  board: z.string().optional(),
-  draft: z.boolean().optional(),
-});
+const createSchema = z
+  .object({
+    topic: z.string().optional(),
+    description: z.string().max(4096).optional(),
+    link: z.string().optional(),
+    articleUrl: z.string().url().or(z.literal('latest')).optional(),
+    board: z.string().optional(),
+    draft: z.boolean().optional(),
+  })
+  .refine((data) => !!(data.topic?.trim() || data.description?.trim()), {
+    message: 'Either topic or description is required',
+    path: ['topic'],
+  });
 
 const bulkCreateSchema = z.object({
   articles: z.array(createSchema).min(1).max(100),
@@ -25,7 +30,7 @@ const bulkCreateSchema = z.object({
 
 const updateSchema = z.object({
   id: z.string().min(1),
-  topic: z.string().min(1).optional(),
+  topic: z.string().optional(),
   description: z.string().optional(),
   link: z.string().optional(),
   articleUrl: z.string().url().or(z.literal('latest')).optional().or(z.literal('')),
@@ -108,6 +113,27 @@ export const PATCH = withAuth(
 
     // Handle field updates (topic, description, link, board)
     if (Object.keys(input).length > 0) {
+      // Ensure at least one of topic/description remains after update
+      if ('topic' in input || 'description' in input) {
+        const articles = await adapters.table.listArticles();
+        const current = articles.find((a) => a.id === id);
+        if (current) {
+          const topicAfter = ('topic' in input ? input.topic : current.topic)?.trim();
+          const descAfter = (
+            'description' in input ? input.description : current.description
+          )?.trim();
+          if (!topicAfter && !descAfter) {
+            return Response.json(
+              {
+                success: false,
+                error: 'Either topic or description is required',
+                code: 'VALIDATION_ERROR',
+              },
+              { status: 400 },
+            );
+          }
+        }
+      }
       await adapters.table.updateArticle(id, input);
     }
 

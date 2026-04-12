@@ -67,7 +67,7 @@ export interface TableSetupResult {
 
 export interface ArticleRow {
   id: string;
-  topic: string;
+  topic?: string;
   description?: string;
   link?: string;
   articleUrl?: string;
@@ -89,7 +89,7 @@ export type ArticleStatus =
   | 'error';
 
 export interface ArticleCreateInput {
-  topic: string;
+  topic?: string;
   description?: string;
   link?: string;
   articleUrl?: string;
