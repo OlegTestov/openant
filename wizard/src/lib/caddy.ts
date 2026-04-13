@@ -40,7 +40,14 @@ export function generateCaddyfile(
 }`);
 
   // SaaS domain blocks (wildcard cert when SaaS)
-  blocks.push(`${domains.ghost} {${tls}
+  // When a custom domain exists, 301-redirect the SaaS blog to it to avoid
+  // duplicate-content indexing. Other services keep reverse_proxy.
+  if (customDomains) {
+    blocks.push(`${domains.ghost} {${tls}
+    redir https://${customDomains.ghost}{uri} permanent
+}`);
+  } else {
+    blocks.push(`${domains.ghost} {${tls}
     handle /robots.txt {
         root * /opt/openant/seo
         file_server
@@ -55,6 +62,7 @@ export function generateCaddyfile(
     }
     reverse_proxy ghost:2368
 }`);
+  }
 
   blocks.push(`${domains.nocodb} {${tls}
     reverse_proxy nocodb:8080

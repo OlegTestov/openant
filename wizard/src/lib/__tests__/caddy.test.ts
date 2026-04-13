@@ -165,6 +165,33 @@ describe('generateCaddyfile', () => {
     expect(blocks).toHaveLength(4);
   });
 
+  it('301-redirects SaaS blog to custom blog when customDomains provided (avoids duplicate content)', () => {
+    const customDomains: ServiceDomains = {
+      ghost: 'blog.mysite.com',
+      nocodb: 'table.mysite.com',
+      n8n: 'auto.mysite.com',
+      wizard: 'setup.mysite.com',
+    };
+    const result = generateCaddyfile(DEFAULT_DOMAINS, undefined, true, customDomains);
+
+    // SaaS blog block redirects to custom blog (preserves path via {uri})
+    expect(result).toContain('redir https://blog.mysite.com{uri} permanent');
+    // SaaS blog no longer proxies directly to ghost
+    const saasBlogBlockMatch = result.match(/example\.com \{[^}]+\}/);
+    expect(saasBlogBlockMatch).not.toBeNull();
+    expect(saasBlogBlockMatch![0]).not.toContain('reverse_proxy ghost:2368');
+    // Custom blog still proxies to ghost
+    expect(result).toContain('blog.mysite.com {');
+    const customBlogBlock = result.substring(result.indexOf('blog.mysite.com {'));
+    expect(customBlogBlock).toContain('reverse_proxy ghost:2368');
+  });
+
+  it('SaaS blog proxies to ghost when no customDomains (no redirect)', () => {
+    const result = generateCaddyfile(DEFAULT_DOMAINS, undefined, true, null);
+    expect(result).not.toContain('redir');
+    expect(result).toContain('reverse_proxy ghost:2368');
+  });
+
   it('supports custom prefixes (ghost on subdomain)', () => {
     const domains: ServiceDomains = {
       ghost: 'blog.example.com',
