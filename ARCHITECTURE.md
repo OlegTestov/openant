@@ -1,6 +1,6 @@
 # openant — Architecture Overview
 
-> Last updated: 2026-04-12
+> Last updated: 2026-04-15
 
 ---
 
@@ -289,7 +289,7 @@ Core pattern: each external service has a TypeScript adapter interface. Replacin
 
 ### Caddyfile generator (`src/lib/caddy.ts`)
 
-- `generateCaddyfile(domains, mode?, saas?, customDomains?)` -- IP mode (null domains): `:80` -> Ghost. Domain mode: 4 server blocks. SaaS adds `tls /opt/openant/certs/fullchain.pem /opt/openant/certs/privkey.pem` (wildcard cert). Optional 4th param adds custom domain blocks with Let's Encrypt. Ghost blocks (both SaaS and custom) include `handle /robots.txt`, `handle /llms.txt`, and `handle /*.txt` (IndexNow key file) for SEO and AI crawler optimization (served from `/opt/openant/seo`).
+- `generateCaddyfile(domains, mode?, saas?, customDomains?)` -- IP mode (null domains): `:80` -> Ghost. Domain mode: 4 server blocks. SaaS adds `tls /opt/openant/certs/fullchain.pem /opt/openant/certs/privkey.pem` (wildcard cert). Optional 4th param adds custom domain blocks with Let's Encrypt. Ghost blocks (both SaaS and custom) include `handle /robots.txt`, `handle /llms.txt`, and `handle /*.txt` (IndexNow key file) for SEO and AI crawler optimization (served from `/opt/openant/seo`). When a custom domain is configured, the SaaS Ghost block splits path handling: `@ghost path /ghost /ghost/*` is proxied to `ghost:2368` with `X-Robots-Tag: noindex, nofollow` (admin UI + admin API stay reachable for n8n and do not leak into search indexes); everything else falls through to a catch-all `redir https://<custom>{uri} permanent` so user-facing URLs consolidate on the canonical custom domain. Without this split, a blanket cross-host 301 makes `axios`/`follow-redirects` inside n8n downgrade `POST`->`GET` and strip `Authorization`, breaking every Admin API publish with `NoPermissionError`.
 - `writeCaddyfile(content)` -- Writes to `CADDYFILE_PATH` (default: `/app/Caddyfile`).
 - `writeSeoFiles(ghostDomain, blogTitle?, blogDescription?, indexNowKey?)` -- Generates `robots.txt` (with AI crawler rules for GPTBot, ClaudeBot, PerplexityBot, etc.), `llms.txt` (blog info for LLM agents), and optional `{key}.txt` (IndexNow verification key). Written to `SEO_FILES_PATH` (default: `/app/data/seo`), mapped to Caddy via Docker volume `./data/wizard/seo:/opt/openant/seo:ro`.
 
@@ -547,47 +547,47 @@ All providers are OpenAI-compatible (no adapter needed):
 
 413 tests across 41 files:
 
-| File                                              | Tests | What it verifies                                                                                                    |
-| ------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------- |
-| `lib/adapters/__tests__/ghost.test.ts`            | 34    | JWT, healthCheck, setup (fast path, full, EmailError, recovery, env password), uploadTheme, publishPost, errors     |
-| `lib/adapters/__tests__/nocodb.test.ts`           | 24    | healthCheck, setup (full flow, default base deletion, env password), getNextQueued, updateStatus, getStats          |
-| `lib/adapters/__tests__/n8n.test.ts`              | 37    | healthCheck, setup (fast path, masked keys, owner creation, password format), credentials, importWorkflow, activate |
-| `lib/__tests__/docker.test.ts`                    | 3     | reloadCaddy exec, AdapterError on failure, container-not-found skip                                                 |
-| `lib/__tests__/adapters-mock.test.ts`             | 15    | Mock adapters implement correct interfaces                                                                          |
-| `lib/__tests__/steps.test.ts`                     | 5     | 8 steps, correct order, optional steps                                                                              |
-| `lib/__tests__/llm-presets.test.ts`               | 4     | 4 presets, correct shape                                                                                            |
-| `lib/__tests__/errors.test.ts`                    | 5     | AdapterError message, name, instanceof, cause                                                                       |
-| `lib/__tests__/state.test.ts`                     | 8     | readState/writeState round-trip, atomic write, corrupted fallback, reset                                            |
-| `lib/__tests__/config.test.ts`                    | 14    | parseEnv/serializeEnv edge cases, readEnv/writeEnv round-trip                                                       |
-| `lib/__tests__/auth.test.ts`                      | 5     | Valid token, missing/wrong/malformed header -> 401                                                                  |
-| `lib/__tests__/api-handler.test.ts`               | 7     | ZodError -> 400, AdapterError -> 500, unknown -> 500, no leaks                                                      |
-| `app/api/health/__tests__/route.test.ts`          | 2     | 200 + `{ status: "ok" }`                                                                                            |
-| `app/api/make-blueprint/__tests__/route.test.ts`  | 2     | Auth required, returns blueprint with Content-Disposition                                                           |
-| `app/api/setup/__tests__/schemas.test.ts`         | 32    | Zod schemas for all 6 step routes                                                                                   |
-| `app/api/setup/__tests__/routes.test.ts`          | 20    | All 5 POST routes: 200/400/401, state updates, DNS/LLM mocking                                                      |
-| `components/__tests__/Stepper.test.tsx`           | 5     | Labels, current step, checkmarks, numbers, connectors                                                               |
-| `components/__tests__/StepLayout.test.tsx`        | 9     | Title, buttons, hide/disable, spinner, click handlers                                                               |
-| `components/__tests__/ServiceStatus.test.tsx`     | 6     | Dot colors, service name, Open link                                                                                 |
-| `app/setup/__tests__/page.test.tsx`               | 7     | Default step, navigation, bounds, position restore, token storage                                                   |
-| `app/setup/steps/__tests__/Welcome.test.tsx`      | 4     | Language selector, submit, error display                                                                            |
-| `app/setup/steps/__tests__/Domain.test.tsx`       | 4     | Toggle modes, domain input, IP mode, submit                                                                         |
-| `app/setup/steps/__tests__/LLM.test.tsx`          | 4     | Provider selector, test connection, submit                                                                          |
-| `app/setup/steps/__tests__/Blog.test.tsx`         | 3     | Live preview, hours->minutes, error display                                                                         |
-| `app/setup/steps/__tests__/Telegram.test.tsx`     | 7     | Optional alert, inputs, submit, skip, restore data                                                                  |
-| `app/setup/steps/__tests__/Social.test.tsx`       | 4     | Optional alert, toggles, Make download, empty submit                                                                |
-| `app/setup/steps/__tests__/Review.test.tsx`       | 3     | Config sections, Edit navigation, key masking                                                                       |
-| `app/setup/steps/__tests__/Deploy.test.tsx`       | 7     | Deploy button, progress, checkmarks, error/retry, URLs, dashboard link                                              |
-| `app/api/setup/__tests__/apply.test.ts`           | 24    | SSE format, all 12 steps, errors, startFrom, auth, URL generation, managed mode                                     |
-| `lib/__tests__/caddy.test.ts`                     | 30    | IP/domain mode, SaaS wildcard cert TLS, custom domains, writeCaddyfile, SEO handlers, writeSeoFiles, IndexNow key   |
-| `lib/__tests__/sse.test.ts`                       | 4     | createSSEStream, sendSSEEvent format, closeSSE                                                                      |
-| `lib/__tests__/credentials.test.ts`               | 7     | Env var priority, SHA-256 fallback, admin email, all services                                                       |
-| `lib/__tests__/i18n.test.ts`                      | 4     | English/Russian locale, all keys, no empty strings                                                                  |
-| `lib/__tests__/retry.test.ts`                     | 6     | Success, retry+success, max exceeded, exponential/fixed backoff                                                     |
-| `app/api/dashboard/__tests__/status.test.ts`      | 10    | Healthy/unhealthy, Caddy 404, URLs, saas_mode, credentials, auth                                                    |
-| `app/api/dashboard/__tests__/stats.test.ts`       | 3     | Article counts, auth, AdapterError                                                                                  |
-| `app/api/dashboard/__tests__/reconfigure.test.ts` | 5     | Reset deployed/steps, preserve config, auth                                                                         |
-| `app/api/saas/__tests__/health.test.ts`           | 5     | 404 when SaaS off, combined health+stats, adapter failures                                                          |
-| `app/dashboard/__tests__/page.test.tsx`           | 12    | Statuses, stats, tools, links, SaaS badge, reconfigure, auto-refresh                                                |
+| File                                              | Tests | What it verifies                                                                                                                                                                |
+| ------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lib/adapters/__tests__/ghost.test.ts`            | 34    | JWT, healthCheck, setup (fast path, full, EmailError, recovery, env password), uploadTheme, publishPost, errors                                                                 |
+| `lib/adapters/__tests__/nocodb.test.ts`           | 24    | healthCheck, setup (full flow, default base deletion, env password), getNextQueued, updateStatus, getStats                                                                      |
+| `lib/adapters/__tests__/n8n.test.ts`              | 37    | healthCheck, setup (fast path, masked keys, owner creation, password format), credentials, importWorkflow, activate                                                             |
+| `lib/__tests__/docker.test.ts`                    | 3     | reloadCaddy exec, AdapterError on failure, container-not-found skip                                                                                                             |
+| `lib/__tests__/adapters-mock.test.ts`             | 15    | Mock adapters implement correct interfaces                                                                                                                                      |
+| `lib/__tests__/steps.test.ts`                     | 5     | 8 steps, correct order, optional steps                                                                                                                                          |
+| `lib/__tests__/llm-presets.test.ts`               | 4     | 4 presets, correct shape                                                                                                                                                        |
+| `lib/__tests__/errors.test.ts`                    | 5     | AdapterError message, name, instanceof, cause                                                                                                                                   |
+| `lib/__tests__/state.test.ts`                     | 8     | readState/writeState round-trip, atomic write, corrupted fallback, reset                                                                                                        |
+| `lib/__tests__/config.test.ts`                    | 14    | parseEnv/serializeEnv edge cases, readEnv/writeEnv round-trip                                                                                                                   |
+| `lib/__tests__/auth.test.ts`                      | 5     | Valid token, missing/wrong/malformed header -> 401                                                                                                                              |
+| `lib/__tests__/api-handler.test.ts`               | 7     | ZodError -> 400, AdapterError -> 500, unknown -> 500, no leaks                                                                                                                  |
+| `app/api/health/__tests__/route.test.ts`          | 2     | 200 + `{ status: "ok" }`                                                                                                                                                        |
+| `app/api/make-blueprint/__tests__/route.test.ts`  | 2     | Auth required, returns blueprint with Content-Disposition                                                                                                                       |
+| `app/api/setup/__tests__/schemas.test.ts`         | 32    | Zod schemas for all 6 step routes                                                                                                                                               |
+| `app/api/setup/__tests__/routes.test.ts`          | 20    | All 5 POST routes: 200/400/401, state updates, DNS/LLM mocking                                                                                                                  |
+| `components/__tests__/Stepper.test.tsx`           | 5     | Labels, current step, checkmarks, numbers, connectors                                                                                                                           |
+| `components/__tests__/StepLayout.test.tsx`        | 9     | Title, buttons, hide/disable, spinner, click handlers                                                                                                                           |
+| `components/__tests__/ServiceStatus.test.tsx`     | 6     | Dot colors, service name, Open link                                                                                                                                             |
+| `app/setup/__tests__/page.test.tsx`               | 7     | Default step, navigation, bounds, position restore, token storage                                                                                                               |
+| `app/setup/steps/__tests__/Welcome.test.tsx`      | 4     | Language selector, submit, error display                                                                                                                                        |
+| `app/setup/steps/__tests__/Domain.test.tsx`       | 4     | Toggle modes, domain input, IP mode, submit                                                                                                                                     |
+| `app/setup/steps/__tests__/LLM.test.tsx`          | 4     | Provider selector, test connection, submit                                                                                                                                      |
+| `app/setup/steps/__tests__/Blog.test.tsx`         | 3     | Live preview, hours->minutes, error display                                                                                                                                     |
+| `app/setup/steps/__tests__/Telegram.test.tsx`     | 7     | Optional alert, inputs, submit, skip, restore data                                                                                                                              |
+| `app/setup/steps/__tests__/Social.test.tsx`       | 4     | Optional alert, toggles, Make download, empty submit                                                                                                                            |
+| `app/setup/steps/__tests__/Review.test.tsx`       | 3     | Config sections, Edit navigation, key masking                                                                                                                                   |
+| `app/setup/steps/__tests__/Deploy.test.tsx`       | 7     | Deploy button, progress, checkmarks, error/retry, URLs, dashboard link                                                                                                          |
+| `app/api/setup/__tests__/apply.test.ts`           | 24    | SSE format, all 12 steps, errors, startFrom, auth, URL generation, managed mode                                                                                                 |
+| `lib/__tests__/caddy.test.ts`                     | 34    | IP/domain mode, SaaS wildcard cert TLS, custom domains, writeCaddyfile, SEO handlers, writeSeoFiles, IndexNow key, `/ghost/*` exemption from SEO redirect, X-Robots-Tag noindex |
+| `lib/__tests__/sse.test.ts`                       | 4     | createSSEStream, sendSSEEvent format, closeSSE                                                                                                                                  |
+| `lib/__tests__/credentials.test.ts`               | 7     | Env var priority, SHA-256 fallback, admin email, all services                                                                                                                   |
+| `lib/__tests__/i18n.test.ts`                      | 4     | English/Russian locale, all keys, no empty strings                                                                                                                              |
+| `lib/__tests__/retry.test.ts`                     | 6     | Success, retry+success, max exceeded, exponential/fixed backoff                                                                                                                 |
+| `app/api/dashboard/__tests__/status.test.ts`      | 10    | Healthy/unhealthy, Caddy 404, URLs, saas_mode, credentials, auth                                                                                                                |
+| `app/api/dashboard/__tests__/stats.test.ts`       | 3     | Article counts, auth, AdapterError                                                                                                                                              |
+| `app/api/dashboard/__tests__/reconfigure.test.ts` | 5     | Reset deployed/steps, preserve config, auth                                                                                                                                     |
+| `app/api/saas/__tests__/health.test.ts`           | 5     | 404 when SaaS off, combined health+stats, adapter failures                                                                                                                      |
+| `app/dashboard/__tests__/page.test.tsx`           | 12    | Statuses, stats, tools, links, SaaS badge, reconfigure, auto-refresh                                                                                                            |
 
 ### Integration tests
 
