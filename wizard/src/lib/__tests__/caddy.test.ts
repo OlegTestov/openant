@@ -165,7 +165,7 @@ describe('generateCaddyfile', () => {
     expect(blocks).toHaveLength(4);
   });
 
-  it('301-redirects SaaS blog to custom blog when customDomains provided (avoids duplicate content)', () => {
+  it('301-redirects user-facing paths on SaaS blog to custom blog (avoids duplicate content)', () => {
     const customDomains: ServiceDomains = {
       ghost: 'blog.mysite.com',
       nocodb: 'table.mysite.com',
@@ -173,17 +173,35 @@ describe('generateCaddyfile', () => {
       wizard: 'setup.mysite.com',
     };
     const result = generateCaddyfile(DEFAULT_DOMAINS, undefined, true, customDomains);
+    const saasGhostBlock = result.split('\n\n')[1];
 
-    // SaaS blog block redirects to custom blog (preserves path via {uri})
-    expect(result).toContain('redir https://blog.mysite.com{uri} permanent');
-    // SaaS blog no longer proxies directly to ghost
-    const saasBlogBlockMatch = result.match(/example\.com \{[^}]+\}/);
-    expect(saasBlogBlockMatch).not.toBeNull();
-    expect(saasBlogBlockMatch![0]).not.toContain('reverse_proxy ghost:2368');
+    expect(saasGhostBlock.startsWith('example.com {')).toBe(true);
+    // Catch-all handle performs the SEO redirect (preserves path via {uri})
+    expect(saasGhostBlock).toMatch(
+      /handle \{[\s\S]*?redir https:\/\/blog\.mysite\.com\{uri\} permanent[\s\S]*?\}/,
+    );
     // Custom blog still proxies to ghost
-    expect(result).toContain('blog.mysite.com {');
     const customBlogBlock = result.substring(result.indexOf('blog.mysite.com {'));
     expect(customBlogBlock).toContain('reverse_proxy ghost:2368');
+  });
+
+  it('SaaS blog exempts /ghost/* from SEO redirect — prevents 403 on n8n admin API POST', () => {
+    // Regression: a blanket `redir ... permanent` on the SaaS blog block causes
+    // axios/follow-redirects (inside the n8n HTTP Request node) to downgrade
+    // POST→GET and strip the Authorization header on cross-host 301, so Ghost
+    // returns NoPermissionError on every article publish.
+    const customDomains: ServiceDomains = {
+      ghost: 'blog.mysite.com',
+      nocodb: 'table.mysite.com',
+      n8n: 'auto.mysite.com',
+      wizard: 'setup.mysite.com',
+    };
+    const result = generateCaddyfile(DEFAULT_DOMAINS, undefined, true, customDomains);
+    const saasGhostBlock = result.split('\n\n')[1];
+
+    // /ghost and /ghost/* are matched and routed to the Ghost container directly
+    expect(saasGhostBlock).toContain('@ghost path /ghost /ghost/*');
+    expect(saasGhostBlock).toMatch(/handle @ghost \{[\s\S]*?reverse_proxy ghost:2368[\s\S]*?\}/);
   });
 
   it('SaaS blog proxies to ghost when no customDomains (no redirect)', () => {

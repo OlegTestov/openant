@@ -40,11 +40,20 @@ export function generateCaddyfile(
 }`);
 
   // SaaS domain blocks (wildcard cert when SaaS)
-  // When a custom domain exists, 301-redirect the SaaS blog to it to avoid
-  // duplicate-content indexing. Other services keep reverse_proxy.
+  // When a custom domain exists, 301-redirect user-facing paths on the SaaS blog
+  // to the custom domain (avoids duplicate-content indexing), but keep /ghost/*
+  // (admin UI + admin API + content API) proxied directly to Ghost. A cross-host
+  // 301 would cause axios/follow-redirects in n8n to downgrade POST→GET and strip
+  // the Authorization header, breaking article publishing via the Ghost Admin API.
   if (customDomains) {
     blocks.push(`${domains.ghost} {${tls}
-    redir https://${customDomains.ghost}{uri} permanent
+    @ghost path /ghost /ghost/*
+    handle @ghost {
+        reverse_proxy ghost:2368
+    }
+    handle {
+        redir https://${customDomains.ghost}{uri} permanent
+    }
 }`);
   } else {
     blocks.push(`${domains.ghost} {${tls}
