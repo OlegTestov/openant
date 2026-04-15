@@ -204,6 +204,25 @@ describe('generateCaddyfile', () => {
     expect(saasGhostBlock).toMatch(/handle @ghost \{[\s\S]*?reverse_proxy ghost:2368[\s\S]*?\}/);
   });
 
+  it('SaaS blog /ghost/* responses carry X-Robots-Tag noindex (admin UI stays out of search index)', () => {
+    // Belt-and-braces: user-facing paths 301 to custom domain (canonical), but
+    // /ghost/* now responds on both hosts. Adding noindex,nofollow keeps search
+    // engines from indexing the SaaS-host admin UI even if they somehow find it.
+    const customDomains: ServiceDomains = {
+      ghost: 'blog.mysite.com',
+      nocodb: 'table.mysite.com',
+      n8n: 'auto.mysite.com',
+      wizard: 'setup.mysite.com',
+    };
+    const result = generateCaddyfile(DEFAULT_DOMAINS, undefined, true, customDomains);
+    const saasGhostBlock = result.split('\n\n')[1];
+
+    // X-Robots-Tag lives inside handle @ghost so only /ghost/* responses carry it
+    expect(saasGhostBlock).toMatch(
+      /handle @ghost \{[\s\S]*?header X-Robots-Tag "noindex, nofollow"[\s\S]*?reverse_proxy ghost:2368[\s\S]*?\}/,
+    );
+  });
+
   it('SaaS blog proxies to ghost when no customDomains (no redirect)', () => {
     const result = generateCaddyfile(DEFAULT_DOMAINS, undefined, true, null);
     expect(result).not.toContain('redir');

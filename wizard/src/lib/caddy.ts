@@ -49,6 +49,7 @@ export function generateCaddyfile(
     blocks.push(`${domains.ghost} {${tls}
     @ghost path /ghost /ghost/*
     handle @ghost {
+        header X-Robots-Tag "noindex, nofollow"
         reverse_proxy ghost:2368
     }
     handle {
