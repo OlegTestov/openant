@@ -4,6 +4,7 @@ import { withAuth } from '@/lib/auth';
 import { apiHandler } from '@/lib/api-handler';
 import { readState, writeState } from '@/lib/state';
 import { getServerIp } from '@/lib/server-ip';
+import { normalizeDomain } from '@/lib/normalize-domain';
 
 export const domainSchema = z
   .object({
@@ -14,8 +15,21 @@ export const domainSchema = z
     n8n_prefix: z.string().optional(),
     wizard_prefix: z.string().optional(),
   })
-  .refine((data) => !data.use_domain || (data.domain && data.domain.length > 0), {
-    message: 'Domain is required when "I have a domain" is enabled',
+  .superRefine((data, ctx) => {
+    if (!data.use_domain) return;
+    if (!data.domain || data.domain.length === 0) {
+      ctx.addIssue({ code: 'custom', path: ['domain'], message: 'empty' });
+      return;
+    }
+    const result = normalizeDomain(data.domain);
+    if (!result.ok) {
+      ctx.addIssue({ code: 'custom', path: ['domain'], message: result.error });
+    }
+  })
+  .transform((data) => {
+    if (!data.use_domain || !data.domain) return data;
+    const result = normalizeDomain(data.domain);
+    return result.ok ? { ...data, domain: result.value } : data;
   });
 
 async function checkDns(

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { StepLayout } from '@/components/StepLayout';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { useTranslations } from '@/lib/i18n';
+import { normalizeDomain, type DomainNormalizeError } from '@/lib/normalize-domain';
 import type { StepProps } from '@/types/step-props';
 
 interface DnsCheck {
@@ -61,13 +62,33 @@ export default function Domain({ onComplete, onBack, initialData }: StepProps) {
     loadStatus();
   }, []);
 
+  const normalized = useMemo(() => normalizeDomain(domain), [domain]);
+  const cleanDomain = normalized.ok ? normalized.value : '';
+  const showDomainError = useDomain && domain.length > 0 && !normalized.ok;
+  const errorKey: DomainNormalizeError | null = normalized.ok ? null : normalized.error;
+
+  function domainErrorMessage(err: DomainNormalizeError): string {
+    switch (err) {
+      case 'empty':
+        return t.steps.domain.errorEmpty;
+      case 'has_path':
+        return t.steps.domain.errorHasPath;
+      case 'has_port':
+        return t.steps.domain.errorHasPort;
+      case 'invalid_chars':
+        return t.steps.domain.errorInvalidChars;
+      case 'invalid_format':
+        return t.steps.domain.errorInvalidFormat;
+    }
+  }
+
   function resolveServiceDomain(prefix: string): string {
-    if (!domain) return '';
-    return prefix ? `${prefix}.${domain}` : domain;
+    if (!cleanDomain) return '';
+    return prefix ? `${prefix}.${cleanDomain}` : cleanDomain;
   }
 
   function getDnsRecords(): string[] {
-    if (!domain) return [];
+    if (!cleanDomain) return [];
     const records = new Set<string>();
     records.add(resolveServiceDomain(ghostPrefix));
     records.add(resolveServiceDomain(nocodbPrefix));
@@ -84,7 +105,7 @@ export default function Domain({ onComplete, onBack, initialData }: StepProps) {
       const token = localStorage.getItem('setup_token');
       const payload: Record<string, unknown> = {
         use_domain: useDomain,
-        domain: useDomain ? domain : undefined,
+        domain: useDomain ? cleanDomain : undefined,
         ghost_prefix: useDomain ? ghostPrefix : undefined,
         nocodb_prefix: useDomain ? nocodbPrefix : undefined,
         n8n_prefix: useDomain ? n8nPrefix : undefined,
@@ -117,7 +138,7 @@ export default function Domain({ onComplete, onBack, initialData }: StepProps) {
 
       onComplete({
         use_domain: useDomain,
-        domain,
+        domain: cleanDomain,
         ghost_prefix: ghostPrefix,
         nocodb_prefix: nocodbPrefix,
         n8n_prefix: n8nPrefix,
@@ -137,6 +158,7 @@ export default function Domain({ onComplete, onBack, initialData }: StepProps) {
       onNext={handleSubmit}
       onBack={onBack}
       isLoading={isLoading}
+      nextDisabled={useDomain && !normalized.ok}
     >
       <div className="space-y-4">
         {error && <Alert variant="destructive">{error}</Alert>}
@@ -177,10 +199,22 @@ export default function Domain({ onComplete, onBack, initialData }: StepProps) {
               placeholder={t.steps.domain.enterDomain}
               value={domain}
               onChange={(e) => setDomain(e.target.value)}
+              onBlur={() => {
+                if (normalized.ok && normalized.value !== domain) {
+                  setDomain(normalized.value);
+                }
+              }}
               aria-label={t.steps.domain.title}
+              aria-invalid={showDomainError || undefined}
             />
 
-            {domain && (
+            {showDomainError && errorKey && (
+              <p className="text-destructive text-sm" role="alert">
+                {domainErrorMessage(errorKey)}
+              </p>
+            )}
+
+            {cleanDomain && (
               <div className="space-y-3">
                 <p className="text-sm font-medium">{t.steps.domain.serviceRouting}</p>
 
@@ -193,7 +227,7 @@ export default function Domain({ onComplete, onBack, initialData }: StepProps) {
                       placeholder={t.steps.domain.rootDomainHint}
                       className="max-w-32"
                     />
-                    <span className="text-muted-foreground text-sm">.{domain}</span>
+                    <span className="text-muted-foreground text-sm">.{cleanDomain}</span>
                   </div>
                   <p className="text-muted-foreground ml-28 pl-2 text-xs">
                     → {resolveServiceDomain(ghostPrefix) || domain}
@@ -206,7 +240,7 @@ export default function Domain({ onComplete, onBack, initialData }: StepProps) {
                       onChange={(e) => setNocodbPrefix(e.target.value)}
                       className="max-w-32"
                     />
-                    <span className="text-muted-foreground text-sm">.{domain}</span>
+                    <span className="text-muted-foreground text-sm">.{cleanDomain}</span>
                   </div>
                   <p className="text-muted-foreground ml-28 pl-2 text-xs">
                     → {resolveServiceDomain(nocodbPrefix)}
@@ -219,7 +253,7 @@ export default function Domain({ onComplete, onBack, initialData }: StepProps) {
                       onChange={(e) => setN8nPrefix(e.target.value)}
                       className="max-w-32"
                     />
-                    <span className="text-muted-foreground text-sm">.{domain}</span>
+                    <span className="text-muted-foreground text-sm">.{cleanDomain}</span>
                   </div>
                   <p className="text-muted-foreground ml-28 pl-2 text-xs">
                     → {resolveServiceDomain(n8nPrefix)}
@@ -232,7 +266,7 @@ export default function Domain({ onComplete, onBack, initialData }: StepProps) {
                       onChange={(e) => setWizardPrefix(e.target.value)}
                       className="max-w-32"
                     />
-                    <span className="text-muted-foreground text-sm">.{domain}</span>
+                    <span className="text-muted-foreground text-sm">.{cleanDomain}</span>
                   </div>
                   <p className="text-muted-foreground ml-28 pl-2 text-xs">
                     → {resolveServiceDomain(wizardPrefix)}

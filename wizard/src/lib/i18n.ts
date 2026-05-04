@@ -33,6 +33,11 @@ export interface Translations {
       dnsNoResolve: string;
       ipMode: string;
       noHttps: string;
+      errorEmpty: string;
+      errorHasPath: string;
+      errorHasPort: string;
+      errorInvalidChars: string;
+      errorInvalidFormat: string;
     };
     llm: {
       title: string;
@@ -227,6 +232,11 @@ const en: Translations = {
       dnsNoResolve: 'DNS does not resolve',
       ipMode: 'Services will be available at: http://{ip}:PORT',
       noHttps: 'HTTPS will not be available without a domain.',
+      errorEmpty: 'Please enter a domain.',
+      errorHasPath: 'Remove the path — enter the domain only (e.g. example.com).',
+      errorHasPort: 'No need to specify a port.',
+      errorInvalidChars: 'Domain contains invalid characters.',
+      errorInvalidFormat: 'That doesn’t look like a domain. Example: example.com',
     },
     llm: {
       title: 'LLM Provider',
@@ -426,6 +436,11 @@ const ru: Translations = {
       dnsNoResolve: 'DNS не резолвится',
       ipMode: 'Сервисы будут доступны по: http://{ip}:PORT',
       noHttps: 'HTTPS недоступен без домена.',
+      errorEmpty: 'Введите домен.',
+      errorHasPath: 'Уберите путь — введите только домен (например, example.com).',
+      errorHasPort: 'Порт указывать не нужно.',
+      errorInvalidChars: 'Домен содержит недопустимые символы.',
+      errorInvalidFormat: 'Не похоже на домен. Пример: example.com',
     },
     llm: {
       title: 'Провайдер LLM',
