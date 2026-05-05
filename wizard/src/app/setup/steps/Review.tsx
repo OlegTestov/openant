@@ -5,6 +5,7 @@ import { StepLayout } from '@/components/StepLayout';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n';
+import { normalizeDomain } from '@/lib/normalize-domain';
 import type { StepProps } from '@/types/step-props';
 
 interface ReviewConfig {
@@ -165,8 +166,11 @@ export default function Review({ onComplete, onBack, onGoToStep }: StepProps) {
           <div className="min-w-0">
             <p className="text-sm font-medium">{t.steps.review.domain}</p>
             <p className="text-muted-foreground text-sm">
-              {config?.domain?.use_domain
-                ? config.domain.domain
+              {config?.domain?.use_domain && config.domain.domain
+                ? (() => {
+                    const r = normalizeDomain(config.domain.domain);
+                    return r.ok ? r.value : config.domain.domain;
+                  })()
                 : config?.saas_mode && config?.default_domain
                   ? config.default_domain
                   : t.steps.review.ipMode}

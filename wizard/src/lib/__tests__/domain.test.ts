@@ -179,4 +179,43 @@ describe('getCustomDomains', () => {
 
     expect(getCustomDomains(state)).toBeNull();
   });
+
+  it('strips https:// from legacy state.json so Caddyfile renders clean hosts', () => {
+    const state = {
+      domain: { use_domain: true, domain: 'https://dnevnik-molodosti.ru' },
+    } as SetupState;
+
+    expect(getCustomDomains(state)).toEqual({
+      ghost: 'blog.dnevnik-molodosti.ru',
+      nocodb: 'table.dnevnik-molodosti.ru',
+      n8n: 'auto.dnevnik-molodosti.ru',
+      wizard: 'setup.dnevnik-molodosti.ru',
+    });
+  });
+
+  it('returns null when stored domain cannot be normalized', () => {
+    const state = {
+      domain: { use_domain: true, domain: 'example.com/path' },
+    } as SetupState;
+
+    expect(getCustomDomains(state)).toBeNull();
+  });
+});
+
+describe('hasCustomDomain (legacy state with scheme)', () => {
+  it('returns true for stored https:// prefixed value', () => {
+    const state = {
+      domain: { use_domain: true, domain: 'https://example.com' },
+    } as SetupState;
+
+    expect(hasCustomDomain(state)).toBe(true);
+  });
+
+  it('returns false for stored value with path', () => {
+    const state = {
+      domain: { use_domain: true, domain: 'example.com/blog' },
+    } as SetupState;
+
+    expect(hasCustomDomain(state)).toBe(false);
+  });
 });

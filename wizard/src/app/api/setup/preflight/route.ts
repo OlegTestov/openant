@@ -4,6 +4,8 @@ import { readState } from '@/lib/state';
 import { createAdapters } from '@/lib/adapters';
 import { testLlmConnection, testTelegramToken, testWebhook } from '@/lib/test-connections';
 import { checkDns as checkDnsResolve } from '@/lib/dns-check';
+import { cleanCustomDomain } from '@/lib/domain';
+import type { SetupState } from '@/types/setup';
 
 interface CheckResult {
   name: string;
@@ -54,15 +56,14 @@ async function checkTelegram(telegram: { bot_token?: string } | undefined): Prom
   };
 }
 
-async function checkDns(
-  domain: { use_domain?: boolean; domain?: string; ghost_prefix?: string } | undefined,
-): Promise<CheckResult> {
-  if (!domain?.use_domain || !domain.domain) {
+async function checkDns(state: SetupState): Promise<CheckResult> {
+  const cleanDomain = cleanCustomDomain(state);
+  if (!cleanDomain) {
     return { name: 'dns', status: 'skip', detail: '' };
   }
   // Check the blog subdomain (e.g. blog.olegtestov.com), not the bare domain
-  const prefix = domain.ghost_prefix || 'blog';
-  const blogDomain = prefix ? `${prefix}.${domain.domain}` : domain.domain;
+  const prefix = state.domain?.ghost_prefix || 'blog';
+  const blogDomain = prefix ? `${prefix}.${cleanDomain}` : cleanDomain;
   const serverIp = process.env.SERVER_IP || '';
   const result = await checkDnsResolve(blogDomain, serverIp);
   if (result.matches_server) {
@@ -101,7 +102,7 @@ export const POST = withAuth(
       checkLlm(state.llm, isManaged),
       checkTelegram(state.telegram),
       checkWebhook(state.social),
-      checkDns(state.domain),
+      checkDns(state),
     ]);
 
     return Response.json({ success: true, data: { checks } });

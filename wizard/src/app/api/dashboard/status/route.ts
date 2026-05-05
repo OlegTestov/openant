@@ -3,7 +3,7 @@ import { apiHandler } from '@/lib/api-handler';
 import { createAdapters } from '@/lib/adapters';
 import { readState } from '@/lib/state';
 import { getServiceCredentials } from '@/lib/credentials';
-import { getEffectiveDomain, getServiceDomains, isSaasMode } from '@/lib/domain';
+import { cleanCustomDomain, getEffectiveDomain, getServiceDomains, isSaasMode } from '@/lib/domain';
 import { checkDns } from '@/lib/dns-check';
 
 async function checkCaddy(): Promise<boolean> {
@@ -74,10 +74,8 @@ export const GET = withAuth(
       credentialsResult.n8n = credentials.n8n;
     }
 
-    const dnsCheck =
-      state.domain?.use_domain && state.domain.domain
-        ? await checkDns(state.domain.domain, ip)
-        : null;
+    const customDomain = cleanCustomDomain(state);
+    const dnsCheck = customDomain ? await checkDns(customDomain, ip) : null;
 
     return Response.json({
       success: true,
