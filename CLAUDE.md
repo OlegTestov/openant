@@ -49,6 +49,7 @@ docker compose down -v                   # stop + delete data
 The `wizard/` directory is the **only custom code**. Everything else (Ghost, NocoDB, n8n, Caddy, PostgreSQL, MySQL) runs as unmodified Docker images.
 
 **7 Docker services** on a shared bridge network (`openant_net`):
+
 - **wizard** (Next.js, port 3000) — setup wizard + dashboard + API
 - **ghost** (Ghost 5) — blog engine
 - **ghost-db** (MySQL 8.0) — Ghost database
@@ -68,14 +69,15 @@ The `wizard/` directory is the **only custom code**. Everything else (Ghost, Noc
 
 Each external service has a TypeScript adapter in `wizard/src/lib/adapters/`. This is the central architectural pattern.
 
-| Interface | Implementation | File |
-|-----------|---------------|------|
-| `BlogAdapter` | Ghost | `adapters/ghost.ts` |
-| `TableAdapter` | NocoDB | `adapters/nocodb.ts` |
-| `AutomationAdapter` | n8n | `adapters/n8n.ts` |
-| Contracts | — | `adapters/types.ts` |
+| Interface           | Implementation | File                 |
+| ------------------- | -------------- | -------------------- |
+| `BlogAdapter`       | Ghost          | `adapters/ghost.ts`  |
+| `TableAdapter`      | NocoDB         | `adapters/nocodb.ts` |
+| `AutomationAdapter` | n8n            | `adapters/n8n.ts`    |
+| Contracts           | —              | `adapters/types.ts`  |
 
 **Adapter rules:**
+
 - One file = one adapter. Factory function, not class.
 - Adapters are stateless — config comes from env vars read at call time (not module load).
 - Adapters don't know about each other.
@@ -97,7 +99,7 @@ Each external service has a TypeScript adapter in `wizard/src/lib/adapters/`. Th
 
 **Setup routes** (`/api/setup/*`): welcome, domain, llm, blog, telegram, social, status, apply, mode, preflight
 
-**Dashboard routes** (`/api/dashboard/*`): status, stats, reconfigure
+**Dashboard routes** (`/api/dashboard/*`): status, stats, articles, reconfigure
 
 **SaaS integration** (`/api/saas/*`): health, articles, prompts, restart, update, update-status — called by SaaS control plane proxy
 

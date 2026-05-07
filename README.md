@@ -45,6 +45,7 @@ curl -fsSL https://raw.githubusercontent.com/<org>/openant/main/install.sh | sud
 ```
 
 The script will:
+
 - Install Docker if needed
 - Download openant
 - Generate secure passwords
@@ -63,37 +64,37 @@ http://<your-server-ip>:3000?token=<your-token>
 
 Open the URL from step 1 in your browser. The wizard will guide you through:
 
-| Step | What you do |
-|------|-------------|
-| **Welcome** | Choose your language |
-| **Domain** | Enter your domain or continue with IP address |
-| **LLM** | Paste your OpenAI (or compatible) API key |
-| **Blog** | Set your blog name, language, and tone |
-| **Social** | Add a Make.com webhook URL (optional) |
-| **Review** | Check everything looks right |
-| **Deploy** | Click deploy and watch the progress bar |
+| Step        | What you do                                   |
+| ----------- | --------------------------------------------- |
+| **Welcome** | Choose your language                          |
+| **Domain**  | Enter your domain or continue with IP address |
+| **LLM**     | Paste your OpenAI (or compatible) API key     |
+| **Blog**    | Set your blog name, language, and tone        |
+| **Social**  | Add a Make.com webhook URL (optional)         |
+| **Review**  | Check everything looks right                  |
+| **Deploy**  | Click deploy and watch the progress bar       |
 
 ### 3. Add topics
 
 Open the NocoDB table (link shown after deploy) and start adding rows:
 
-| Topic | Description | Link |
-|-------|-------------|------|
-| 10 ways to boost sales | Focus on e-commerce | https://yoursite.com |
-| How to choose a CRM | Compare top 5 options | https://yoursite.com |
+| Topic                  | Description           | Link                 |
+| ---------------------- | --------------------- | -------------------- |
+| 10 ways to boost sales | Focus on e-commerce   | https://yoursite.com |
+| How to choose a CRM    | Compare top 5 options | https://yoursite.com |
 
 Rows with empty status are picked up automatically. The system processes them one by one on schedule.
 
 ## Server requirements
 
-| Requirement | Minimum |
-|-------------|---------|
-| OS | Ubuntu 20.04+ or Debian 11+ |
-| Architecture | amd64 or arm64 |
-| RAM | 2 GB |
-| Disk | 20 GB |
-| Ports | 80, 443, 3000 |
-| Access | Root (sudo) |
+| Requirement  | Minimum                     |
+| ------------ | --------------------------- |
+| OS           | Ubuntu 20.04+ or Debian 11+ |
+| Architecture | amd64 or arm64              |
+| RAM          | 2 GB                        |
+| Disk         | 20 GB                       |
+| Ports        | 80, 443, 3000               |
+| Access       | Root (sudo)                 |
 
 CentOS and RHEL are supported on a best-effort basis.
 
@@ -122,12 +123,12 @@ NocoDB is at `localhost:8080`, n8n at `localhost:5678`. Ghost is behind Caddy at
 
 When provisioned by the SaaS Control Plane, these additional env vars are set via cloud-init:
 
-| Variable | Description |
-|----------|-------------|
-| `INSTANCE_MODE` | `managed` (LLM pre-injected, n8n hidden) or `byok` (default, user brings own key) |
-| `GHOST_ADMIN_PASSWORD` | Random admin password for Ghost |
-| `NOCODB_ADMIN_PASSWORD` | Random admin password for NocoDB |
-| `N8N_ADMIN_PASSWORD` | Random admin password for n8n |
+| Variable                | Description                                                                       |
+| ----------------------- | --------------------------------------------------------------------------------- |
+| `INSTANCE_MODE`         | `managed` (LLM pre-injected, n8n hidden) or `byok` (default, user brings own key) |
+| `GHOST_ADMIN_PASSWORD`  | Random admin password for Ghost                                                   |
+| `NOCODB_ADMIN_PASSWORD` | Random admin password for NocoDB                                                  |
+| `N8N_ADMIN_PASSWORD`    | Random admin password for n8n                                                     |
 
 ### Useful commands
 
@@ -168,15 +169,15 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for a detailed overview of the system des
 
 ## Tech stack
 
-| Component | Technology |
-|-----------|------------|
-| Wizard | Next.js, TypeScript, Tailwind CSS |
-| Blog | Ghost |
-| Topic queue | NocoDB |
-| Automation | n8n |
-| Reverse proxy | Caddy (auto-HTTPS) |
-| Databases | PostgreSQL, MySQL |
-| Containers | Docker Compose |
+| Component     | Technology                        |
+| ------------- | --------------------------------- |
+| Wizard        | Next.js, TypeScript, Tailwind CSS |
+| Blog          | Ghost                             |
+| Topic queue   | NocoDB                            |
+| Automation    | n8n                               |
+| Reverse proxy | Caddy (auto-HTTPS)                |
+| Databases     | PostgreSQL, MySQL                 |
+| Containers    | Docker Compose                    |
 
 ## License
 

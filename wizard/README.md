@@ -56,7 +56,7 @@ src/
 
 ## Testing
 
-350+ unit tests covering all adapters, API routes, and utilities. Tests use `vitest` with `jsdom` environment and mock `fetch` for HTTP interactions.
+550+ unit tests covering all adapters, API routes, and utilities. Tests use `vitest` with `jsdom` environment and mock `fetch` for HTTP interactions.
 
 ```bash
 npm test                    # Run all tests
@@ -69,6 +69,7 @@ npm test -- --coverage      # Coverage report
 The adapter system is the core architectural pattern. Each external service (Ghost, NocoDB, n8n) communicates through a TypeScript interface. See `src/lib/adapters/types.ts` for contracts.
 
 Key features:
+
 - **System/user prompt split**: NocoDB stores detailed system prompts. The n8n workflow sends them as `system` role messages, with dynamic data (topic, description) as `user` role.
 - **Image generation**: The n8n workflow generates cover images via LLM (`modalities: ['text', 'image']`) and uploads them to Ghost.
 - **Language/tone baking**: `{language}` and `{tone}` placeholders in prompt templates are substituted once at deploy time and stored in NocoDB.

@@ -1,6 +1,6 @@
 # openant — Architecture Overview
 
-> Last updated: 2026-04-15
+> Last updated: 2026-05-07
 
 ---
 
@@ -53,7 +53,7 @@ openant/
 │   │   │   └── setup/
 │   │   │       ├── page.tsx       # Wizard container
 │   │   │       └── steps/         # Step form components
-│   │   ├── components/            # Stepper, StepLayout, ServiceStatus, ThemeToggle, ui/
+│   │   ├── components/            # Stepper, StepLayout, ServiceStatus, ThemeToggle, LangSync, ui/
 │   │   ├── lib/                   # Business logic, adapters, utilities
 │   │   ├── types/                 # Shared TypeScript types
 │   │   ├── test/                  # Unit test setup
@@ -451,16 +451,16 @@ Linear sequence: each step has UI component + API route + Zod schema.
 
 ### Step details
 
-| Step         | Key behavior                                                                                    |
-| ------------ | ----------------------------------------------------------------------------------------------- |
-| **Welcome**  | Language selector (`en`/`ru`), saves to localStorage                                            |
-| **Domain**   | Switch (domain/IP mode), configurable subdomain prefixes (blog/table/auto/setup), DNS check     |
-| **LLM**      | Preset selector, URL/Key/Model inputs, test via `POST {api_url}/chat/completions` (10s timeout) |
-| **Blog**     | Title (max 100), description, language, tone, interval (min 10m), live preview                  |
-| **Telegram** | Optional. Bot token + optional chat ID (auto-detected from `/start`)                            |
-| **Social**   | Optional. Webhook URL, Pinterest/Threads toggles, Make template download                        |
-| **Review**   | Read-only config cards with Edit buttons, API key masked as `*****`                             |
-| **Deploy**   | SSE progress, 12-step pipeline, retry from failed step, service URLs on success                 |
+| Step         | Key behavior                                                                                      |
+| ------------ | ------------------------------------------------------------------------------------------------- |
+| **Welcome**  | Language selector (`en`/`ru`), saves to localStorage                                              |
+| **Domain**   | Switch (domain/IP mode), configurable subdomain prefixes (blog/table/auto/setup), DNS check       |
+| **LLM**      | Preset selector, URL/Key/Model inputs, test via `POST {api_url}/chat/completions` (10s timeout)   |
+| **Blog**     | Title (max 100), description, language, tone, hours-only interval (clamp [1, 168]h), live preview |
+| **Telegram** | Optional. Bot token + optional chat ID (auto-detected from `/start`)                              |
+| **Social**   | Optional. Webhook URL, Pinterest/Threads toggles, Make template download                          |
+| **Review**   | Read-only config cards with Edit buttons, API key masked as `*****`                               |
+| **Deploy**   | SSE progress, 12-step pipeline, retry from failed step, service URLs on success                   |
 
 ---
 
@@ -518,7 +518,7 @@ All providers are OpenAI-compatible (no adapter needed):
 
 10 shadcn/ui components in `src/components/ui/`: `button`, `input`, `select`, `switch`, `card`, `label`, `badge`, `progress`, `alert`, `textarea`.
 
-3 custom components in `src/components/`: `Stepper`, `StepLayout`, `ServiceStatus`.
+5 custom components in `src/components/`: `Stepper`, `StepLayout`, `ServiceStatus`, `ThemeToggle`, `LangSync`.
 
 ---
 
@@ -534,7 +534,7 @@ All providers are OpenAI-compatible (no adapter needed):
 | `npm run format`           | Prettier auto-format                |
 | `npm run format:check`     | Verify formatting                   |
 | `npm run check`            | typecheck + lint + format:check     |
-| `npm test`                 | Run unit tests (41 files)           |
+| `npm test`                 | Run unit tests (43 files)           |
 | `npm run test:watch`       | Watch mode                          |
 | `npm run test:coverage`    | Tests with coverage                 |
 | `npm run test:integration` | Integration tests (requires Docker) |
@@ -545,14 +545,18 @@ All providers are OpenAI-compatible (no adapter needed):
 
 ### Unit tests
 
-413 tests across 41 files:
+558 tests across 45 files:
 
 | File                                              | Tests | What it verifies                                                                                                                                                                |
 | ------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `lib/adapters/__tests__/ghost.test.ts`            | 34    | JWT, healthCheck, setup (fast path, full, EmailError, recovery, env password), uploadTheme, publishPost, errors                                                                 |
-| `lib/adapters/__tests__/nocodb.test.ts`           | 24    | healthCheck, setup (full flow, default base deletion, env password), getNextQueued, updateStatus, getStats                                                                      |
+| `lib/adapters/__tests__/nocodb.test.ts`           | 25    | healthCheck, setup (full flow, default base deletion, env password), getNextQueued, updateStatus, getStats, mapRowToArticle                                                     |
 | `lib/adapters/__tests__/n8n.test.ts`              | 37    | healthCheck, setup (fast path, masked keys, owner creation, password format), credentials, importWorkflow, activate                                                             |
-| `lib/__tests__/docker.test.ts`                    | 3     | reloadCaddy exec, AdapterError on failure, container-not-found skip                                                                                                             |
+| `lib/__tests__/docker.test.ts`                    | 13    | reloadCaddy exec/fallback, startServices, restartServices, container-not-found skip, service management                                                                         |
+| `lib/__tests__/domain.test.ts`                    | 25    | getServiceDomains, getCustomDomains, isSaasMode, SaaS flat subdomains, hasCustomDomain                                                                                          |
+| `lib/__tests__/normalize-domain.test.ts`          | 27    | Domain normalizer: scheme strip, trailing slash/dot, validation, error codes                                                                                                    |
+| `lib/__tests__/normalize-interval.test.ts`        | 43    | Hours/minutes interval clamp [1, 168]h with NaN/±Infinity handling, hour-multiple rounding                                                                                      |
+| `lib/__tests__/test-connections.test.ts`          | 11    | LLM connection test, DNS check, Telegram bot validation, webhook test                                                                                                           |
 | `lib/__tests__/adapters-mock.test.ts`             | 15    | Mock adapters implement correct interfaces                                                                                                                                      |
 | `lib/__tests__/steps.test.ts`                     | 5     | 8 steps, correct order, optional steps                                                                                                                                          |
 | `lib/__tests__/llm-presets.test.ts`               | 4     | 4 presets, correct shape                                                                                                                                                        |
@@ -563,19 +567,20 @@ All providers are OpenAI-compatible (no adapter needed):
 | `lib/__tests__/api-handler.test.ts`               | 7     | ZodError -> 400, AdapterError -> 500, unknown -> 500, no leaks                                                                                                                  |
 | `app/api/health/__tests__/route.test.ts`          | 2     | 200 + `{ status: "ok" }`                                                                                                                                                        |
 | `app/api/make-blueprint/__tests__/route.test.ts`  | 2     | Auth required, returns blueprint with Content-Disposition                                                                                                                       |
-| `app/api/setup/__tests__/schemas.test.ts`         | 32    | Zod schemas for all 6 step routes                                                                                                                                               |
-| `app/api/setup/__tests__/routes.test.ts`          | 20    | All 5 POST routes: 200/400/401, state updates, DNS/LLM mocking                                                                                                                  |
+| `app/api/setup/__tests__/schemas.test.ts`         | 41    | Zod schemas for all step routes including mode; blog publish-interval clamp table                                                                                               |
+| `app/api/setup/__tests__/routes.test.ts`          | 22    | All POST routes: 200/400/401, state updates, DNS/LLM mocking, blog interval clamp persisted                                                                                     |
+| `app/api/setup/mode/__tests__/route.test.ts`      | 3     | Instance mode endpoint (byok/managed), auth                                                                                                                                     |
 | `components/__tests__/Stepper.test.tsx`           | 5     | Labels, current step, checkmarks, numbers, connectors                                                                                                                           |
 | `components/__tests__/StepLayout.test.tsx`        | 9     | Title, buttons, hide/disable, spinner, click handlers                                                                                                                           |
 | `components/__tests__/ServiceStatus.test.tsx`     | 6     | Dot colors, service name, Open link                                                                                                                                             |
-| `app/setup/__tests__/page.test.tsx`               | 7     | Default step, navigation, bounds, position restore, token storage                                                                                                               |
+| `app/setup/__tests__/page.test.tsx`               | 9     | Default step, navigation, bounds, position restore, token storage, managed mode                                                                                                 |
 | `app/setup/steps/__tests__/Welcome.test.tsx`      | 4     | Language selector, submit, error display                                                                                                                                        |
-| `app/setup/steps/__tests__/Domain.test.tsx`       | 4     | Toggle modes, domain input, IP mode, submit                                                                                                                                     |
+| `app/setup/steps/__tests__/Domain.test.tsx`       | 7     | Toggle modes, domain input, IP mode, submit, normalization on save                                                                                                              |
 | `app/setup/steps/__tests__/LLM.test.tsx`          | 4     | Provider selector, test connection, submit                                                                                                                                      |
-| `app/setup/steps/__tests__/Blog.test.tsx`         | 3     | Live preview, hours->minutes, error display                                                                                                                                     |
-| `app/setup/steps/__tests__/Telegram.test.tsx`     | 7     | Optional alert, inputs, submit, skip, restore data                                                                                                                              |
-| `app/setup/steps/__tests__/Social.test.tsx`       | 4     | Optional alert, toggles, Make download, empty submit                                                                                                                            |
-| `app/setup/steps/__tests__/Review.test.tsx`       | 3     | Config sections, Edit navigation, key masking                                                                                                                                   |
+| `app/setup/steps/__tests__/Blog.test.tsx`         | 10    | Live preview, hours-only input + onBlur clamp [1, 168]h, default 6h, legacy state hour-rounding                                                                                 |
+| `app/setup/steps/__tests__/Telegram.test.tsx`     | 14    | Optional alert, inputs, submit, skip, restore data, connection test, managed mode                                                                                               |
+| `app/setup/steps/__tests__/Social.test.tsx`       | 7     | Optional alert, toggles, Make download, empty submit, Pinterest/Threads, managed mode                                                                                           |
+| `app/setup/steps/__tests__/Review.test.tsx`       | 4     | Config sections, Edit navigation, key masking, managed mode                                                                                                                     |
 | `app/setup/steps/__tests__/Deploy.test.tsx`       | 7     | Deploy button, progress, checkmarks, error/retry, URLs, dashboard link                                                                                                          |
 | `app/api/setup/__tests__/apply.test.ts`           | 24    | SSE format, all 12 steps, errors, startFrom, auth, URL generation, managed mode                                                                                                 |
 | `lib/__tests__/caddy.test.ts`                     | 34    | IP/domain mode, SaaS wildcard cert TLS, custom domains, writeCaddyfile, SEO handlers, writeSeoFiles, IndexNow key, `/ghost/*` exemption from SEO redirect, X-Robots-Tag noindex |
@@ -583,11 +588,12 @@ All providers are OpenAI-compatible (no adapter needed):
 | `lib/__tests__/credentials.test.ts`               | 7     | Env var priority, SHA-256 fallback, admin email, all services                                                                                                                   |
 | `lib/__tests__/i18n.test.ts`                      | 4     | English/Russian locale, all keys, no empty strings                                                                                                                              |
 | `lib/__tests__/retry.test.ts`                     | 6     | Success, retry+success, max exceeded, exponential/fixed backoff                                                                                                                 |
-| `app/api/dashboard/__tests__/status.test.ts`      | 10    | Healthy/unhealthy, Caddy 404, URLs, saas_mode, credentials, auth                                                                                                                |
+| `app/api/dashboard/__tests__/articles.test.ts`    | 7     | Dashboard articles list, draft toggle, auth                                                                                                                                     |
+| `app/api/dashboard/__tests__/status.test.ts`      | 13    | Healthy/unhealthy, Caddy 404, URLs, saas_mode, credentials, auth, custom domains                                                                                                |
 | `app/api/dashboard/__tests__/stats.test.ts`       | 3     | Article counts, auth, AdapterError                                                                                                                                              |
 | `app/api/dashboard/__tests__/reconfigure.test.ts` | 5     | Reset deployed/steps, preserve config, auth                                                                                                                                     |
-| `app/api/saas/__tests__/health.test.ts`           | 5     | 404 when SaaS off, combined health+stats, adapter failures                                                                                                                      |
-| `app/dashboard/__tests__/page.test.tsx`           | 12    | Statuses, stats, tools, links, SaaS badge, reconfigure, auto-refresh                                                                                                            |
+| `app/api/saas/__tests__/health.test.ts`           | 6     | 404 when SaaS off, combined health+stats, adapter failures, custom domains                                                                                                      |
+| `app/dashboard/__tests__/page.test.tsx`           | 11    | Statuses, stats, tools, links, SaaS badge, reconfigure, auto-refresh                                                                                                            |
 
 ### Integration tests
 
