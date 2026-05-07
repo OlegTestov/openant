@@ -144,26 +144,25 @@ describe('blogSchema', () => {
     ).toThrow();
   });
 
-  it('rejects interval less than 10', () => {
-    expect(() =>
-      blogSchema.parse({
-        title: 'Blog',
-        language: 'en',
-        tone: 'professional',
-        publish_interval_minutes: 5,
-      }),
-    ).toThrow();
-  });
-
-  it('rejects non-integer interval', () => {
-    expect(() =>
-      blogSchema.parse({
-        title: 'Blog',
-        language: 'en',
-        tone: 'professional',
-        publish_interval_minutes: 10.5,
-      }),
-    ).toThrow();
+  it.each([
+    [5, 60],
+    [30, 60],
+    [0, 60],
+    [-100, 60],
+    [60, 60],
+    [90, 120],
+    [360, 360],
+    [10080, 10080],
+    [99999, 10080],
+    [1.5, 60],
+  ])('clamps publish_interval_minutes %d → %d', (input, expected) => {
+    const parsed = blogSchema.parse({
+      title: 'Blog',
+      language: 'en',
+      tone: 'professional',
+      publish_interval_minutes: input,
+    });
+    expect(parsed.publish_interval_minutes).toBe(expected);
   });
 
   it('rejects invalid tone', () => {

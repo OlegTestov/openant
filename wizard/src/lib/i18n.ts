@@ -62,6 +62,7 @@ export interface Translations {
       publishIntervalHint: string;
       minutes: string;
       hours: string;
+      hoursShort: string;
       defaultLink: string;
       defaultLinkHint: string;
       defaultLinkName: string;
@@ -258,9 +259,10 @@ const en: Translations = {
       articleLanguage: 'Article Language',
       writingTone: 'Writing Tone',
       publishInterval: 'Publish Interval',
-      publishIntervalHint: 'How often to publish the next article from queue',
+      publishIntervalHint: 'How often to publish the next article from queue (in hours, 1 to 168)',
       minutes: 'minutes',
       hours: 'hours',
+      hoursShort: 'hr',
       defaultLink: 'Default Link',
       defaultLinkHint:
         'Default URL to embed in blog articles as a call-to-action (used when no per-article link is set)',
@@ -462,9 +464,11 @@ const ru: Translations = {
       articleLanguage: 'Язык статей',
       writingTone: 'Стиль написания',
       publishInterval: 'Интервал публикации',
-      publishIntervalHint: 'Как часто публиковать следующую статью из очереди',
+      publishIntervalHint:
+        'Как часто публиковать следующую статью из очереди (в часах, от 1 до 168)',
       minutes: 'минуты',
       hours: 'часы',
+      hoursShort: 'ч',
       defaultLink: 'Ссылка по умолчанию',
       defaultLinkHint:
         'URL для встраивания в статьи блога как призыв к действию (используется, если для статьи не задана отдельная ссылка)',

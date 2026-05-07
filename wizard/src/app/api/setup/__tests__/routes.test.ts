@@ -310,6 +310,46 @@ describe('POST /api/setup/blog', () => {
 
     expect(writeState).toHaveBeenCalledWith(expect.objectContaining({ currentStep: 'social' }));
   });
+
+  it('clamps publish_interval_minutes below 60 to 60 in saved state', async () => {
+    const { writeState } = await import('@/lib/state');
+    const { POST } = await import('../blog/route');
+    const res = await POST(
+      createRequest({
+        title: 'Blog',
+        language: 'en',
+        tone: 'professional',
+        publish_interval_minutes: 30,
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(writeState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        blog: expect.objectContaining({ publish_interval_minutes: 60 }),
+      }),
+    );
+  });
+
+  it('clamps publish_interval_minutes above 10080 to 10080 in saved state', async () => {
+    const { writeState } = await import('@/lib/state');
+    const { POST } = await import('../blog/route');
+    const res = await POST(
+      createRequest({
+        title: 'Blog',
+        language: 'en',
+        tone: 'professional',
+        publish_interval_minutes: 99999,
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(writeState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        blog: expect.objectContaining({ publish_interval_minutes: 10080 }),
+      }),
+    );
+  });
 });
 
 describe('POST /api/setup/social', () => {

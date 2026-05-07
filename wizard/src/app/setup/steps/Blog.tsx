@@ -15,7 +15,15 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useTranslations } from '@/lib/i18n';
+import {
+  clampHoursToMinutes,
+  minutesToHoursForDisplay,
+  MIN_HOURS,
+  MAX_HOURS,
+} from '@/lib/normalize-interval';
 import type { StepProps } from '@/types/step-props';
+
+const DEFAULT_HOURS = 6;
 
 export default function Blog({ onComplete, onBack, initialData }: StepProps) {
   const initial = initialData as
@@ -29,29 +37,35 @@ export default function Blog({ onComplete, onBack, initialData }: StepProps) {
         default_link_name?: string;
       }
     | undefined;
-  const savedMinutes = initial?.publish_interval_minutes;
-  const defaultUnit =
-    savedMinutes && savedMinutes >= 60 && savedMinutes % 60 === 0 ? 'hours' : 'minutes';
+
+  const initialHours =
+    typeof initial?.publish_interval_minutes === 'number'
+      ? minutesToHoursForDisplay(initial.publish_interval_minutes)
+      : DEFAULT_HOURS;
 
   const [title, setTitle] = useState(initial?.title ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
   const [language, setLanguage] = useState(initial?.language ?? 'en');
   const [tone, setTone] = useState(initial?.tone ?? 'professional');
-  const [interval, setInterval] = useState(
-    savedMinutes ? (defaultUnit === 'hours' ? savedMinutes / 60 : savedMinutes) : 60,
-  );
-  const [unit, setUnit] = useState<'minutes' | 'hours'>(defaultUnit);
+  const [intervalHours, setIntervalHours] = useState<number>(initialHours);
   const [defaultLink, setDefaultLink] = useState(initial?.default_link ?? '');
   const [defaultLinkName, setDefaultLinkName] = useState(initial?.default_link_name ?? '');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const t = useTranslations();
 
+  function handleIntervalBlur() {
+    const normalizedHours = clampHoursToMinutes(intervalHours) / 60;
+    if (normalizedHours !== intervalHours) {
+      setIntervalHours(normalizedHours);
+    }
+  }
+
   async function handleSubmit() {
     setIsLoading(true);
     setError(null);
 
-    const publishIntervalMinutes = unit === 'hours' ? interval * 60 : interval;
+    const publishIntervalMinutes = clampHoursToMinutes(intervalHours);
 
     try {
       const token = localStorage.getItem('setup_token');
@@ -95,10 +109,8 @@ export default function Blog({ onComplete, onBack, initialData }: StepProps) {
     }
   }
 
-  const displayInterval =
-    unit === 'hours'
-      ? `${interval} hour${interval !== 1 ? 's' : ''}`
-      : `${interval} minute${interval !== 1 ? 's' : ''}`;
+  const previewHours = minutesToHoursForDisplay(clampHoursToMinutes(intervalHours));
+  const displayInterval = `${previewHours} ${t.steps.blog.hours}`;
 
   return (
     <StepLayout
@@ -177,26 +189,21 @@ export default function Blog({ onComplete, onBack, initialData }: StepProps) {
           <p id="blog-interval-hint" className="text-muted-foreground text-sm">
             {t.steps.blog.publishIntervalHint}
           </p>
-          <div className="mt-1 flex gap-2">
+          <div className="mt-1 flex items-center gap-2">
             <Input
               id="blog-interval"
               type="number"
-              value={interval}
-              onChange={(e) => setInterval(Number(e.target.value))}
-              min={1}
+              value={Number.isFinite(intervalHours) ? intervalHours : ''}
+              onChange={(e) => setIntervalHours(Number(e.target.value))}
+              onBlur={handleIntervalBlur}
+              min={MIN_HOURS}
+              max={MAX_HOURS}
+              step={1}
               className="w-24"
               aria-describedby="blog-interval-hint"
               aria-required="true"
             />
-            <Select value={unit} onValueChange={(v) => setUnit(v as 'minutes' | 'hours')}>
-              <SelectTrigger className="w-32" aria-label={unit}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="minutes">{t.steps.blog.minutes}</SelectItem>
-                <SelectItem value="hours">{t.steps.blog.hours}</SelectItem>
-              </SelectContent>
-            </Select>
+            <span className="text-muted-foreground text-sm">{t.steps.blog.hoursShort}</span>
           </div>
         </div>
 
