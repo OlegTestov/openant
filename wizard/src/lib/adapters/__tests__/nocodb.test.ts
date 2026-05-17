@@ -203,6 +203,14 @@ describe('createNocoDBAdapter', () => {
       expect(body.ArticleTitle).not.toContain('{tone}');
       expect(body.ArticleTitle).toContain('English');
       expect(body.ArticleTitle).toContain('professional');
+      // EXPLICIT COUNTS rule for article body is seeded
+      expect(body.ArticleText).toContain('EXPLICIT COUNTS');
+      expect(body.ArticleText).toContain('EXACTLY that number');
+      // Old mandatory "secret, hidden" trigger list is gone from ArticleTitle
+      expect(body.ArticleTitle).not.toMatch(/secret,\s+surprising/i);
+      expect(body.ArticleTitle).not.toMatch(/risk,\s*secret/i);
+      // AVOID guidance about overused clichés is preserved
+      expect(body.ArticleTitle).toMatch(/AVOID.*overused curiosity/i);
     });
 
     it('returns authToken, projectId, tableId, promptsTableId', async () => {
