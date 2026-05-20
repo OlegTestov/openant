@@ -1,6 +1,68 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 
+// Characters safe to leave unquoted in a POSIX-shell-style env file.
+const SAFE_UNQUOTED = /^[A-Za-z0-9_@%+=:,./-]+$/;
+
+function shellQuote(value: string): string {
+  if (value === '') return '';
+  if (SAFE_UNQUOTED.test(value)) return value;
+  // POSIX literal single quotes: nothing inside is interpreted, except that a
+  // single quote itself must be closed, escaped via backslash, and reopened.
+  return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+
+function unquoteSingle(raw: string): string {
+  // Parses a single-quoted POSIX string that may use the `'\''` continuation
+  // sequence to embed a literal single quote. Returns the original raw value
+  // if the input is not a well-formed single-quoted string.
+  if (raw.length < 2 || raw[0] !== "'" || raw[raw.length - 1] !== "'") {
+    return raw;
+  }
+  let out = '';
+  let i = 1;
+  const end = raw.length - 1;
+  while (i < end) {
+    const ch = raw[i];
+    if (ch === "'") {
+      if (raw.slice(i, i + 4) === `'\\''`) {
+        out += "'";
+        i += 4;
+        continue;
+      }
+      return raw;
+    }
+    out += ch;
+    i++;
+  }
+  return out;
+}
+
+function unquoteDouble(raw: string): string {
+  // Parses a double-quoted POSIX string. Only the four characters bash
+  // interprets inside double quotes are unescaped: `"`, `$`, `` ` ``, `\`.
+  if (raw.length < 2 || raw[0] !== '"' || raw[raw.length - 1] !== '"') {
+    return raw;
+  }
+  let out = '';
+  let i = 1;
+  const end = raw.length - 1;
+  while (i < end) {
+    const ch = raw[i];
+    if (ch === '\\' && i + 1 < end) {
+      const next = raw[i + 1];
+      if (next === '"' || next === '$' || next === '`' || next === '\\') {
+        out += next;
+        i += 2;
+        continue;
+      }
+    }
+    out += ch;
+    i++;
+  }
+  return out;
+}
+
 export function parseEnv(content: string): Record<string, string> {
   const result: Record<string, string> = {};
 
@@ -17,14 +79,13 @@ export function parseEnv(content: string): Record<string, string> {
     }
 
     const key = trimmed.slice(0, eqIndex).trim();
-    let value = trimmed.slice(eqIndex + 1);
+    const raw = trimmed.slice(eqIndex + 1);
 
-    // Remove surrounding quotes
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
+    let value = raw;
+    if (raw.length >= 2 && raw.startsWith("'") && raw.endsWith("'")) {
+      value = unquoteSingle(raw);
+    } else if (raw.length >= 2 && raw.startsWith('"') && raw.endsWith('"')) {
+      value = unquoteDouble(raw);
     }
 
     result[key] = value;
@@ -34,17 +95,11 @@ export function parseEnv(content: string): Record<string, string> {
 }
 
 export function serializeEnv(vars: Record<string, string>): string {
-  const lines: string[] = [];
-
-  for (const [key, value] of Object.entries(vars)) {
-    if (value.includes(' ')) {
-      lines.push(`${key}="${value}"`);
-    } else {
-      lines.push(`${key}=${value}`);
-    }
-  }
-
-  return lines.join('\n') + '\n';
+  return (
+    Object.entries(vars)
+      .map(([key, value]) => `${key}=${shellQuote(value)}`)
+      .join('\n') + '\n'
+  );
 }
 
 export async function readEnv(filePath: string): Promise<Record<string, string>> {
