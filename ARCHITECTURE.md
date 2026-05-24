@@ -1,6 +1,6 @@
 # openant — Architecture Overview
 
-> Last updated: 2026-05-07
+> Last updated: 2026-05-24
 
 ---
 
@@ -140,7 +140,7 @@ Two templates in `n8n/workflows/`, imported during deploy step 11 with placehold
 Pipeline with system/user prompt split, SEO meta generation, image generation, optional Pinterest promotion, and error retry:
 
 ```
-Schedule Trigger -> Get Next Queued (blank/publishing/error status) -> Has Records?
+Schedule Trigger -> Get Next Queued (blank/publishing, OR error AND RetryCount > 0) -> Has Records?
   -> Is Pin Retry? (Status=error AND GhostURL not empty)
     -> true: Update Status: promoting -> retry pin generation flow
     -> false: Update status: generating -> Get Prompts -> Generate Title (LLM)
@@ -153,7 +153,7 @@ Schedule Trigger -> Get Next Queued (blank/publishing/error status) -> Has Recor
   -> pin-stage errors: Status: error (GhostURL present -> pin-only retry next cycle)
 ```
 
-**Error retry**: Records with `error` status auto-picked up next cycle. "Is Pin Retry?" distinguishes article errors (full retry) from pin errors (pin-only retry, clears Error field).
+**Error retry**: Records with `error` status auto-picked up next cycle, bounded by `RetryCount` column (default `1`, decremented on each retry attempt). "Is Pin Retry?" distinguishes article errors (full retry) from pin errors (pin-only retry, clears Error field). When `RetryCount` reaches 0, the row stops being picked — prevents infinite money leaks on persistently failing downstream services (e.g. Pinterest webhook).
 
 **System/user prompt split**: Each LLM call uses a `system` message (static, from NocoDB Prompts table) and `user` message (dynamic: topic, description, link — topic and description are each optional but at least one is required). Prompts fully rendered at deploy time. Article link falls back to default: `article.Link || '{{DEFAULT_LINK}}'`.
 
@@ -265,7 +265,7 @@ Core pattern: each external service has a TypeScript adapter interface. Replacin
 - **`types.ts`** -- All adapter interfaces. Central contract; changes affect all consumers.
 - **`index.ts`** -- Registry. `createAdapters()` returns `Adapters` object with all three adapters.
 - **`ghost.ts`** -- **Fast path**: if `GHOST_ADMIN_API_KEY` + `GHOST_CONTENT_API_KEY` exist, verifies via JWT (avoids login EmailError on re-deploy). **Full setup**: admin account -> session cookie -> Custom Integration -> settings -> delete default posts -> update author name from blog title (E-E-A-T). Theme settings include `show_related_articles: true`. `uploadTheme()` uploads openant-source zip (skips if active). JWT via hand-rolled HMAC-SHA256. Helpers: `requireAdminJwt()`, `assertOk()`, `getAdminEmail()`.
-- **`nocodb.ts`** -- Multi-step setup (signup -> signin -> base -> table -> columns -> sample row), removes default bases, FIFO queue via blank-status filter, parallel stats. CRUD for articles and prompts (used by SaaS dashboard). Articles table has `Board` column for per-article Pinterest board override.
+- **`nocodb.ts`** -- Multi-step setup (signup -> signin -> base -> table -> columns -> sample row), removes default bases, FIFO queue via blank-status filter, parallel stats. CRUD for articles and prompts (used by SaaS dashboard). Articles table has `Board` column for per-article Pinterest board override and `RetryCount` column (Number, default 1) bounding error-row retries.
 - **`n8n.ts`** -- **Fast path**: if `N8N_API_KEY` exists, verifies against `/api/v1/workflows`. **Full setup**: deterministic password (`N<hex>!`), create owner -> login -> manage API keys (skip masked, delete stale) -> create fresh key. Credential management, workflow import with substitution, activation.
 - **`__mocks__/`** -- Mock adapters returning deterministic data. Used for tests and Docker-free UI dev.
 

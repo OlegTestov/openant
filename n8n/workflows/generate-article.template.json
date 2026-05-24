@@ -30,7 +30,7 @@
           "parameters": [
             {
               "name": "where",
-              "value": "(Status,blank)~or(Status,eq,publishing)~or(Status,eq,error)"
+              "value": "(Status,blank)~or(Status,eq,publishing)~or((Status,eq,error)~and(RetryCount,gt,0))"
             },
             {
               "name": "sort",
@@ -93,6 +93,10 @@
             {
               "name": "Status",
               "value": "generating"
+            },
+            {
+              "name": "RetryCount",
+              "value": "={{ ($('Get Next Queued').first().json.list[0].Status === 'error') ? Math.max(0, ($('Get Next Queued').first().json.list[0].RetryCount || 1) - 1) : ($('Get Next Queued').first().json.list[0].RetryCount || 1) }}"
             }
           ]
         },
@@ -699,6 +703,10 @@
             {
               "name": "Error",
               "value": ""
+            },
+            {
+              "name": "RetryCount",
+              "value": "={{ ($('Get Next Queued').first().json.list[0].Status === 'error') ? Math.max(0, ($('Get Next Queued').first().json.list[0].RetryCount || 1) - 1) : ($('Get Next Queued').first().json.list[0].RetryCount || 1) }}"
             }
           ]
         },
