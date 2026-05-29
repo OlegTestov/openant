@@ -1,6 +1,6 @@
 # openant — Architecture Overview
 
-> Last updated: 2026-05-24
+> Last updated: 2026-05-29
 
 ---
 
@@ -343,7 +343,7 @@ Path via `STATE_PATH` env var (default: `/app/data/state.json`), read at call ti
 | Function         | Behavior                                                             |
 | ---------------- | -------------------------------------------------------------------- |
 | `parseEnv()`     | Skips comments/empty lines, splits on first `=`, strips quotes       |
-| `serializeEnv()` | Values with spaces wrapped in double quotes                          |
+| `serializeEnv()` | Non-trivial values double-quoted, docker-compose-`.env`-safe         |
 | `readEnv()`      | Returns `{}` if file missing                                         |
 | `writeEnv()`     | Direct `fs.writeFile` (no temp+rename -- `.env` may be bind-mounted) |
 
@@ -534,7 +534,7 @@ All providers are OpenAI-compatible (no adapter needed):
 | `npm run format`           | Prettier auto-format                |
 | `npm run format:check`     | Verify formatting                   |
 | `npm run check`            | typecheck + lint + format:check     |
-| `npm test`                 | Run unit tests (43 files)           |
+| `npm test`                 | Run unit tests (45 files)           |
 | `npm run test:watch`       | Watch mode                          |
 | `npm run test:coverage`    | Tests with coverage                 |
 | `npm run test:integration` | Integration tests (requires Docker) |
@@ -545,13 +545,13 @@ All providers are OpenAI-compatible (no adapter needed):
 
 ### Unit tests
 
-558 tests across 45 files:
+569 tests across 45 files:
 
 | File                                              | Tests | What it verifies                                                                                                                                                                |
 | ------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `lib/adapters/__tests__/ghost.test.ts`            | 34    | JWT, healthCheck, setup (fast path, full, EmailError, recovery, env password), uploadTheme, publishPost, errors                                                                 |
 | `lib/adapters/__tests__/nocodb.test.ts`           | 25    | healthCheck, setup (full flow, default base deletion, env password), getNextQueued, updateStatus, getStats, mapRowToArticle                                                     |
-| `lib/adapters/__tests__/n8n.test.ts`              | 37    | healthCheck, setup (fast path, masked keys, owner creation, password format), credentials, importWorkflow, activate                                                             |
+| `lib/adapters/__tests__/n8n.test.ts`              | 39    | healthCheck, setup (fast path, masked keys, owner creation, password format), credentials, importWorkflow (deactivate→update→reactivate), activate                              |
 | `lib/__tests__/docker.test.ts`                    | 13    | reloadCaddy exec/fallback, startServices, restartServices, container-not-found skip, service management                                                                         |
 | `lib/__tests__/domain.test.ts`                    | 25    | getServiceDomains, getCustomDomains, isSaasMode, SaaS flat subdomains, hasCustomDomain                                                                                          |
 | `lib/__tests__/normalize-domain.test.ts`          | 27    | Domain normalizer: scheme strip, trailing slash/dot, validation, error codes                                                                                                    |
@@ -562,7 +562,7 @@ All providers are OpenAI-compatible (no adapter needed):
 | `lib/__tests__/llm-presets.test.ts`               | 4     | 4 presets, correct shape                                                                                                                                                        |
 | `lib/__tests__/errors.test.ts`                    | 5     | AdapterError message, name, instanceof, cause                                                                                                                                   |
 | `lib/__tests__/state.test.ts`                     | 8     | readState/writeState round-trip, atomic write, corrupted fallback, reset                                                                                                        |
-| `lib/__tests__/config.test.ts`                    | 14    | parseEnv/serializeEnv edge cases, readEnv/writeEnv round-trip                                                                                                                   |
+| `lib/__tests__/config.test.ts`                    | 23    | parseEnv/serializeEnv edge cases (docker-compose-`.env`-safe quoting), readEnv/writeEnv round-trip                                                                              |
 | `lib/__tests__/auth.test.ts`                      | 5     | Valid token, missing/wrong/malformed header -> 401                                                                                                                              |
 | `lib/__tests__/api-handler.test.ts`               | 7     | ZodError -> 400, AdapterError -> 500, unknown -> 500, no leaks                                                                                                                  |
 | `app/api/health/__tests__/route.test.ts`          | 2     | 200 + `{ status: "ok" }`                                                                                                                                                        |
