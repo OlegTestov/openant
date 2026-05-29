@@ -1,15 +1,25 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 
-// Characters safe to leave unquoted in a POSIX-shell-style env file.
+// Characters safe to leave unquoted in a docker-compose `.env` file.
 const SAFE_UNQUOTED = /^[A-Za-z0-9_@%+=:,./-]+$/;
 
-function shellQuote(value: string): string {
+function envQuote(value: string): string {
   if (value === '') return '';
   if (SAFE_UNQUOTED.test(value)) return value;
-  // POSIX literal single quotes: nothing inside is interpreted, except that a
-  // single quote itself must be closed, escaped via backslash, and reopened.
-  return `'${value.replace(/'/g, `'\\''`)}'`;
+  // Double-quoted form. We must NOT use POSIX single-quote escaping (`'\''`):
+  // docker compose's `.env` parser rejects the backslash continuation, which
+  // silently breaks *every* `docker compose` command on the instance (updates,
+  // restarts, recreates) whenever a value contains a single quote — e.g. an
+  // apostrophe in the blog title/description. Double quotes need no escaping for
+  // single quotes, and both docker compose and parseEnv()/unquoteDouble() below
+  // understand the same `\\`, `\"`, `\$`, and `` \` `` escapes.
+  const escaped = value
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\$/g, '\\$')
+    .replace(/`/g, '\\`');
+  return `"${escaped}"`;
 }
 
 function unquoteSingle(raw: string): string {
@@ -97,7 +107,7 @@ export function parseEnv(content: string): Record<string, string> {
 export function serializeEnv(vars: Record<string, string>): string {
   return (
     Object.entries(vars)
-      .map(([key, value]) => `${key}=${shellQuote(value)}`)
+      .map(([key, value]) => `${key}=${envQuote(value)}`)
       .join('\n') + '\n'
   );
 }

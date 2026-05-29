@@ -63,24 +63,26 @@ describe('serializeEnv', () => {
     expect(result).toContain('BAZ=qux');
   });
 
-  it('quotes values with spaces (POSIX single-quote)', () => {
+  it('quotes values with spaces (double-quote)', () => {
     const result = serializeEnv({ FOO: 'hello world' });
-    expect(result).toContain("FOO='hello world'");
+    expect(result).toContain('FOO="hello world"');
   });
 
-  it('quotes values containing double quotes (no escape needed inside single quotes)', () => {
+  it('escapes double quotes inside double-quoted values', () => {
     const result = serializeEnv({ DESC: 'a "quoted" word' });
-    expect(result).toContain(`DESC='a "quoted" word'`);
+    expect(result).toContain(`DESC="a \\"quoted\\" word"`);
   });
 
-  it('quotes values containing $, backtick, backslash literally', () => {
+  it('escapes $, backtick, and backslash inside double-quoted values', () => {
     const result = serializeEnv({ V: 'has $var and `tick` and \\back' });
-    expect(result).toContain(`V='has $var and \`tick\` and \\back'`);
+    expect(result).toContain(`V="has \\$var and \\\`tick\\\` and \\\\back"`);
   });
 
-  it("escapes embedded single quotes via '\\'' continuation", () => {
+  it('wraps single quotes in double quotes (no POSIX backslash continuation)', () => {
     const result = serializeEnv({ V: "it's tricky" });
-    expect(result).toContain(`V='it'\\''s tricky'`);
+    expect(result).toContain(`V="it's tricky"`);
+    // The POSIX `'\''` continuation breaks docker compose's .env parser.
+    expect(result).not.toContain(`'\\''`);
   });
 
   it('keeps empty values as KEY= (no quotes)', () => {
@@ -90,7 +92,7 @@ describe('serializeEnv', () => {
 
   it('quotes values starting with # to prevent comment interpretation', () => {
     const result = serializeEnv({ V: '#fff' });
-    expect(result).toContain(`V='#fff'`);
+    expect(result).toContain(`V="#fff"`);
   });
 
   it('leaves URLs unquoted (safe characters)', () => {
@@ -98,7 +100,24 @@ describe('serializeEnv', () => {
       URL: 'https://example.com/path?x=1&y=2',
     });
     // & is not in safe set, so it gets quoted; URLs with only safe chars stay bare
-    expect(result).toContain(`URL='https://example.com/path?x=1&y=2'`);
+    expect(result).toContain(`URL="https://example.com/path?x=1&y=2"`);
+  });
+
+  it('never emits the POSIX single-quote continuation that breaks docker compose', () => {
+    // Regression: blog title/description with an apostrophe (the bug that left an
+    // instance on a stale Ghost URL). Output must be docker-compose-.env-safe.
+    const result = serializeEnv({
+      BLOG_TITLE: 'Пульс косметологии',
+      BLOG_DESCRIPTION: "'Блог о том, чем на самом деле живёт косметология.",
+    });
+    expect(result).not.toContain(`'\\''`);
+    expect(result).toContain(
+      `BLOG_DESCRIPTION="'Блог о том, чем на самом деле живёт косметология."`,
+    );
+    // And it round-trips back through the reader.
+    expect(parseEnv(result).BLOG_DESCRIPTION).toBe(
+      "'Блог о том, чем на самом деле живёт косметология.",
+    );
   });
 
   it('round-trip: serialize → parse returns identical data', () => {
