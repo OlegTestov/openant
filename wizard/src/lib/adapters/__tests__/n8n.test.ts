@@ -595,7 +595,7 @@ describe('createN8nAdapter', () => {
       );
     });
 
-    it('deactivates active workflow before updating', async () => {
+    it('deactivates an active workflow before updating, then re-activates it', async () => {
       mockListWorkflows([{ id: 'wf-active', name: 'Test Workflow', active: true }]);
       // deactivate call
       mockFetch.mockResolvedValueOnce(mockResponse({}));
@@ -603,15 +603,56 @@ describe('createN8nAdapter', () => {
       mockFetch.mockResolvedValueOnce(mockResponse({ nodes: [] }));
       // PUT update call
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'wf-active' }));
+      // re-activate call
+      mockFetch.mockResolvedValueOnce(mockResponse({}));
       const adapter = createN8nAdapter();
 
       await adapter.importWorkflow(template, params);
 
-      // call[0] = list, call[1] = deactivate, call[2] = GET existing, call[3] = PUT
+      // call[0]=list, [1]=deactivate, [2]=GET existing, [3]=PUT, [4]=activate
       expect(mockFetch.mock.calls[1][0]).toBe(
         'http://n8n:5678/api/v1/workflows/wf-active/deactivate',
       );
       expect(mockFetch.mock.calls[3][1]).toEqual(expect.objectContaining({ method: 'PUT' }));
+      expect(mockFetch.mock.calls[4][0]).toBe(
+        'http://n8n:5678/api/v1/workflows/wf-active/activate',
+      );
+      expect(mockFetch.mock.calls[4][1]).toEqual(expect.objectContaining({ method: 'POST' }));
+    });
+
+    it('does not activate when the existing workflow was inactive', async () => {
+      mockListWorkflows([{ id: 'wf-inactive', name: 'Test Workflow', active: false }]);
+      // GET existing workflow (to preserve node IDs)
+      mockFetch.mockResolvedValueOnce(mockResponse({ nodes: [] }));
+      // PUT update call
+      mockFetch.mockResolvedValueOnce(mockResponse({ id: 'wf-inactive' }));
+      const adapter = createN8nAdapter();
+
+      await adapter.importWorkflow(template, params);
+
+      const urls = mockFetch.mock.calls.map((c) => String(c[0]));
+      expect(urls.some((u) => u.endsWith('/activate'))).toBe(false);
+      expect(urls.some((u) => u.endsWith('/deactivate'))).toBe(false);
+    });
+
+    it('restores active state when the update fails', async () => {
+      mockListWorkflows([{ id: 'wf-active', name: 'Test Workflow', active: true }]);
+      // deactivate call
+      mockFetch.mockResolvedValueOnce(mockResponse({}));
+      // GET existing workflow (to preserve node IDs)
+      mockFetch.mockResolvedValueOnce(mockResponse({ nodes: [] }));
+      // PUT update call FAILS
+      mockFetch.mockResolvedValueOnce(mockResponse({ error: 'bad' }, { ok: false, status: 400 }));
+      // restore re-activate call
+      mockFetch.mockResolvedValueOnce(mockResponse({}));
+      const adapter = createN8nAdapter();
+
+      await expect(adapter.importWorkflow(template, params)).rejects.toThrow(AdapterError);
+
+      // The last call must re-activate the workflow so prod keeps running.
+      const lastCall = mockFetch.mock.calls[mockFetch.mock.calls.length - 1];
+      expect(lastCall[0]).toBe('http://n8n:5678/api/v1/workflows/wf-active/activate');
+      expect(lastCall[1]).toEqual(expect.objectContaining({ method: 'POST' }));
     });
 
     it('returns workflow ID', async () => {

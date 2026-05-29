@@ -333,6 +333,7 @@ export function createN8nAdapter(): AutomationAdapter {
         headers: { 'X-N8N-API-KEY': apiKey },
       });
       let existingId: string | null = null;
+      let wasActive = false;
       if (listRes.ok) {
         const listData = (await listRes.json()) as {
           data?: Array<{ id: string; name: string; active: boolean }>;
@@ -340,6 +341,7 @@ export function createN8nAdapter(): AutomationAdapter {
         const existing = listData.data?.find((w) => w.name === workflowName);
         if (existing) {
           existingId = existing.id;
+          wasActive = existing.active;
           if (existing.active) {
             const deactivateRes = await fetch(
               `${getN8nUrl()}/api/v1/workflows/${existing.id}/deactivate`,
@@ -371,39 +373,70 @@ export function createN8nAdapter(): AutomationAdapter {
         }
       }
 
+      // Best-effort re-activation. We deactivate an active workflow before the
+      // PUT (n8n's `active` field is read-only on update), so we must turn it
+      // back on afterwards — otherwise a reconfigure silently leaves the live
+      // workflow disabled and publishing stops until the next stack restart.
+      const reactivate = async (id: string) => {
+        try {
+          const r = await fetch(`${getN8nUrl()}/api/v1/workflows/${id}/activate`, {
+            method: 'POST',
+            headers: { 'X-N8N-API-KEY': apiKey },
+          });
+          if (!r.ok) {
+            console.warn(`Failed to re-activate workflow ${id}: ${r.status}`);
+          }
+        } catch (err) {
+          console.warn(`Failed to re-activate workflow ${id}:`, err);
+        }
+      };
+
       let res: Response;
-      if (existingId) {
-        res = await fetch(`${getN8nUrl()}/api/v1/workflows/${existingId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-N8N-API-KEY': apiKey,
-          },
-          body: JSON.stringify({
-            name: finalWorkflow.name,
-            nodes: finalWorkflow.nodes,
-            connections: finalWorkflow.connections,
-            settings: finalWorkflow.settings,
-            staticData: finalWorkflow.staticData,
-          }),
-        });
-      } else {
-        res = await fetch(`${getN8nUrl()}/api/v1/workflows`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-N8N-API-KEY': apiKey,
-          },
-          body: JSON.stringify(finalWorkflow),
-        });
+      try {
+        if (existingId) {
+          res = await fetch(`${getN8nUrl()}/api/v1/workflows/${existingId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-N8N-API-KEY': apiKey,
+            },
+            body: JSON.stringify({
+              name: finalWorkflow.name,
+              nodes: finalWorkflow.nodes,
+              connections: finalWorkflow.connections,
+              settings: finalWorkflow.settings,
+              staticData: finalWorkflow.staticData,
+            }),
+          });
+        } else {
+          res = await fetch(`${getN8nUrl()}/api/v1/workflows`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-N8N-API-KEY': apiKey,
+            },
+            body: JSON.stringify(finalWorkflow),
+          });
+        }
+      } catch (err) {
+        // Network failure during update — restore prior active state so we don't
+        // leave a previously-running workflow stranded as disabled.
+        if (existingId && wasActive) await reactivate(existingId);
+        throw err;
       }
 
       if (!res.ok) {
         const error = await res.text();
+        // Update rejected — restore prior active state before surfacing the error.
+        if (existingId && wasActive) await reactivate(existingId);
         throw new AdapterError('n8n', 'importWorkflow', `Import failed: ${res.status} ${error}`);
       }
 
       const data = (await res.json()) as { id: string };
+
+      // Re-activate if it was active before we deactivated it for the update.
+      if (wasActive) await reactivate(data.id);
+
       return data.id;
     },
 
