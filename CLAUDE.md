@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What is openant
 
-Self-hosted platform that generates SEO articles from topics, publishes to a Ghost blog, and promotes on social media (Pinterest/Threads via Make.com). One-command install, visual setup wizard, zero coding required.
+Self-hosted platform that generates SEO articles from topics, publishes to a Ghost blog, and promotes on social media (Pinterest/Instagram/Threads via Buffer API, or Pinterest/Threads via legacy Make.com webhook). One-command install, visual setup wizard, zero coding required.
 
 ## Common commands
 

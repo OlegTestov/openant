@@ -151,6 +151,11 @@ export interface WorkflowParams {
   blogTone: string;
   makeWebhookUrl?: string;
   pinterestBoard?: string;
+  bufferApiKey?: string;
+  bufferPinterestChannelId?: string;
+  bufferPinterestBoardId?: string;
+  bufferInstagramChannelId?: string;
+  bufferThreadsChannelId?: string;
   defaultLink?: string;
   defaultLinkName?: string;
   nocodbBaseId?: string;

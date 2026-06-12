@@ -233,12 +233,13 @@ describe('socialSchema', () => {
     ).not.toThrow();
   });
 
-  it('accepts valid webhook URL', () => {
+  it('accepts valid webhook URL with board', () => {
     expect(() =>
       socialSchema.parse({
         make_webhook_url: 'https://hook.make.com/abc123',
         pinterest_enabled: true,
         threads_enabled: true,
+        board: 'My Pins',
       }),
     ).not.toThrow();
   });
@@ -255,9 +256,10 @@ describe('socialSchema', () => {
 
   it('accepts boolean toggles', () => {
     const result = socialSchema.parse({
-      make_webhook_url: '',
+      make_webhook_url: 'https://hook.make.com/abc123',
       pinterest_enabled: true,
       threads_enabled: false,
+      board: 'My Pins',
     });
     expect(result.pinterest_enabled).toBe(true);
     expect(result.threads_enabled).toBe(false);
@@ -265,7 +267,7 @@ describe('socialSchema', () => {
 
   it('accepts optional board field', () => {
     const result = socialSchema.parse({
-      make_webhook_url: '',
+      make_webhook_url: 'https://hook.make.com/abc123',
       pinterest_enabled: true,
       threads_enabled: false,
       board: 'My Pins',
@@ -282,5 +284,65 @@ describe('socialSchema', () => {
         board: '',
       }),
     ).not.toThrow();
+  });
+
+  it('rejects Pinterest via Make without board', () => {
+    expect(() =>
+      socialSchema.parse({
+        make_webhook_url: 'https://hook.make.com/abc123',
+        pinterest_enabled: true,
+        threads_enabled: false,
+      }),
+    ).toThrow();
+  });
+
+  it('rejects enabled networks without webhook or Buffer key', () => {
+    expect(() =>
+      socialSchema.parse({
+        make_webhook_url: '',
+        pinterest_enabled: true,
+        threads_enabled: false,
+        board: 'My Pins',
+      }),
+    ).toThrow();
+  });
+
+  it('accepts Buffer config with channel and board ids', () => {
+    expect(() =>
+      socialSchema.parse({
+        make_webhook_url: '',
+        pinterest_enabled: true,
+        threads_enabled: true,
+        instagram_enabled: true,
+        buffer_api_key: '1/key',
+        buffer_pinterest_channel_id: 'ch-pin',
+        buffer_pinterest_board_id: 'b1',
+        buffer_instagram_channel_id: 'ch-ig',
+        buffer_threads_channel_id: 'ch-th',
+      }),
+    ).not.toThrow();
+  });
+
+  it('rejects Buffer Pinterest without board id', () => {
+    expect(() =>
+      socialSchema.parse({
+        make_webhook_url: '',
+        pinterest_enabled: true,
+        threads_enabled: false,
+        buffer_api_key: '1/key',
+        buffer_pinterest_channel_id: 'ch-pin',
+      }),
+    ).toThrow();
+  });
+
+  it('rejects Instagram without Buffer', () => {
+    expect(() =>
+      socialSchema.parse({
+        make_webhook_url: 'https://hook.make.com/abc123',
+        pinterest_enabled: false,
+        threads_enabled: false,
+        instagram_enabled: true,
+      }),
+    ).toThrow();
   });
 });

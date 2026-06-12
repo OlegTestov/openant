@@ -19,7 +19,13 @@ interface ReviewConfig {
     publish_interval_minutes: number;
   };
   telegram?: { bot_token?: string; chat_id?: string };
-  social?: { make_webhook_url?: string; pinterest_enabled: boolean; threads_enabled: boolean };
+  social?: {
+    make_webhook_url?: string;
+    buffer_api_key?: string;
+    pinterest_enabled: boolean;
+    threads_enabled: boolean;
+    instagram_enabled?: boolean;
+  };
   saas_mode?: boolean;
   default_domain?: string | null;
   instance_mode?: string;
@@ -256,8 +262,13 @@ export default function Review({ onComplete, onBack, onGoToStep }: StepProps) {
             <p className="text-sm font-medium">{t.steps.review.social}</p>
             {config?.social ? (
               <p className="text-muted-foreground text-sm">
-                {config.social.make_webhook_url ? t.steps.review.webhook : t.steps.review.noWebhook}
+                {config.social.buffer_api_key
+                  ? t.steps.review.buffer
+                  : config.social.make_webhook_url
+                    ? t.steps.review.webhook
+                    : t.steps.review.noWebhook}
                 {config.social.pinterest_enabled ? ' · Pinterest' : ''}
+                {config.social.instagram_enabled ? ' · Instagram' : ''}
                 {config.social.threads_enabled ? ' · Threads' : ''}
               </p>
             ) : (

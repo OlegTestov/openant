@@ -3,6 +3,7 @@ import { apiHandler } from '@/lib/api-handler';
 import { readState } from '@/lib/state';
 import { createAdapters } from '@/lib/adapters';
 import { testLlmConnection, testTelegramToken, testWebhook } from '@/lib/test-connections';
+import { fetchBufferChannels, bufferSelectionValid } from '@/lib/buffer';
 import { checkDns as checkDnsResolve } from '@/lib/dns-check';
 import { cleanCustomDomain } from '@/lib/domain';
 import type { SetupState } from '@/types/setup';
@@ -78,9 +79,20 @@ async function checkDns(state: SetupState): Promise<CheckResult> {
   };
 }
 
-async function checkWebhook(
-  social: { make_webhook_url?: string } | undefined,
-): Promise<CheckResult> {
+async function checkWebhook(social: SetupState['social']): Promise<CheckResult> {
+  if (social?.buffer_api_key) {
+    try {
+      const channels = await fetchBufferChannels(social.buffer_api_key);
+      const valid = bufferSelectionValid(channels, social);
+      return {
+        name: 'webhook',
+        status: valid ? 'pass' : 'fail',
+        detail: valid ? 'Buffer' : 'Buffer channel or board is no longer available',
+      };
+    } catch {
+      return { name: 'webhook', status: 'fail', detail: 'Buffer API key is invalid or expired' };
+    }
+  }
   if (!social?.make_webhook_url) {
     return { name: 'webhook', status: 'skip', detail: '' };
   }

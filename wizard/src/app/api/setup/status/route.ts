@@ -21,7 +21,9 @@ export const GET = withAuth(
         telegram: state.telegram?.bot_token
           ? { ...state.telegram, bot_token: '•••••' + state.telegram.bot_token.slice(-4) }
           : state.telegram,
-        social: state.social,
+        social: state.social?.buffer_api_key
+          ? { ...state.social, buffer_api_key: '***' }
+          : state.social,
         saas_mode: process.env.OPENANT_SAAS_MODE === 'true',
         instance_mode: process.env.INSTANCE_MODE || 'byok',
         default_domain: process.env.DOMAIN || null,

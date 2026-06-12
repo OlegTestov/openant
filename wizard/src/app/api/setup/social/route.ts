@@ -3,31 +3,147 @@ import { withAuth } from '@/lib/auth';
 import { apiHandler } from '@/lib/api-handler';
 import { readState, writeState } from '@/lib/state';
 import { testWebhook } from '@/lib/test-connections';
+import { fetchBufferChannels, bufferSelectionValid } from '@/lib/buffer';
 
-export const socialSchema = z.object({
-  make_webhook_url: z.string().url().optional().or(z.literal('')),
-  pinterest_enabled: z.boolean(),
-  threads_enabled: z.boolean(),
-  board: z.string().optional().or(z.literal('')),
-});
+export const socialSchema = z
+  .object({
+    make_webhook_url: z.string().url().optional().or(z.literal('')),
+    pinterest_enabled: z.boolean(),
+    threads_enabled: z.boolean(),
+    instagram_enabled: z.boolean().optional().default(false),
+    board: z.string().optional().or(z.literal('')),
+    buffer_api_key: z.string().optional().or(z.literal('')),
+    buffer_pinterest_channel_id: z.string().optional().or(z.literal('')),
+    buffer_pinterest_board_id: z.string().optional().or(z.literal('')),
+    buffer_instagram_channel_id: z.string().optional().or(z.literal('')),
+    buffer_threads_channel_id: z.string().optional().or(z.literal('')),
+  })
+  .superRefine((v, ctx) => {
+    const anyEnabled = v.pinterest_enabled || v.threads_enabled || v.instagram_enabled;
+    if (!anyEnabled) return;
+
+    if (v.buffer_api_key) {
+      if (v.pinterest_enabled && (!v.buffer_pinterest_channel_id || !v.buffer_pinterest_board_id)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['buffer_pinterest_channel_id'],
+          message: 'Pinterest channel and board are required',
+        });
+      }
+      if (v.instagram_enabled && !v.buffer_instagram_channel_id) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['buffer_instagram_channel_id'],
+          message: 'Instagram channel is required',
+        });
+      }
+      if (v.threads_enabled && !v.buffer_threads_channel_id) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['buffer_threads_channel_id'],
+          message: 'Threads channel is required',
+        });
+      }
+    } else {
+      if (v.instagram_enabled) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['buffer_api_key'],
+          message: 'Instagram publishing requires Buffer',
+        });
+      }
+      if (!v.make_webhook_url) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['make_webhook_url'],
+          message: 'Webhook URL or Buffer API key is required',
+        });
+      }
+      if (v.pinterest_enabled && !v.board) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['board'],
+          message: 'Board name is required',
+        });
+      }
+    }
+  });
 
 export const POST = withAuth(
   apiHandler(async (req: Request) => {
     const body = socialSchema.parse(await req.json());
     const state = await readState();
 
+    // Preserve existing API key if masked placeholder submitted (same as LLM step)
+    if (body.buffer_api_key === '***' && state.social?.buffer_api_key) {
+      body.buffer_api_key = state.social.buffer_api_key;
+    }
+    const anyEnabled =
+      body.pinterest_enabled || body.threads_enabled || Boolean(body.instagram_enabled);
+    const useBuffer = Boolean(body.buffer_api_key) && anyEnabled;
+
+    if (useBuffer) {
+      // Verify the key AND that every selected channel/board belongs to it —
+      // stale ids (key changed, channel disconnected) would otherwise surface
+      // only inside the n8n workflow after the article is already published.
+      let channels;
+      try {
+        channels = await fetchBufferChannels(body.buffer_api_key ?? '');
+      } catch {
+        return Response.json(
+          {
+            success: false,
+            error: 'Buffer API key is invalid or expired',
+            code: 'BUFFER_KEY_INVALID',
+          },
+          { status: 400 },
+        );
+      }
+
+      if (!bufferSelectionValid(channels, body)) {
+        return Response.json(
+          {
+            success: false,
+            error: 'Selected channel or board does not belong to this Buffer account',
+            code: 'BUFFER_CHANNEL_INVALID',
+          },
+          { status: 400 },
+        );
+      }
+    }
+
     state.social = {
-      make_webhook_url: body.make_webhook_url || undefined,
+      // Buffer and Make are mutually exclusive: the workflow prefers Buffer
+      // when its key is set, so the inactive method's config is cleared.
+      make_webhook_url: useBuffer ? undefined : body.make_webhook_url || undefined,
       pinterest_enabled: body.pinterest_enabled,
       threads_enabled: body.threads_enabled,
-      board: body.board || undefined,
+      instagram_enabled: body.instagram_enabled,
+      board: useBuffer ? undefined : body.board || undefined,
+      buffer_api_key: useBuffer ? body.buffer_api_key : undefined,
+      // Channel ids are kept only for enabled networks — the n8n workflow
+      // publishes to every non-empty channel id regardless of toggles.
+      buffer_pinterest_channel_id:
+        useBuffer && body.pinterest_enabled
+          ? body.buffer_pinterest_channel_id || undefined
+          : undefined,
+      buffer_pinterest_board_id:
+        useBuffer && body.pinterest_enabled
+          ? body.buffer_pinterest_board_id || undefined
+          : undefined,
+      buffer_instagram_channel_id:
+        useBuffer && body.instagram_enabled
+          ? body.buffer_instagram_channel_id || undefined
+          : undefined,
+      buffer_threads_channel_id:
+        useBuffer && body.threads_enabled ? body.buffer_threads_channel_id || undefined : undefined,
     };
     state.steps.social = { completed: true };
     state.currentStep = 'review';
 
     await writeState(state);
 
-    const webhookUrl = body.make_webhook_url;
+    const webhookUrl = useBuffer ? undefined : body.make_webhook_url;
     const testResult = webhookUrl ? await testWebhook(webhookUrl) : undefined;
 
     return Response.json({

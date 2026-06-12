@@ -417,7 +417,7 @@
         "conditions": {
           "string": [
             {
-              "value1": "{{MAKE_WEBHOOK_URL}}",
+              "value1": "{{MAKE_WEBHOOK_URL}}{{BUFFER_PINTEREST_CHANNEL_ID}}{{BUFFER_INSTAGRAM_CHANNEL_ID}}{{BUFFER_THREADS_CHANNEL_ID}}",
               "operation": "isNotEmpty"
             }
           ]
@@ -546,21 +546,17 @@
       "position": [3650, 200],
       "onError": "continueErrorOutput",
       "parameters": {
-        "jsCode": "const crypto = require('crypto');\nconst https = require('https');\nconst http = require('http');\nconst { URL } = require('url');\n\nfunction httpPost(urlStr, headers, body) {\n  return new Promise((resolve, reject) => {\n    const u = new URL(urlStr);\n    const mod = u.protocol === 'https:' ? https : http;\n    const opts = { method: 'POST', hostname: u.hostname, port: u.port || (u.protocol === 'https:' ? 443 : 80), path: u.pathname + u.search, headers };\n    const req = mod.request(opts, (res) => {\n      const chunks = [];\n      res.on('data', (c) => chunks.push(c));\n      res.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString() }));\n    });\n    req.on('error', reject);\n    req.setTimeout(120000, () => { req.destroy(); reject(new Error('Timeout')); });\n    if (body) req.write(body);\n    req.end();\n  });\n}\n\nconst pinImageSystem = $('Pin Prompt Data').first().json.pinImageSystem || '';\nconst pinImageUser = $('Pin Prompt Data').first().json.pinImageUser || '';\nconst pinTitle = $('Generate Pin Title').first().json.message.content.trim();\nconst imagePrompt = pinImageUser + '\\n\\nPin title: ' + pinTitle;\nlet pinImageUrl = '';\ntry {\n  const apiUrl = '{{LLM_API_URL}}';\n  const apiKey = '{{LLM_API_KEY}}';\n  const imageModel = '{{LLM_IMAGE_MODEL}}';\n  if (!apiUrl || !apiKey || !imageModel) throw new Error('Missing LLM image config');\n  const llmBody = JSON.stringify({ model: imageModel, messages: [{ role: 'system', content: pinImageSystem }, { role: 'user', content: imagePrompt }], modalities: ['text', 'image'], image_config: { image_size: '1K', aspect_ratio: '2:3' } });\n  const llmRes = await httpPost(apiUrl + '/chat/completions', {\n    'Content-Type': 'application/json',\n    'Authorization': 'Bearer ' + apiKey,\n    'Content-Length': Buffer.byteLength(llmBody),\n  }, llmBody);\n  if (llmRes.status !== 200) throw new Error('LLM API: ' + llmRes.status);\n  const llmData = JSON.parse(llmRes.body);\n  llmRes.body = null;\n  let base64Data = '';\n  let mimeType = 'image/png';\n  const msg = llmData.choices?.[0]?.message;\n  const images = msg?.images;\n  if (Array.isArray(images) && images.length > 0) {\n    const imgObj = images[0];\n    const imgUrl = typeof imgObj.image_url === 'object' ? imgObj.image_url.url : (typeof imgObj.image_url === 'string' ? imgObj.image_url : '');\n    if (imgUrl) {\n      const m = imgUrl.match(/^data:(image\\/[a-z]+);base64,(.+)/s);\n      if (m) { mimeType = m[1]; base64Data = m[2]; }\n    }\n  }\n  if (!base64Data) {\n    const content = msg?.content;\n    if (Array.isArray(content)) {\n      for (const part of content) {\n        if (part.type === 'image_url' && part.image_url?.url) {\n          const m = part.image_url.url.match(/^data:(image\\/[a-z]+);base64,(.+)/s);\n          if (m) { mimeType = m[1]; base64Data = m[2]; break; }\n        }\n      }\n    } else if (typeof content === 'string') {\n      const m = content.match(/data:(image\\/[a-z]+);base64,([A-Za-z0-9+\\/=]+)/);\n      if (m) { mimeType = m[1]; base64Data = m[2]; }\n    }\n  }\n  if (!base64Data) throw new Error('No image data in LLM response');\n  const ghostKey = '{{GHOST_ADMIN_API_KEY}}';\n  const [kid, secret] = ghostKey.split(':');\n  const hdr = Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT',kid})).toString('base64url');\n  const now = Math.floor(Date.now()/1000);\n  const pay = Buffer.from(JSON.stringify({iat:now,exp:now+300,aud:'/admin/'})).toString('base64url');\n  const hmac = crypto.createHmac('sha256', Buffer.from(secret, 'hex'));\n  hmac.update(hdr + '.' + pay);\n  const jwt = hdr + '.' + pay + '.' + hmac.digest('base64url');\n  const imageBuffer = Buffer.from(base64Data, 'base64');\n  base64Data = '';\n  const ext = mimeType === 'image/jpeg' ? 'jpg' : 'png';\n  const boundary = '----n8n' + Date.now();\n  const formBody = Buffer.concat([\n    Buffer.from('--' + boundary + '\\r\\nContent-Disposition: form-data; name=\"file\"; filename=\"pin.' + ext + '\"\\r\\nContent-Type: ' + mimeType + '\\r\\n\\r\\n'),\n    imageBuffer,\n    Buffer.from('\\r\\n--' + boundary + '\\r\\nContent-Disposition: form-data; name=\"purpose\"\\r\\nContent-Type: text/plain\\r\\n\\r\\nimage\\r\\n--' + boundary + '--\\r\\n'),\n  ]);\n  const ghostRes = await httpPost('{{GHOST_API_URL}}/ghost/api/admin/images/upload/', {\n    'Authorization': 'Ghost ' + jwt,\n    'Content-Type': 'multipart/form-data; boundary=' + boundary,\n    'Content-Length': formBody.length,\n  }, formBody);\n  if (ghostRes.status === 201 || ghostRes.status === 200) {\n    const gd = JSON.parse(ghostRes.body);\n    pinImageUrl = gd.images?.[0]?.url || '';\n  } else { throw new Error('Ghost upload: ' + ghostRes.status); }\n} catch (e) {\n  console.log('Pin image generation skipped:', e.message);\n}\nreturn [{ json: { pinImageUrl } }];"
+        "jsCode": "const crypto = require('crypto');\nconst https = require('https');\nconst http = require('http');\nconst { URL } = require('url');\n\nfunction httpPost(urlStr, headers, body) {\n  return new Promise((resolve, reject) => {\n    const u = new URL(urlStr);\n    const mod = u.protocol === 'https:' ? https : http;\n    const opts = { method: 'POST', hostname: u.hostname, port: u.port || (u.protocol === 'https:' ? 443 : 80), path: u.pathname + u.search, headers };\n    const req = mod.request(opts, (res) => {\n      const chunks = [];\n      res.on('data', (c) => chunks.push(c));\n      res.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString() }));\n    });\n    req.on('error', reject);\n    req.setTimeout(120000, () => { req.destroy(); reject(new Error('Timeout')); });\n    if (body) req.write(body);\n    req.end();\n  });\n}\n\nconst pinImageSystem = $('Pin Prompt Data').first().json.pinImageSystem || '';\nconst pinImageUser = $('Pin Prompt Data').first().json.pinImageUser || '';\nconst pinTitle = $('Generate Pin Title').first().json.message.content.trim();\nconst imagePrompt = pinImageUser + '\\n\\nPin title: ' + pinTitle;\nlet pinImageUrl = '';\ntry {\n  const apiUrl = '{{LLM_API_URL}}';\n  const apiKey = '{{LLM_API_KEY}}';\n  const imageModel = '{{LLM_IMAGE_MODEL}}';\n  if (!apiUrl || !apiKey || !imageModel) throw new Error('Missing LLM image config');\n  const llmBody = JSON.stringify({ model: imageModel, messages: [{ role: 'system', content: pinImageSystem }, { role: 'user', content: imagePrompt }], modalities: ['text', 'image'], image_config: { image_size: '1K', aspect_ratio: '4:5' } });\n  const llmRes = await httpPost(apiUrl + '/chat/completions', {\n    'Content-Type': 'application/json',\n    'Authorization': 'Bearer ' + apiKey,\n    'Content-Length': Buffer.byteLength(llmBody),\n  }, llmBody);\n  if (llmRes.status !== 200) throw new Error('LLM API: ' + llmRes.status);\n  const llmData = JSON.parse(llmRes.body);\n  llmRes.body = null;\n  let base64Data = '';\n  let mimeType = 'image/png';\n  const msg = llmData.choices?.[0]?.message;\n  const images = msg?.images;\n  if (Array.isArray(images) && images.length > 0) {\n    const imgObj = images[0];\n    const imgUrl = typeof imgObj.image_url === 'object' ? imgObj.image_url.url : (typeof imgObj.image_url === 'string' ? imgObj.image_url : '');\n    if (imgUrl) {\n      const m = imgUrl.match(/^data:(image\\/[a-z]+);base64,(.+)/s);\n      if (m) { mimeType = m[1]; base64Data = m[2]; }\n    }\n  }\n  if (!base64Data) {\n    const content = msg?.content;\n    if (Array.isArray(content)) {\n      for (const part of content) {\n        if (part.type === 'image_url' && part.image_url?.url) {\n          const m = part.image_url.url.match(/^data:(image\\/[a-z]+);base64,(.+)/s);\n          if (m) { mimeType = m[1]; base64Data = m[2]; break; }\n        }\n      }\n    } else if (typeof content === 'string') {\n      const m = content.match(/data:(image\\/[a-z]+);base64,([A-Za-z0-9+\\/=]+)/);\n      if (m) { mimeType = m[1]; base64Data = m[2]; }\n    }\n  }\n  if (!base64Data) throw new Error('No image data in LLM response');\n  const ghostKey = '{{GHOST_ADMIN_API_KEY}}';\n  const [kid, secret] = ghostKey.split(':');\n  const hdr = Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT',kid})).toString('base64url');\n  const now = Math.floor(Date.now()/1000);\n  const pay = Buffer.from(JSON.stringify({iat:now,exp:now+300,aud:'/admin/'})).toString('base64url');\n  const hmac = crypto.createHmac('sha256', Buffer.from(secret, 'hex'));\n  hmac.update(hdr + '.' + pay);\n  const jwt = hdr + '.' + pay + '.' + hmac.digest('base64url');\n  const imageBuffer = Buffer.from(base64Data, 'base64');\n  base64Data = '';\n  const ext = mimeType === 'image/jpeg' ? 'jpg' : 'png';\n  const boundary = '----n8n' + Date.now();\n  const formBody = Buffer.concat([\n    Buffer.from('--' + boundary + '\\r\\nContent-Disposition: form-data; name=\"file\"; filename=\"pin.' + ext + '\"\\r\\nContent-Type: ' + mimeType + '\\r\\n\\r\\n'),\n    imageBuffer,\n    Buffer.from('\\r\\n--' + boundary + '\\r\\nContent-Disposition: form-data; name=\"purpose\"\\r\\nContent-Type: text/plain\\r\\n\\r\\nimage\\r\\n--' + boundary + '--\\r\\n'),\n  ]);\n  const ghostRes = await httpPost('{{GHOST_API_URL}}/ghost/api/admin/images/upload/', {\n    'Authorization': 'Ghost ' + jwt,\n    'Content-Type': 'multipart/form-data; boundary=' + boundary,\n    'Content-Length': formBody.length,\n  }, formBody);\n  if (ghostRes.status === 201 || ghostRes.status === 200) {\n    const gd = JSON.parse(ghostRes.body);\n    pinImageUrl = gd.images?.[0]?.url || '';\n  } else { throw new Error('Ghost upload: ' + ghostRes.status); }\n} catch (e) {\n  console.log('Pin image generation skipped:', e.message);\n}\nreturn [{ json: { pinImageUrl } }];"
       }
     },
     {
-      "name": "Send to Make Webhook",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
+      "name": "Publish Pin",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [3850, 200],
       "onError": "continueErrorOutput",
       "parameters": {
-        "method": "POST",
-        "url": "{{MAKE_WEBHOOK_URL}}",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ board: $('Pin Prompt Data').item.json.board, title: $('Generate Pin Title').item.json.message.content.trim(), description: $('Generate Pin Text').item.json.message.content.trim(), url: $('Pin Prompt Data').item.json.ghostUrl, imageUrl: $json.pinImageUrl || '' }) }}"
+        "jsCode": "const https = require('https');\nconst http = require('http');\nconst { URL } = require('url');\n\nfunction httpPost(urlStr, headers, body, timeoutMs) {\n  return new Promise((resolve, reject) => {\n    const u = new URL(urlStr);\n    const mod = u.protocol === 'https:' ? https : http;\n    const opts = { method: 'POST', hostname: u.hostname, port: u.port || (u.protocol === 'https:' ? 443 : 80), path: u.pathname + u.search, headers };\n    const req = mod.request(opts, (res) => {\n      const chunks = [];\n      res.on('data', (c) => chunks.push(c));\n      res.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString() }));\n    });\n    req.on('error', reject);\n    req.setTimeout(timeoutMs || 60000, () => { req.destroy(); reject(new Error('Timeout')); });\n    if (body) req.write(body);\n    req.end();\n  });\n}\n\nconst bufferKey = '{{BUFFER_API_KEY}}';\nconst pinChannelId = '{{BUFFER_PINTEREST_CHANNEL_ID}}';\nconst pinBoardId = '{{BUFFER_PINTEREST_BOARD_ID}}';\nconst igChannelId = '{{BUFFER_INSTAGRAM_CHANNEL_ID}}';\nconst threadsChannelId = '{{BUFFER_THREADS_CHANNEL_ID}}';\nconst makeUrl = '{{MAKE_WEBHOOK_URL}}';\n\nconst board = $('Pin Prompt Data').first().json.board;\nconst ghostUrl = $('Pin Prompt Data').first().json.ghostUrl;\nconst title = $('Generate Pin Title').first().json.message.content.trim();\nconst description = $('Generate Pin Text').first().json.message.content.trim();\nconst imageUrl = $input.first().json.pinImageUrl || '';\n\nconst useBuffer = Boolean(bufferKey && (pinChannelId || igChannelId || threadsChannelId));\n\nif (!useBuffer && !makeUrl) {\n  return [{ json: { pin_url: '' } }];\n}\n\nif (!useBuffer) {\n  // Make.com webhook (legacy path); Make creates the pin synchronously, allow 120s\n  const payload = JSON.stringify({ board, title, description, url: ghostUrl, imageUrl });\n  const res = await httpPost(makeUrl, { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }, payload, 120000);\n  if (res.status < 200 || res.status >= 300) throw new Error('Make webhook: HTTP ' + res.status);\n  let pinUrl = '';\n  try { pinUrl = JSON.parse(res.body)?.pin_url || ''; } catch (e) { /* non-JSON response */ }\n  return [{ json: { pin_url: pinUrl } }];\n}\n\n// Buffer API path (https://developers.buffer.com)\nif (!imageUrl) throw new Error('No pin image available for Buffer publishing');\n\nasync function gql(query, variables) {\n  const body = JSON.stringify({ query, variables });\n  const res = await httpPost('https://api.buffer.com', {\n    'Content-Type': 'application/json',\n    'Authorization': 'Bearer ' + bufferKey,\n    'Content-Length': Buffer.byteLength(body),\n  }, body);\n  if (res.status !== 200) throw new Error('Buffer API: HTTP ' + res.status);\n  const data = JSON.parse(res.body);\n  if (data.errors && data.errors.length) throw new Error('Buffer API: ' + data.errors[0].message);\n  return data.data;\n}\n\nconst CREATE_POST = 'mutation CreatePost($input: CreatePostInput!) { createPost(input: $input) { __typename ... on PostActionSuccess { post { id } } ... on MutationError { message } } }';\n\nasync function createPost(input) {\n  const data = await gql(CREATE_POST, { input });\n  const result = data.createPost;\n  if (!result || result.__typename === 'MutationError') {\n    throw new Error(result?.message || 'unknown createPost error');\n  }\n  return result.post.id;\n}\n\n// Partial-failure rule: throw (-> pin retry via RetryCount) only when nothing\n// was published; a succeeded post must not be duplicated by a retry.\nconst errors = [];\nlet successCount = 0;\nasync function tryPost(label, input) {\n  try {\n    const id = await createPost(input);\n    successCount++;\n    return id;\n  } catch (e) {\n    errors.push(label + ': ' + e.message);\n    return '';\n  }\n}\n\nconst igText = description + (ghostUrl ? '\\n\\n' + ghostUrl : '');\nlet pinPostId = '';\n\nif (pinChannelId) {\n  pinPostId = await tryPost('pinterest', {\n    channelId: pinChannelId,\n    text: description,\n    schedulingType: 'automatic',\n    mode: 'shareNow',\n    assets: [{ image: { url: imageUrl } }],\n    metadata: { pinterest: { title: title.slice(0, 100), url: ghostUrl, boardServiceId: pinBoardId } },\n  });\n}\n\nif (igChannelId) {\n  await tryPost('instagram', {\n    channelId: igChannelId,\n    text: igText,\n    schedulingType: 'automatic',\n    mode: 'shareNow',\n    assets: [{ image: { url: imageUrl } }],\n    metadata: { instagram: { type: 'post' } },\n  });\n}\n\nif (threadsChannelId) {\n  await tryPost('threads', {\n    channelId: threadsChannelId,\n    text: igText,\n    schedulingType: 'automatic',\n    mode: 'shareNow',\n    assets: [{ image: { url: imageUrl } }],\n  });\n}\n\nif (successCount === 0) throw new Error('Buffer publishing failed: ' + errors.join('; '));\nif (errors.length) console.log('Buffer partial failure:', errors.join('; '));\n\n// shareNow publishes asynchronously - poll briefly for the Pinterest permalink.\n// Posts are already created at this point, so no failure here may throw:\n// an error output would trigger a retry and duplicate the posts.\nlet pinUrl = '';\nif (pinPostId) {\n  try {\n    const GET_POST = 'query GetPost($input: PostInput!) { post(input: $input) { status externalLink } }';\n    for (let i = 0; i < 4 && !pinUrl; i++) {\n      await new Promise((r) => setTimeout(r, 5000));\n      const d = await gql(GET_POST, { input: { id: pinPostId } });\n      if (d.post && d.post.status === 'error') { errors.push('pinterest: publish failed after create'); break; }\n      if (d.post && d.post.externalLink) pinUrl = d.post.externalLink;\n    }\n  } catch (e) {\n    console.log('Pin URL poll failed:', e.message);\n  }\n}\n\nreturn [{ json: { pin_url: pinUrl, buffer_pin_post_id: pinPostId, promo_errors: errors.join('; ') } }];"
       }
     },
     {
@@ -570,7 +566,7 @@
       "position": [4050, 200],
       "onError": "continueErrorOutput",
       "parameters": {
-        "jsCode": "const response = $input.first().json;\nconst pinUrl = response?.pin_url || '';\nreturn [{ json: { pinUrl } }];"
+        "jsCode": "const response = $input.first().json;\nconst pinUrl = response?.pin_url || '';\nconst promoErrors = response?.promo_errors || '';\nreturn [{ json: { pinUrl, promoErrors } }];"
       }
     },
     {
@@ -595,6 +591,10 @@
             {
               "name": "PinURL",
               "value": "={{ $('Save Pin URL').first().json.pinUrl || '' }}"
+            },
+            {
+              "name": "Error",
+              "value": "={{ $('Save Pin URL').first().json.promoErrors || '' }}"
             }
           ]
         },
@@ -757,7 +757,7 @@
         "conditions": {
           "string": [
             {
-              "value1": "{{MAKE_WEBHOOK_URL}}",
+              "value1": "{{MAKE_WEBHOOK_URL}}{{BUFFER_PINTEREST_CHANNEL_ID}}{{BUFFER_INSTAGRAM_CHANNEL_ID}}{{BUFFER_THREADS_CHANNEL_ID}}",
               "operation": "isNotEmpty"
             }
           ]
@@ -1216,25 +1216,7 @@
       "main": [
         [
           {
-            "node": "Send to Make Webhook",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Update Status: error (pin)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Send to Make Webhook": {
-      "main": [
-        [
-          {
-            "node": "Save Pin URL",
+            "node": "Publish Pin",
             "type": "main",
             "index": 0
           }
@@ -1271,6 +1253,24 @@
         [
           {
             "node": "Notify: Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish Pin": {
+      "main": [
+        [
+          {
+            "node": "Save Pin URL",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Status: error (pin)",
             "type": "main",
             "index": 0
           }

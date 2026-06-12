@@ -24,6 +24,19 @@ vi.mock('@/lib/state', () => ({
   writeState: vi.fn(() => Promise.resolve()),
 }));
 
+vi.mock('@/lib/buffer', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
+    fetchBufferChannels: vi.fn(() => Promise.resolve([])),
+  };
+});
+
+// Mirrors the real getServerIp (env first), but never hits the network
+vi.mock('@/lib/server-ip', () => ({
+  getServerIp: vi.fn(() => Promise.resolve(process.env.SERVER_IP || '203.0.113.5')),
+}));
+
 function createRequest(body: unknown): Request {
   return new Request('http://localhost/api/test', {
     method: 'POST',
@@ -375,12 +388,118 @@ describe('POST /api/setup/social', () => {
         make_webhook_url: 'https://hook.make.com/abc',
         pinterest_enabled: true,
         threads_enabled: true,
+        board: 'My Pins',
       }),
     );
     const body = await res.json();
 
     expect(res.status).toBe(200);
     expect(body.success).toBe(true);
+  });
+
+  const BUFFER_CHANNELS = [
+    {
+      id: 'ch-pin',
+      service: 'pinterest',
+      name: 'My Pinterest',
+      boards: [{ serviceId: 'b1', name: 'Board One' }],
+    },
+    { id: 'ch-ig', service: 'instagram', name: 'My IG', boards: [] },
+  ];
+
+  it('returns 200 with valid Buffer config and clears Make fields', async () => {
+    const { fetchBufferChannels } = await import('@/lib/buffer');
+    vi.mocked(fetchBufferChannels).mockResolvedValueOnce(BUFFER_CHANNELS);
+    const { writeState } = await import('@/lib/state');
+    const { POST } = await import('../social/route');
+    const res = await POST(
+      createRequest({
+        make_webhook_url: '',
+        pinterest_enabled: true,
+        threads_enabled: false,
+        instagram_enabled: true,
+        buffer_api_key: '1/key',
+        buffer_pinterest_channel_id: 'ch-pin',
+        buffer_pinterest_board_id: 'b1',
+        buffer_instagram_channel_id: 'ch-ig',
+      }),
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(writeState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        social: expect.objectContaining({
+          buffer_api_key: '1/key',
+          buffer_pinterest_channel_id: 'ch-pin',
+          buffer_pinterest_board_id: 'b1',
+          buffer_instagram_channel_id: 'ch-ig',
+          make_webhook_url: undefined,
+          board: undefined,
+        }),
+      }),
+    );
+  });
+
+  it('returns 400 when Buffer API key is invalid', async () => {
+    const { fetchBufferChannels } = await import('@/lib/buffer');
+    vi.mocked(fetchBufferChannels).mockRejectedValueOnce(new Error('Buffer API returned 401'));
+    const { POST } = await import('../social/route');
+    const res = await POST(
+      createRequest({
+        make_webhook_url: '',
+        pinterest_enabled: true,
+        threads_enabled: false,
+        buffer_api_key: '1/bad-key',
+        buffer_pinterest_channel_id: 'ch-pin',
+        buffer_pinterest_board_id: 'b1',
+      }),
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.code).toBe('BUFFER_KEY_INVALID');
+  });
+
+  it('returns 400 when selected channel does not belong to the Buffer account', async () => {
+    const { fetchBufferChannels } = await import('@/lib/buffer');
+    vi.mocked(fetchBufferChannels).mockResolvedValueOnce(BUFFER_CHANNELS);
+    const { POST } = await import('../social/route');
+    const res = await POST(
+      createRequest({
+        make_webhook_url: '',
+        pinterest_enabled: true,
+        threads_enabled: false,
+        buffer_api_key: '1/key',
+        buffer_pinterest_channel_id: 'ch-from-old-account',
+        buffer_pinterest_board_id: 'b1',
+      }),
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.code).toBe('BUFFER_CHANNEL_INVALID');
+  });
+
+  it('returns 400 when board does not belong to the selected Pinterest channel', async () => {
+    const { fetchBufferChannels } = await import('@/lib/buffer');
+    vi.mocked(fetchBufferChannels).mockResolvedValueOnce(BUFFER_CHANNELS);
+    const { POST } = await import('../social/route');
+    const res = await POST(
+      createRequest({
+        make_webhook_url: '',
+        pinterest_enabled: true,
+        threads_enabled: false,
+        buffer_api_key: '1/key',
+        buffer_pinterest_channel_id: 'ch-pin',
+        buffer_pinterest_board_id: 'wrong-board',
+      }),
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.code).toBe('BUFFER_CHANNEL_INVALID');
   });
 
   it('returns 400 on invalid webhook URL', async () => {
@@ -408,5 +527,113 @@ describe('POST /api/setup/social', () => {
     );
 
     expect(writeState).toHaveBeenCalledWith(expect.objectContaining({ currentStep: 'review' }));
+  });
+
+  it('resolves masked *** key to the stored key', async () => {
+    mockState.social = {
+      pinterest_enabled: true,
+      threads_enabled: false,
+      buffer_api_key: '1/stored-key',
+      buffer_pinterest_channel_id: 'ch-pin',
+      buffer_pinterest_board_id: 'b1',
+    };
+    const { fetchBufferChannels } = await import('@/lib/buffer');
+    vi.mocked(fetchBufferChannels).mockResolvedValueOnce(BUFFER_CHANNELS);
+    const { writeState } = await import('@/lib/state');
+    const { POST } = await import('../social/route');
+    const res = await POST(
+      createRequest({
+        make_webhook_url: '',
+        pinterest_enabled: true,
+        threads_enabled: false,
+        buffer_api_key: '***',
+        buffer_pinterest_channel_id: 'ch-pin',
+        buffer_pinterest_board_id: 'b1',
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(vi.mocked(fetchBufferChannels)).toHaveBeenCalledWith('1/stored-key');
+    expect(writeState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        social: expect.objectContaining({ buffer_api_key: '1/stored-key' }),
+      }),
+    );
+  });
+
+  it('does not persist the Buffer key when no networks are enabled', async () => {
+    const { writeState } = await import('@/lib/state');
+    const { POST } = await import('../social/route');
+    const res = await POST(
+      createRequest({
+        make_webhook_url: '',
+        pinterest_enabled: false,
+        threads_enabled: false,
+        instagram_enabled: false,
+        buffer_api_key: '1/key',
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(writeState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        social: expect.objectContaining({ buffer_api_key: undefined }),
+      }),
+    );
+  });
+
+  it('clears channel ids of disabled networks', async () => {
+    const { fetchBufferChannels } = await import('@/lib/buffer');
+    vi.mocked(fetchBufferChannels).mockResolvedValueOnce(BUFFER_CHANNELS);
+    const { writeState } = await import('@/lib/state');
+    const { POST } = await import('../social/route');
+    const res = await POST(
+      createRequest({
+        make_webhook_url: '',
+        pinterest_enabled: true,
+        threads_enabled: false,
+        instagram_enabled: false,
+        buffer_api_key: '1/key',
+        buffer_pinterest_channel_id: 'ch-pin',
+        buffer_pinterest_board_id: 'b1',
+        // stale ids for disabled networks must not be persisted
+        buffer_instagram_channel_id: 'ch-ig',
+        buffer_threads_channel_id: 'ch-th',
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(writeState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        social: expect.objectContaining({
+          buffer_pinterest_channel_id: 'ch-pin',
+          buffer_instagram_channel_id: undefined,
+          buffer_threads_channel_id: undefined,
+        }),
+      }),
+    );
+  });
+});
+
+describe('GET /api/setup/status', () => {
+  it('masks the Buffer API key', async () => {
+    mockState.social = {
+      pinterest_enabled: true,
+      threads_enabled: false,
+      buffer_api_key: '1/secret-key',
+      buffer_pinterest_channel_id: 'ch-pin',
+      buffer_pinterest_board_id: 'b1',
+    };
+    const { GET } = await import('../status/route');
+    const res = await GET(
+      new Request('http://localhost/api/setup/status', {
+        headers: { Authorization: `Bearer ${MOCK_TOKEN}` },
+      }),
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.data.social.buffer_api_key).toBe('***');
+    expect(body.data.social.buffer_pinterest_channel_id).toBe('ch-pin');
   });
 });

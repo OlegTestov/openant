@@ -276,15 +276,6 @@ export function createN8nAdapter(): AutomationAdapter {
             }
           }
 
-          // HTTP Request (Make.com): set webhook URL
-          if (
-            node.type === 'n8n-nodes-base.httpRequest' &&
-            node.name?.includes('Make') &&
-            node.parameters
-          ) {
-            node.parameters.url = params.makeWebhookUrl || 'https://hook.placeholder.invalid';
-          }
-
           // Substitute credential IDs by credential name
           if (node.credentials) {
             for (const [, credValue] of Object.entries(node.credentials)) {
@@ -314,6 +305,23 @@ export function createN8nAdapter(): AutomationAdapter {
         .replace(/\{\{LLM_IMAGE_MODEL\}\}/g, jsonSafe(params.llmImageModel ?? ''))
         .replace(/\{\{MAKE_WEBHOOK_URL\}\}/g, jsonSafe(params.makeWebhookUrl ?? ''))
         .replace(/\{\{PINTEREST_BOARD\}\}/g, jsonSafe(params.pinterestBoard ?? ''))
+        .replace(/\{\{BUFFER_API_KEY\}\}/g, jsonSafe(params.bufferApiKey ?? ''))
+        .replace(
+          /\{\{BUFFER_PINTEREST_CHANNEL_ID\}\}/g,
+          jsonSafe(params.bufferPinterestChannelId ?? ''),
+        )
+        .replace(
+          /\{\{BUFFER_PINTEREST_BOARD_ID\}\}/g,
+          jsonSafe(params.bufferPinterestBoardId ?? ''),
+        )
+        .replace(
+          /\{\{BUFFER_INSTAGRAM_CHANNEL_ID\}\}/g,
+          jsonSafe(params.bufferInstagramChannelId ?? ''),
+        )
+        .replace(
+          /\{\{BUFFER_THREADS_CHANNEL_ID\}\}/g,
+          jsonSafe(params.bufferThreadsChannelId ?? ''),
+        )
         .replace(/\{\{DEFAULT_LINK\}\}/g, jsonSafe(params.defaultLink ?? ''))
         .replace(/\{\{DEFAULT_LINK_NAME\}\}/g, jsonSafe(params.defaultLinkName ?? ''))
         .replace(/\{\{TELEGRAM_BOT_TOKEN\}\}/g, jsonSafe(params.telegramBotToken ?? ''))

@@ -397,7 +397,7 @@ const DEFAULT_PROMPTS: Record<string, string> = {
     'Create a vertical Pinterest pin image based on the provided Topic and Description.',
     '',
     '# IMAGE REQUIREMENTS',
-    '1. FORMAT: Vertical 2:3.',
+    '1. FORMAT: Vertical 4:5 (also published to Instagram, which requires 4:5).',
     '2. STYLE: Always an infographic or technical visual, NOT a photograph. Allowed elements: simplified diagrams, icons, arrows, scales; structured blocks with numbers, bullets, cards; light conceptual 3D elements but NOT photorealism.',
     '3. COMPOSITION:',
     '   - Top area: large title based on Topic in bold sans-serif font in {language}, readable even as a small thumbnail.',

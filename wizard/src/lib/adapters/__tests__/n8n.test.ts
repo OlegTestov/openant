@@ -425,18 +425,44 @@ describe('createN8nAdapter', () => {
       expect(openAiNode.parameters.modelId.value).toBe('gpt-4o-mini');
     });
 
-    it('substitutes makeWebhookUrl in HTTP Request node', async () => {
+    it('substitutes Make and Buffer markers in Publish Pin code node', async () => {
+      const templateWithPublish = {
+        ...template,
+        nodes: [
+          ...template.nodes,
+          {
+            type: 'n8n-nodes-base.code',
+            name: 'Publish Pin',
+            parameters: {
+              jsCode:
+                "const key = '{{BUFFER_API_KEY}}'; const pin = '{{BUFFER_PINTEREST_CHANNEL_ID}}'; const board = '{{BUFFER_PINTEREST_BOARD_ID}}'; const ig = '{{BUFFER_INSTAGRAM_CHANNEL_ID}}'; const th = '{{BUFFER_THREADS_CHANNEL_ID}}'; const make = '{{MAKE_WEBHOOK_URL}}';",
+            },
+          },
+        ],
+      };
+
       mockListWorkflows();
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'wf-1' }));
       const adapter = createN8nAdapter();
 
-      await adapter.importWorkflow(template, params);
+      await adapter.importWorkflow(templateWithPublish, {
+        ...params,
+        bufferApiKey: '1/test-key',
+        bufferPinterestChannelId: 'ch-pin',
+        bufferPinterestBoardId: 'board-1',
+        bufferInstagramChannelId: 'ch-ig',
+        bufferThreadsChannelId: 'ch-th',
+      });
 
       const body = JSON.parse(mockFetch.mock.calls[1][1].body as string);
-      const httpNode = body.nodes.find(
-        (n: { type: string }) => n.type === 'n8n-nodes-base.httpRequest',
-      );
-      expect(httpNode.parameters.url).toBe('https://hook.make.com/test');
+      const publishNode = body.nodes.find((n: { name: string }) => n.name === 'Publish Pin');
+      expect(publishNode.parameters.jsCode).toContain("'1/test-key'");
+      expect(publishNode.parameters.jsCode).toContain("'ch-pin'");
+      expect(publishNode.parameters.jsCode).toContain("'board-1'");
+      expect(publishNode.parameters.jsCode).toContain("'ch-ig'");
+      expect(publishNode.parameters.jsCode).toContain("'ch-th'");
+      expect(publishNode.parameters.jsCode).toContain("'https://hook.make.com/test'");
+      expect(publishNode.parameters.jsCode).not.toContain('{{BUFFER_');
     });
 
     it('substitutes credentialIds in node.credentials', async () => {

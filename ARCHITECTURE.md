@@ -1,6 +1,6 @@
 # openant — Architecture Overview
 
-> Last updated: 2026-05-29
+> Last updated: 2026-06-12
 
 ---
 
@@ -137,7 +137,7 @@ Two templates in `n8n/workflows/`, imported during deploy step 11 with placehold
 
 ### generate-article.template.json
 
-Pipeline with system/user prompt split, SEO meta generation, image generation, optional Pinterest promotion, and error retry:
+Pipeline with system/user prompt split, SEO meta generation, image generation, optional social promotion (Buffer or Make.com), and error retry:
 
 ```
 Schedule Trigger -> Get Next Queued (blank/publishing, OR error AND RetryCount > 0) -> Has Records?
@@ -148,10 +148,12 @@ Schedule Trigger -> Get Next Queued (blank/publishing, OR error AND RetryCount >
        -> Generate Meta (LLM, optional) -> Build Ghost JWT -> POST to Ghost
        -> published -> [parallel: Check Pinterest, Notify: Published, Ping Search Engines]
          -> Check Pinterest: false -> completed (no pin)
-         -> Check Pinterest: true -> Generate Pin Title/Text/Image -> Make Webhook -> Save Pin URL -> completed
+         -> Check Pinterest: true -> Generate Pin Title/Text/Image -> Publish Pin -> Save Pin URL -> completed
   -> article-stage errors: Status: error (no GhostURL -> full retry next cycle)
   -> pin-stage errors: Status: error (GhostURL present -> pin-only retry next cycle)
 ```
+
+"Check Pinterest" gates on `{{MAKE_WEBHOOK_URL}}{{BUFFER_PINTEREST_CHANNEL_ID}}{{BUFFER_INSTAGRAM_CHANNEL_ID}}{{BUFFER_THREADS_CHANNEL_ID}}` (concatenated at import time — non-empty if any publishing target is configured).
 
 **Error retry**: Records with `error` status auto-picked up next cycle, bounded by `RetryCount` column (default `1`, decremented on each retry attempt). "Is Pin Retry?" distinguishes article errors (full retry) from pin errors (pin-only retry, clears Error field). When `RetryCount` reaches 0, the row stops being picked — prevents infinite money leaks on persistently failing downstream services (e.g. Pinterest webhook).
 
@@ -167,7 +169,12 @@ Schedule Trigger -> Get Next Queued (blank/publishing, OR error AND RetryCount >
 
 **HTML sanitization**: Post-processes article HTML wrapping bare text in `<p>` tags to prevent Ghost Source theme layout issues.
 
-**Pinterest promotion**: If `{{MAKE_WEBHOOK_URL}}` configured, generates pin title/text/image via LLM (system prompts from Prompts table), sends webhook to Make.com (`{ board, title, description, url, imageUrl }`). Make responds with `{ success, pin_id, pin_url }`. Pin errors auto-retry next cycle. Board name supports per-article override: `article.Board || '{{PINTEREST_BOARD}}'`. Pin URL is always the Ghost article URL.
+**Social promotion (Publish Pin node)**: Generates pin title/text/image via LLM (system prompts from Prompts table), then publishes through one of two paths:
+
+- **Buffer (primary)**: If `{{BUFFER_API_KEY}}` and at least one channel ID are set, calls Buffer GraphQL API (`https://api.buffer.com`, `createPost` mutation, `mode: shareNow`, `schedulingType: automatic`) for each configured channel: Pinterest (`metadata.pinterest: { title, url: ghostUrl, boardServiceId }`), Instagram (`metadata.instagram: { type: 'post' }`, caption = description + article URL), Threads (no metadata). Partial-failure rule: throws (→ pin retry via RetryCount) only when _nothing_ was published; once any post succeeds, remaining failures are persisted to the NocoDB `Error` column via "Update Status: completed" (status stays `completed`, so no auto-retry — avoids duplicate posts) and surfaced as `promo_errors`. After posting, polls the Pinterest post (up to 4×5s) for `externalLink` → saved as Pin URL. Buffer API keys expire after at most 1 year and must be re-issued. Known accepted risk (parity with the Make path): if Buffer creates a post but the response is lost (timeout/disconnect), the retry can duplicate it — bounded to one duplicate by `RetryCount` default 1.
+- **Make.com (legacy fallback)**: If only `{{MAKE_WEBHOOK_URL}}` is set, sends webhook (`{ board, title, description, url, imageUrl }`); Make responds with `{ success, pin_id, pin_url }`.
+
+Pin image is generated at **4:5** aspect ratio — the only portrait format accepted by both Pinterest and the Instagram API (Instagram feed allows 4:5–1.91:1; 2:3 is rejected). Pin destination URL is always the Ghost article URL.
 
 **Telegram notifications**: After publish/error, checks `{{TELEGRAM_BOT_TOKEN}}`. If set, sends notification with article fields. Uses `onError: continueRegularOutput` so failures don't break pipeline.
 
@@ -208,26 +215,30 @@ n8n calls Ghost Admin API via HTTPS through Caddy. SaaS domains use a wildcard L
 
 ### Placeholder substitution
 
-| Placeholder                   | Type                       | Source                                                                                    |
-| ----------------------------- | -------------------------- | ----------------------------------------------------------------------------------------- |
-| `{{NOCODB_TABLE_ID}}`         | String replacement         | `WorkflowParams.nocodbTableId`                                                            |
-| `{{NOCODB_PROMPTS_TABLE_ID}}` | String replacement         | `WorkflowParams.nocodbPromptsTableId`                                                     |
-| `{{LLM_API_URL}}`             | String replacement         | `WorkflowParams.llmApiUrl`                                                                |
-| `{{LLM_API_KEY}}`             | String replacement         | `WorkflowParams.llmApiKey`                                                                |
-| `{{LLM_IMAGE_MODEL}}`         | String replacement         | `WorkflowParams.llmImageModel`                                                            |
-| `{{GHOST_ADMIN_API_KEY}}`     | String replacement         | `WorkflowParams.ghostAdminApiKey`                                                         |
-| `{{GHOST_URL}}`               | String replacement         | `WorkflowParams.ghostUrl` (public links)                                                  |
-| `{{GHOST_API_URL}}`           | String replacement         | `WorkflowParams.ghostApiUrl` (SaaS domain, Admin API)                                     |
-| `{{MAKE_WEBHOOK_URL}}`        | String replacement         | `WorkflowParams.makeWebhookUrl`                                                           |
-| `{{PINTEREST_BOARD}}`         | String replacement         | `WorkflowParams.pinterestBoard`                                                           |
-| `{{DEFAULT_LINK}}`            | String replacement         | `WorkflowParams.defaultLink`                                                              |
-| `{{TELEGRAM_BOT_TOKEN}}`      | String replacement         | `WorkflowParams.telegramBotToken`                                                         |
-| `{{TELEGRAM_CHAT_ID}}`        | String replacement         | `WorkflowParams.telegramChatId`                                                           |
-| `{{NOCODB_AUTH_TOKEN}}`       | String replacement         | `WorkflowParams.nocodbAuthToken`                                                          |
-| `interval` (schedule node)    | Structured (schedule node) | `WorkflowParams.scheduleIntervalMinutes` — auto-converts to `hoursInterval` when ≥ 60 min |
-| `model`                       | Structured (OpenAI node)   | `WorkflowParams.llmModel`                                                                 |
-| `url` (Make node)             | Structured (HTTP node)     | `WorkflowParams.makeWebhookUrl`                                                           |
-| `credentials.*.id`            | Structured (all nodes)     | `WorkflowParams.credentialIds`                                                            |
+| Placeholder                       | Type                       | Source                                                                                    |
+| --------------------------------- | -------------------------- | ----------------------------------------------------------------------------------------- |
+| `{{NOCODB_TABLE_ID}}`             | String replacement         | `WorkflowParams.nocodbTableId`                                                            |
+| `{{NOCODB_PROMPTS_TABLE_ID}}`     | String replacement         | `WorkflowParams.nocodbPromptsTableId`                                                     |
+| `{{LLM_API_URL}}`                 | String replacement         | `WorkflowParams.llmApiUrl`                                                                |
+| `{{LLM_API_KEY}}`                 | String replacement         | `WorkflowParams.llmApiKey`                                                                |
+| `{{LLM_IMAGE_MODEL}}`             | String replacement         | `WorkflowParams.llmImageModel`                                                            |
+| `{{GHOST_ADMIN_API_KEY}}`         | String replacement         | `WorkflowParams.ghostAdminApiKey`                                                         |
+| `{{GHOST_URL}}`                   | String replacement         | `WorkflowParams.ghostUrl` (public links)                                                  |
+| `{{GHOST_API_URL}}`               | String replacement         | `WorkflowParams.ghostApiUrl` (SaaS domain, Admin API)                                     |
+| `{{MAKE_WEBHOOK_URL}}`            | String replacement         | `WorkflowParams.makeWebhookUrl`                                                           |
+| `{{PINTEREST_BOARD}}`             | String replacement         | `WorkflowParams.pinterestBoard`                                                           |
+| `{{BUFFER_API_KEY}}`              | String replacement         | `WorkflowParams.bufferApiKey`                                                             |
+| `{{BUFFER_PINTEREST_CHANNEL_ID}}` | String replacement         | `WorkflowParams.bufferPinterestChannelId`                                                 |
+| `{{BUFFER_PINTEREST_BOARD_ID}}`   | String replacement         | `WorkflowParams.bufferPinterestBoardId`                                                   |
+| `{{BUFFER_INSTAGRAM_CHANNEL_ID}}` | String replacement         | `WorkflowParams.bufferInstagramChannelId`                                                 |
+| `{{BUFFER_THREADS_CHANNEL_ID}}`   | String replacement         | `WorkflowParams.bufferThreadsChannelId`                                                   |
+| `{{DEFAULT_LINK}}`                | String replacement         | `WorkflowParams.defaultLink`                                                              |
+| `{{TELEGRAM_BOT_TOKEN}}`          | String replacement         | `WorkflowParams.telegramBotToken`                                                         |
+| `{{TELEGRAM_CHAT_ID}}`            | String replacement         | `WorkflowParams.telegramChatId`                                                           |
+| `{{NOCODB_AUTH_TOKEN}}`           | String replacement         | `WorkflowParams.nocodbAuthToken`                                                          |
+| `interval` (schedule node)        | Structured (schedule node) | `WorkflowParams.scheduleIntervalMinutes` — auto-converts to `hoursInterval` when ≥ 60 min |
+| `model`                           | Structured (OpenAI node)   | `WorkflowParams.llmModel`                                                                 |
+| `credentials.*.id`                | Structured (all nodes)     | `WorkflowParams.credentialIds`                                                            |
 
 ### NocoDB Prompts table
 
@@ -309,6 +320,7 @@ Each adapter reads its own env var: Ghost/NocoDB use SHA-256 fallback, n8n uses 
 
 - **`utils.ts`** -- `cn()` (clsx + tailwind-merge)
 - **`download.ts`** -- Client-side Make blueprint download via `/api/make-blueprint`
+- **`buffer.ts`** -- Buffer GraphQL API client: `fetchBufferChannels()` (channels per organization + Pinterest boards via channel metadata) and `bufferSelectionValid()` (every enabled network must reference a channel/board owned by the key). Both the social route (at save) and preflight (before deploy) validate with it. The status route masks `buffer_api_key` as `***` (same convention as the LLM key); the social and buffer routes resolve the `***` placeholder back to the stored key. The n8n workflow calls Buffer directly from the Publish Pin code node.
 
 ### Environment variable strategy
 
@@ -451,16 +463,16 @@ Linear sequence: each step has UI component + API route + Zod schema.
 
 ### Step details
 
-| Step         | Key behavior                                                                                      |
-| ------------ | ------------------------------------------------------------------------------------------------- |
-| **Welcome**  | Language selector (`en`/`ru`), saves to localStorage                                              |
-| **Domain**   | Switch (domain/IP mode), configurable subdomain prefixes (blog/table/auto/setup), DNS check       |
-| **LLM**      | Preset selector, URL/Key/Model inputs, test via `POST {api_url}/chat/completions` (10s timeout)   |
-| **Blog**     | Title (max 100), description, language, tone, hours-only interval (clamp [1, 168]h), live preview |
-| **Telegram** | Optional. Bot token + optional chat ID (auto-detected from `/start`)                              |
-| **Social**   | Optional. Webhook URL, Pinterest/Threads toggles, Make template download                          |
-| **Review**   | Read-only config cards with Edit buttons, API key masked as `*****`                               |
-| **Deploy**   | SSE progress, 12-step pipeline, retry from failed step, service URLs on success                   |
+| Step         | Key behavior                                                                                                                                                                             |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Welcome**  | Language selector (`en`/`ru`), saves to localStorage                                                                                                                                     |
+| **Domain**   | Switch (domain/IP mode), configurable subdomain prefixes (blog/table/auto/setup), DNS check                                                                                              |
+| **LLM**      | Preset selector, URL/Key/Model inputs, test via `POST {api_url}/chat/completions` (10s timeout)                                                                                          |
+| **Blog**     | Title (max 100), description, language, tone, hours-only interval (clamp [1, 168]h), live preview                                                                                        |
+| **Telegram** | Optional. Bot token + optional chat ID (auto-detected from `/start`)                                                                                                                     |
+| **Social**   | Optional. Pinterest/Instagram/Threads toggles; Buffer (API key → load channels → pick channel/board) or Make.com (webhook URL, board name, template download). Instagram requires Buffer |
+| **Review**   | Read-only config cards with Edit buttons, API key masked as `*****`                                                                                                                      |
+| **Deploy**   | SSE progress, 12-step pipeline, retry from failed step, service URLs on success                                                                                                          |
 
 ---
 
@@ -487,30 +499,31 @@ All providers are OpenAI-compatible (no adapter needed):
 
 ### Endpoints
 
-| Endpoint                                   | Auth | Description                                                           |
-| ------------------------------------------ | ---- | --------------------------------------------------------------------- |
-| `GET /api/health`                          | No   | `{ status: "ok" }` for Docker healthcheck                             |
-| `GET /api/setup/status`                    | Yes  | Current state, masked keys, `instance_mode`, `saas_mode`, `server_ip` |
-| `POST /api/setup/welcome`                  | Yes  | Validate language, save, advance                                      |
-| `POST /api/setup/domain`                   | Yes  | Validate domain, DNS check if domain mode                             |
-| `POST /api/setup/llm`                      | Yes  | Validate LLM config, test connection (non-blocking)                   |
-| `POST /api/setup/blog`                     | Yes  | Validate blog config (title, language, tone, interval)                |
-| `POST /api/setup/telegram`                 | Yes  | Validate telegram config (optional step)                              |
-| `POST /api/setup/social`                   | Yes  | Validate social config (all optional)                                 |
-| `GET /api/setup/mode`                      | No   | Returns `instance_mode` (byok/managed) without auth                   |
-| `POST /api/setup/preflight`                | Yes  | Pre-deploy health checks (services, LLM, Telegram, DNS, webhook)      |
-| `GET /api/make-blueprint`                  | Yes  | Download `make/blueprint.json`                                        |
-| `POST /api/setup/apply`                    | Yes  | SSE deploy pipeline, supports `?startFrom=N`                          |
-| `GET /api/dashboard/status`                | Yes  | Service health, URLs, credentials, `saas_mode`. Managed: n8n hidden   |
-| `GET /api/dashboard/stats`                 | Yes  | Article counts by status                                              |
-| `GET/PATCH /api/dashboard/articles`        | Yes  | List articles; toggle draft status for queued/draft articles          |
-| `POST /api/dashboard/reconfigure`          | Yes  | Reset deploy state, preserve config                                   |
-| `GET /api/saas/health`                     | No   | 404 if SaaS off; health + stats + autopublish/telegramWorkflow status |
-| `GET/POST/PATCH/DELETE /api/saas/articles` | Yes  | Articles CRUD. DELETE guarded: queue/error status only                |
-| `GET/PATCH /api/saas/prompts`              | Yes  | Read/update LLM prompts in Prompts table                              |
-| `POST /api/saas/restart`                   | Yes  | Restart Docker containers (except wizard), wait for healthy           |
-| `POST /api/saas/update`                    | Yes  | Trigger instance update (git pull, rebuild, restart)                  |
-| `GET /api/saas/update-status`              | Yes  | Get update progress status                                            |
+| Endpoint                                   | Auth | Description                                                                                   |
+| ------------------------------------------ | ---- | --------------------------------------------------------------------------------------------- |
+| `GET /api/health`                          | No   | `{ status: "ok" }` for Docker healthcheck                                                     |
+| `GET /api/setup/status`                    | Yes  | Current state, masked keys, `instance_mode`, `saas_mode`, `server_ip`                         |
+| `POST /api/setup/welcome`                  | Yes  | Validate language, save, advance                                                              |
+| `POST /api/setup/domain`                   | Yes  | Validate domain, DNS check if domain mode                                                     |
+| `POST /api/setup/llm`                      | Yes  | Validate LLM config, test connection (non-blocking)                                           |
+| `POST /api/setup/blog`                     | Yes  | Validate blog config (title, language, tone, interval)                                        |
+| `POST /api/setup/telegram`                 | Yes  | Validate telegram config (optional step)                                                      |
+| `POST /api/setup/social`                   | Yes  | Validate social config (all optional); verifies Buffer key + channel/board ownership when set |
+| `POST /api/setup/social/buffer`            | Yes  | Fetch Buffer channels + Pinterest boards for a given API key                                  |
+| `GET /api/setup/mode`                      | No   | Returns `instance_mode` (byok/managed) without auth                                           |
+| `POST /api/setup/preflight`                | Yes  | Pre-deploy health checks (services, LLM, Telegram, DNS, webhook)                              |
+| `GET /api/make-blueprint`                  | Yes  | Download `make/blueprint.json`                                                                |
+| `POST /api/setup/apply`                    | Yes  | SSE deploy pipeline, supports `?startFrom=N`                                                  |
+| `GET /api/dashboard/status`                | Yes  | Service health, URLs, credentials, `saas_mode`. Managed: n8n hidden                           |
+| `GET /api/dashboard/stats`                 | Yes  | Article counts by status                                                                      |
+| `GET/PATCH /api/dashboard/articles`        | Yes  | List articles; toggle draft status for queued/draft articles                                  |
+| `POST /api/dashboard/reconfigure`          | Yes  | Reset deploy state, preserve config                                                           |
+| `GET /api/saas/health`                     | No   | 404 if SaaS off; health + stats + autopublish/telegramWorkflow status                         |
+| `GET/POST/PATCH/DELETE /api/saas/articles` | Yes  | Articles CRUD. DELETE guarded: queue/error status only                                        |
+| `GET/PATCH /api/saas/prompts`              | Yes  | Read/update LLM prompts in Prompts table                                                      |
+| `POST /api/saas/restart`                   | Yes  | Restart Docker containers (except wizard), wait for healthy                                   |
+| `POST /api/saas/update`                    | Yes  | Trigger instance update (git pull, rebuild, restart)                                          |
+| `GET /api/saas/update-status`              | Yes  | Get update progress status                                                                    |
 
 ---
 
@@ -545,7 +558,7 @@ All providers are OpenAI-compatible (no adapter needed):
 
 ### Unit tests
 
-569 tests across 45 files:
+595 tests across 46 files:
 
 | File                                              | Tests | What it verifies                                                                                                                                                                |
 | ------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -557,6 +570,7 @@ All providers are OpenAI-compatible (no adapter needed):
 | `lib/__tests__/normalize-domain.test.ts`          | 27    | Domain normalizer: scheme strip, trailing slash/dot, validation, error codes                                                                                                    |
 | `lib/__tests__/normalize-interval.test.ts`        | 43    | Hours/minutes interval clamp [1, 168]h with NaN/±Infinity handling, hour-multiple rounding                                                                                      |
 | `lib/__tests__/test-connections.test.ts`          | 11    | LLM connection test, DNS check, Telegram bot validation, webhook test                                                                                                           |
+| `lib/__tests__/buffer.test.ts`                    | 9     | fetchBufferChannels (boards, disconnected filter, errors), bufferSelectionValid (ownership, wrong service, missing board/channel)                                               |
 | `lib/__tests__/adapters-mock.test.ts`             | 15    | Mock adapters implement correct interfaces                                                                                                                                      |
 | `lib/__tests__/steps.test.ts`                     | 5     | 8 steps, correct order, optional steps                                                                                                                                          |
 | `lib/__tests__/llm-presets.test.ts`               | 4     | 4 presets, correct shape                                                                                                                                                        |
@@ -567,8 +581,8 @@ All providers are OpenAI-compatible (no adapter needed):
 | `lib/__tests__/api-handler.test.ts`               | 7     | ZodError -> 400, AdapterError -> 500, unknown -> 500, no leaks                                                                                                                  |
 | `app/api/health/__tests__/route.test.ts`          | 2     | 200 + `{ status: "ok" }`                                                                                                                                                        |
 | `app/api/make-blueprint/__tests__/route.test.ts`  | 2     | Auth required, returns blueprint with Content-Disposition                                                                                                                       |
-| `app/api/setup/__tests__/schemas.test.ts`         | 41    | Zod schemas for all step routes including mode; blog publish-interval clamp table                                                                                               |
-| `app/api/setup/__tests__/routes.test.ts`          | 22    | All POST routes: 200/400/401, state updates, DNS/LLM mocking, blog interval clamp persisted                                                                                     |
+| `app/api/setup/__tests__/schemas.test.ts`         | 46    | Zod schemas for all step routes including mode; blog publish-interval clamp table; social Buffer/Make validation rules                                                          |
+| `app/api/setup/__tests__/routes.test.ts`          | 30    | All POST routes: 200/400/401, state updates, DNS/LLM mocking, blog interval clamp persisted, Buffer key/channel/board validation, masked-key resolution, status key masking     |
 | `app/api/setup/mode/__tests__/route.test.ts`      | 3     | Instance mode endpoint (byok/managed), auth                                                                                                                                     |
 | `components/__tests__/Stepper.test.tsx`           | 5     | Labels, current step, checkmarks, numbers, connectors                                                                                                                           |
 | `components/__tests__/StepLayout.test.tsx`        | 9     | Title, buttons, hide/disable, spinner, click handlers                                                                                                                           |
@@ -579,7 +593,7 @@ All providers are OpenAI-compatible (no adapter needed):
 | `app/setup/steps/__tests__/LLM.test.tsx`          | 4     | Provider selector, test connection, submit                                                                                                                                      |
 | `app/setup/steps/__tests__/Blog.test.tsx`         | 10    | Live preview, hours-only input + onBlur clamp [1, 168]h, default 6h, legacy state hour-rounding                                                                                 |
 | `app/setup/steps/__tests__/Telegram.test.tsx`     | 14    | Optional alert, inputs, submit, skip, restore data, connection test, managed mode                                                                                               |
-| `app/setup/steps/__tests__/Social.test.tsx`       | 7     | Optional alert, toggles, Make download, empty submit, Pinterest/Threads, managed mode                                                                                           |
+| `app/setup/steps/__tests__/Social.test.tsx`       | 11    | Optional alert, 3 toggles, Buffer default + key validation + channel loading, Instagram-needs-Buffer, Make board/download/webhook flows                                         |
 | `app/setup/steps/__tests__/Review.test.tsx`       | 4     | Config sections, Edit navigation, key masking, managed mode                                                                                                                     |
 | `app/setup/steps/__tests__/Deploy.test.tsx`       | 7     | Deploy button, progress, checkmarks, error/retry, URLs, dashboard link                                                                                                          |
 | `app/api/setup/__tests__/apply.test.ts`           | 24    | SSE format, all 12 steps, errors, startFrom, auth, URL generation, managed mode                                                                                                 |

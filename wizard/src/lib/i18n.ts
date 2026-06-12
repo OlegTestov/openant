@@ -106,6 +106,23 @@ export interface Translations {
       webhookRequired: string;
       boardRequired: string;
       webhookConnected: string;
+      method: string;
+      methodBuffer: string;
+      methodMake: string;
+      instagram: string;
+      bufferApiKey: string;
+      bufferApiKeyHint: string;
+      loadChannels: string;
+      channelsLoaded: string;
+      bufferPinterestChannel: string;
+      bufferBoard: string;
+      bufferInstagramChannel: string;
+      bufferThreadsChannel: string;
+      noChannelForService: string;
+      bufferKeyRequired: string;
+      bufferChannelsRequired: string;
+      instagramNeedsBuffer: string;
+      selectPlaceholder: string;
     };
     review: {
       title: string;
@@ -121,6 +138,7 @@ export interface Translations {
       edit: string;
       webhook: string;
       noWebhook: string;
+      buffer: string;
       applyConfiguration: string;
       preflight: string;
       preflightServices: string;
@@ -310,6 +328,25 @@ const en: Translations = {
       webhookRequired: 'Webhook URL is required when Pinterest or Threads is enabled',
       boardRequired: 'Board name is required when Pinterest is enabled',
       webhookConnected: 'Webhook connected!',
+      method: 'Publishing service',
+      methodBuffer: 'Buffer (recommended)',
+      methodMake: 'Make.com',
+      instagram: 'Instagram',
+      bufferApiKey: 'Buffer API Key',
+      bufferApiKeyHint:
+        'Create a free Buffer account, connect your channels, then generate a key at publish.buffer.com → Settings → API. Note: keys expire after at most 1 year.',
+      loadChannels: 'Load channels',
+      channelsLoaded: 'Channels loaded!',
+      bufferPinterestChannel: 'Pinterest channel',
+      bufferBoard: 'Pinterest board',
+      bufferInstagramChannel: 'Instagram channel',
+      bufferThreadsChannel: 'Threads channel',
+      noChannelForService:
+        'No channel of this type is connected in Buffer. Connect it at buffer.com, then load channels again.',
+      bufferKeyRequired: 'Buffer API key is required',
+      bufferChannelsRequired: 'Load channels and select one for each enabled network',
+      instagramNeedsBuffer: 'Instagram publishing is only available via Buffer',
+      selectPlaceholder: 'Select…',
     },
     review: {
       title: 'Review Configuration',
@@ -325,6 +362,7 @@ const en: Translations = {
       edit: 'Edit',
       webhook: 'Webhook',
       noWebhook: 'No webhook',
+      buffer: 'Buffer',
       applyConfiguration: 'Apply Configuration',
       preflight: 'Pre-flight checks',
       preflightServices: 'Services',
@@ -516,6 +554,25 @@ const ru: Translations = {
       webhookRequired: 'URL вебхука обязателен, если Pinterest или Threads включён',
       boardRequired: 'Название доски обязательно, если Pinterest включён',
       webhookConnected: 'Вебхук подключён!',
+      method: 'Сервис публикации',
+      methodBuffer: 'Buffer (рекомендуется)',
+      methodMake: 'Make.com',
+      instagram: 'Instagram',
+      bufferApiKey: 'API-ключ Buffer',
+      bufferApiKeyHint:
+        'Создайте бесплатный аккаунт Buffer, подключите каналы, затем создайте ключ: publish.buffer.com → Settings → API. Важно: срок действия ключа — максимум 1 год.',
+      loadChannels: 'Загрузить каналы',
+      channelsLoaded: 'Каналы загружены!',
+      bufferPinterestChannel: 'Канал Pinterest',
+      bufferBoard: 'Доска Pinterest',
+      bufferInstagramChannel: 'Канал Instagram',
+      bufferThreadsChannel: 'Канал Threads',
+      noChannelForService:
+        'Канал этого типа не подключён в Buffer. Подключите его на buffer.com и загрузите каналы заново.',
+      bufferKeyRequired: 'Укажите API-ключ Buffer',
+      bufferChannelsRequired: 'Загрузите каналы и выберите канал для каждой включённой сети',
+      instagramNeedsBuffer: 'Публикация в Instagram доступна только через Buffer',
+      selectPlaceholder: 'Выберите…',
     },
     review: {
       title: 'Проверка конфигурации',
@@ -531,6 +588,7 @@ const ru: Translations = {
       edit: 'Изменить',
       webhook: 'Вебхук',
       noWebhook: 'Нет вебхука',
+      buffer: 'Buffer',
       applyConfiguration: 'Применить конфигурацию',
       preflight: 'Предварительные проверки',
       preflightServices: 'Сервисы',
