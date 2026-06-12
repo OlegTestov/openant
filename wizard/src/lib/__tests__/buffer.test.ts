@@ -84,7 +84,7 @@ describe('bufferSelectionValid', () => {
 describe('fetchBufferChannels', () => {
   it('fetches channels across organizations with Pinterest boards', async () => {
     mockFetch
-      .mockResolvedValueOnce(gqlResponse({ organizations: [{ id: 'org-1' }] }))
+      .mockResolvedValueOnce(gqlResponse({ account: { organizations: [{ id: 'org-1' }] } }))
       .mockResolvedValueOnce(
         gqlResponse({
           channels: [

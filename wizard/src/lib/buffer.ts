@@ -85,13 +85,15 @@ export function bufferSelectionValid(
 }
 
 export async function fetchBufferChannels(apiKey: string): Promise<BufferChannel[]> {
-  const orgs = await bufferGql<{ organizations: Array<{ id: string }> }>(
+  // The top-level `organizations` query requires explicit ids — the account
+  // query is the way to list the orgs the key belongs to (verified live).
+  const account = await bufferGql<{ account: { organizations: Array<{ id: string }> } }>(
     apiKey,
-    'query { organizations { id } }',
+    'query { account { organizations { id } } }',
   );
 
   const channels: BufferChannel[] = [];
-  for (const org of orgs.organizations) {
+  for (const org of account.account.organizations) {
     const data = await bufferGql<{
       channels: Array<{
         id: string;
