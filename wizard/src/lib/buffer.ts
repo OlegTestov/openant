@@ -51,10 +51,12 @@ export interface BufferSocialConfig {
   pinterest_enabled?: boolean;
   instagram_enabled?: boolean;
   threads_enabled?: boolean;
+  linkedin_enabled?: boolean;
   buffer_pinterest_channel_id?: string;
   buffer_pinterest_board_id?: string;
   buffer_instagram_channel_id?: string;
   buffer_threads_channel_id?: string;
+  buffer_linkedin_channel_id?: string;
 }
 
 // Every enabled network must point at a channel (and board, for Pinterest)
@@ -79,6 +81,9 @@ export function bufferSelectionValid(
     return false;
   }
   if (config.threads_enabled && !has(config.buffer_threads_channel_id, 'threads')) {
+    return false;
+  }
+  if (config.linkedin_enabled && !has(config.buffer_linkedin_channel_id, 'linkedin')) {
     return false;
   }
   return true;

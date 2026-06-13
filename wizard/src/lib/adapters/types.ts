@@ -156,6 +156,7 @@ export interface WorkflowParams {
   bufferPinterestBoardId?: string;
   bufferInstagramChannelId?: string;
   bufferThreadsChannelId?: string;
+  bufferLinkedinChannelId?: string;
   defaultLink?: string;
   defaultLinkName?: string;
   nocodbBaseId?: string;

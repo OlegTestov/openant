@@ -25,6 +25,7 @@ interface ReviewConfig {
     pinterest_enabled: boolean;
     threads_enabled: boolean;
     instagram_enabled?: boolean;
+    linkedin_enabled?: boolean;
   };
   saas_mode?: boolean;
   default_domain?: string | null;
@@ -270,6 +271,7 @@ export default function Review({ onComplete, onBack, onGoToStep }: StepProps) {
                 {config.social.pinterest_enabled ? ' · Pinterest' : ''}
                 {config.social.instagram_enabled ? ' · Instagram' : ''}
                 {config.social.threads_enabled ? ' · Threads' : ''}
+                {config.social.linkedin_enabled ? ' · LinkedIn' : ''}
               </p>
             ) : (
               <p className="text-muted-foreground text-sm">{t.steps.review.notConfigured}</p>

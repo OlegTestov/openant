@@ -322,6 +322,10 @@ export function createN8nAdapter(): AutomationAdapter {
           /\{\{BUFFER_THREADS_CHANNEL_ID\}\}/g,
           jsonSafe(params.bufferThreadsChannelId ?? ''),
         )
+        .replace(
+          /\{\{BUFFER_LINKEDIN_CHANNEL_ID\}\}/g,
+          jsonSafe(params.bufferLinkedinChannelId ?? ''),
+        )
         .replace(/\{\{DEFAULT_LINK\}\}/g, jsonSafe(params.defaultLink ?? ''))
         .replace(/\{\{DEFAULT_LINK_NAME\}\}/g, jsonSafe(params.defaultLinkName ?? ''))
         .replace(/\{\{TELEGRAM_BOT_TOKEN\}\}/g, jsonSafe(params.telegramBotToken ?? ''))

@@ -29,12 +29,14 @@ export default function Social({ onComplete, onBack, initialData }: StepProps) {
         pinterest_enabled?: boolean;
         threads_enabled?: boolean;
         instagram_enabled?: boolean;
+        linkedin_enabled?: boolean;
         board?: string;
         buffer_api_key?: string;
         buffer_pinterest_channel_id?: string;
         buffer_pinterest_board_id?: string;
         buffer_instagram_channel_id?: string;
         buffer_threads_channel_id?: string;
+        buffer_linkedin_channel_id?: string;
       }
     | undefined;
   const [method, setMethod] = useState<PublishMethod>(
@@ -43,6 +45,7 @@ export default function Social({ onComplete, onBack, initialData }: StepProps) {
   const [pinterest, setPinterest] = useState(initial?.pinterest_enabled ?? false);
   const [instagram, setInstagram] = useState(initial?.instagram_enabled ?? false);
   const [threads, setThreads] = useState(initial?.threads_enabled ?? false);
+  const [linkedin, setLinkedin] = useState(initial?.linkedin_enabled ?? false);
   const [webhookUrl, setWebhookUrl] = useState(initial?.make_webhook_url ?? '');
   const [board, setBoard] = useState(initial?.board ?? '');
   const [bufferKey, setBufferKey] = useState(initial?.buffer_api_key ?? '');
@@ -53,16 +56,20 @@ export default function Social({ onComplete, onBack, initialData }: StepProps) {
   const [threadsChannelId, setThreadsChannelId] = useState(
     initial?.buffer_threads_channel_id ?? '',
   );
+  const [linkedinChannelId, setLinkedinChannelId] = useState(
+    initial?.buffer_linkedin_channel_id ?? '',
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingChannels, setIsLoadingChannels] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<WebhookTestResult | null>(null);
   const t = useTranslations();
 
-  const anyEnabled = pinterest || instagram || threads;
+  const anyEnabled = pinterest || instagram || threads || linkedin;
   const pinterestChannels = channels?.filter((c) => c.service === 'pinterest') ?? [];
   const instagramChannels = channels?.filter((c) => c.service === 'instagram') ?? [];
   const threadsChannels = channels?.filter((c) => c.service === 'threads') ?? [];
+  const linkedinChannels = channels?.filter((c) => c.service === 'linkedin') ?? [];
   const selectedPinChannel = pinterestChannels.find((c) => c.id === pinChannelId);
 
   async function handleLoadChannels() {
@@ -93,12 +100,14 @@ export default function Social({ onComplete, onBack, initialData }: StepProps) {
       const pins = loaded.filter((c) => c.service === 'pinterest');
       const igs = loaded.filter((c) => c.service === 'instagram');
       const ths = loaded.filter((c) => c.service === 'threads');
+      const lis = loaded.filter((c) => c.service === 'linkedin');
       if (pins.length === 1) {
         setPinChannelId(pins[0].id);
         if (pins[0].boards.length === 1) setPinBoardId(pins[0].boards[0].serviceId);
       }
       if (igs.length === 1) setIgChannelId(igs[0].id);
       if (ths.length === 1) setThreadsChannelId(ths[0].id);
+      if (lis.length === 1) setLinkedinChannelId(lis[0].id);
     } catch {
       setError(t.common.failedToSave);
     } finally {
@@ -111,7 +120,7 @@ export default function Social({ onComplete, onBack, initialData }: StepProps) {
     setTestResult(null);
 
     if (anyEnabled && method === 'make') {
-      if (instagram) {
+      if (instagram || linkedin) {
         setError(t.steps.social.instagramNeedsBuffer);
         return;
       }
@@ -132,7 +141,8 @@ export default function Social({ onComplete, onBack, initialData }: StepProps) {
       if (
         (pinterest && (!pinChannelId || !pinBoardId)) ||
         (instagram && !igChannelId) ||
-        (threads && !threadsChannelId)
+        (threads && !threadsChannelId) ||
+        (linkedin && !linkedinChannelId)
       ) {
         setError(t.steps.social.bufferChannelsRequired);
         return;
@@ -147,6 +157,7 @@ export default function Social({ onComplete, onBack, initialData }: StepProps) {
       pinterest_enabled: pinterest,
       threads_enabled: threads,
       instagram_enabled: instagram,
+      linkedin_enabled: linkedin,
       make_webhook_url: useMake ? webhookUrl : '',
       board: useMake ? board : '',
       buffer_api_key: useBuffer ? bufferKey.trim() : '',
@@ -154,6 +165,7 @@ export default function Social({ onComplete, onBack, initialData }: StepProps) {
       buffer_pinterest_board_id: useBuffer && pinterest ? pinBoardId : '',
       buffer_instagram_channel_id: useBuffer && instagram ? igChannelId : '',
       buffer_threads_channel_id: useBuffer && threads ? threadsChannelId : '',
+      buffer_linkedin_channel_id: useBuffer && linkedin ? linkedinChannelId : '',
     };
 
     try {
@@ -268,6 +280,10 @@ export default function Social({ onComplete, onBack, initialData }: StepProps) {
             <Label htmlFor="threads-toggle">{t.steps.social.threads}</Label>
             <Switch id="threads-toggle" checked={threads} onCheckedChange={setThreads} />
           </div>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="linkedin-toggle">{t.steps.social.linkedin}</Label>
+            <Switch id="linkedin-toggle" checked={linkedin} onCheckedChange={setLinkedin} />
+          </div>
         </div>
 
         {anyEnabled && (
@@ -310,6 +326,7 @@ export default function Social({ onComplete, onBack, initialData }: StepProps) {
                         setPinBoardId('');
                         setIgChannelId('');
                         setThreadsChannelId('');
+                        setLinkedinChannelId('');
                       }}
                       placeholder="1/abc..."
                       aria-describedby="buffer-key-hint"
@@ -380,6 +397,15 @@ export default function Social({ onComplete, onBack, initialData }: StepProps) {
                     threadsChannels,
                     threadsChannelId,
                     setThreadsChannelId,
+                  )}
+
+                {linkedin &&
+                  renderChannelSelect(
+                    'buffer-linkedin-channel',
+                    t.steps.social.bufferLinkedinChannel,
+                    linkedinChannels,
+                    linkedinChannelId,
+                    setLinkedinChannelId,
                   )}
               </div>
             )}

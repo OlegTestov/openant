@@ -345,4 +345,27 @@ describe('socialSchema', () => {
       }),
     ).toThrow();
   });
+
+  it('rejects LinkedIn without Buffer', () => {
+    expect(() =>
+      socialSchema.parse({
+        make_webhook_url: 'https://hook.make.com/abc123',
+        pinterest_enabled: false,
+        threads_enabled: false,
+        linkedin_enabled: true,
+      }),
+    ).toThrow();
+  });
+
+  it('rejects Buffer LinkedIn enabled without a channel', () => {
+    expect(() =>
+      socialSchema.parse({
+        make_webhook_url: '',
+        pinterest_enabled: false,
+        threads_enabled: false,
+        linkedin_enabled: true,
+        buffer_api_key: '1/key',
+      }),
+    ).toThrow();
+  });
 });

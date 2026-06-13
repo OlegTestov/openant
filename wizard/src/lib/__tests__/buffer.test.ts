@@ -25,6 +25,7 @@ describe('bufferSelectionValid', () => {
       boards: [{ serviceId: 'b1', name: 'Recipes' }],
     },
     { id: 'ch-ig', service: 'instagram', name: 'My IG', boards: [] },
+    { id: 'ch-li', service: 'linkedin', name: 'My LinkedIn', boards: [] },
   ];
 
   it('accepts a fully matching selection', () => {
@@ -32,11 +33,22 @@ describe('bufferSelectionValid', () => {
       bufferSelectionValid(channels, {
         pinterest_enabled: true,
         instagram_enabled: true,
+        linkedin_enabled: true,
         buffer_pinterest_channel_id: 'ch-pin',
         buffer_pinterest_board_id: 'b1',
         buffer_instagram_channel_id: 'ch-ig',
+        buffer_linkedin_channel_id: 'ch-li',
       }),
     ).toBe(true);
+  });
+
+  it('rejects an enabled LinkedIn with a wrong-service channel', () => {
+    expect(
+      bufferSelectionValid(channels, {
+        linkedin_enabled: true,
+        buffer_linkedin_channel_id: 'ch-ig',
+      }),
+    ).toBe(false);
   });
 
   it('accepts when no networks are enabled', () => {

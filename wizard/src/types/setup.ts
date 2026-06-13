@@ -38,12 +38,14 @@ export interface SetupState {
     pinterest_enabled: boolean;
     threads_enabled: boolean;
     instagram_enabled?: boolean;
+    linkedin_enabled?: boolean;
     board?: string;
     buffer_api_key?: string;
     buffer_pinterest_channel_id?: string;
     buffer_pinterest_board_id?: string;
     buffer_instagram_channel_id?: string;
     buffer_threads_channel_id?: string;
+    buffer_linkedin_channel_id?: string;
   };
 }
 

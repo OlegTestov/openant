@@ -435,7 +435,7 @@ describe('createN8nAdapter', () => {
             name: 'Publish Pin',
             parameters: {
               jsCode:
-                "const key = '{{BUFFER_API_KEY}}'; const pin = '{{BUFFER_PINTEREST_CHANNEL_ID}}'; const board = '{{BUFFER_PINTEREST_BOARD_ID}}'; const ig = '{{BUFFER_INSTAGRAM_CHANNEL_ID}}'; const th = '{{BUFFER_THREADS_CHANNEL_ID}}'; const make = '{{MAKE_WEBHOOK_URL}}';",
+                "const key = '{{BUFFER_API_KEY}}'; const pin = '{{BUFFER_PINTEREST_CHANNEL_ID}}'; const board = '{{BUFFER_PINTEREST_BOARD_ID}}'; const ig = '{{BUFFER_INSTAGRAM_CHANNEL_ID}}'; const th = '{{BUFFER_THREADS_CHANNEL_ID}}'; const li = '{{BUFFER_LINKEDIN_CHANNEL_ID}}'; const make = '{{MAKE_WEBHOOK_URL}}';",
             },
           },
         ],
@@ -452,6 +452,7 @@ describe('createN8nAdapter', () => {
         bufferPinterestBoardId: 'board-1',
         bufferInstagramChannelId: 'ch-ig',
         bufferThreadsChannelId: 'ch-th',
+        bufferLinkedinChannelId: 'ch-li',
       });
 
       const body = JSON.parse(mockFetch.mock.calls[1][1].body as string);
@@ -461,6 +462,7 @@ describe('createN8nAdapter', () => {
       expect(publishNode.parameters.jsCode).toContain("'board-1'");
       expect(publishNode.parameters.jsCode).toContain("'ch-ig'");
       expect(publishNode.parameters.jsCode).toContain("'ch-th'");
+      expect(publishNode.parameters.jsCode).toContain("'ch-li'");
       expect(publishNode.parameters.jsCode).toContain("'https://hook.make.com/test'");
       expect(publishNode.parameters.jsCode).not.toContain('{{BUFFER_');
     });

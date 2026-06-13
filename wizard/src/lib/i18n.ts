@@ -110,6 +110,7 @@ export interface Translations {
       methodBuffer: string;
       methodMake: string;
       instagram: string;
+      linkedin: string;
       bufferApiKey: string;
       bufferApiKeyHint: string;
       loadChannels: string;
@@ -118,6 +119,7 @@ export interface Translations {
       bufferBoard: string;
       bufferInstagramChannel: string;
       bufferThreadsChannel: string;
+      bufferLinkedinChannel: string;
       noChannelForService: string;
       bufferKeyRequired: string;
       bufferChannelsRequired: string;
@@ -332,6 +334,7 @@ const en: Translations = {
       methodBuffer: 'Buffer (recommended)',
       methodMake: 'Make.com',
       instagram: 'Instagram',
+      linkedin: 'LinkedIn',
       bufferApiKey: 'Buffer API Key',
       bufferApiKeyHint:
         'Create a free Buffer account, connect your channels, then generate a key at publish.buffer.com → Settings → API. Note: keys expire after at most 1 year.',
@@ -341,6 +344,7 @@ const en: Translations = {
       bufferBoard: 'Pinterest board',
       bufferInstagramChannel: 'Instagram channel',
       bufferThreadsChannel: 'Threads channel',
+      bufferLinkedinChannel: 'LinkedIn channel',
       noChannelForService:
         'No channel of this type is connected in Buffer. Connect it at buffer.com, then load channels again.',
       bufferKeyRequired: 'Buffer API key is required',
@@ -558,6 +562,7 @@ const ru: Translations = {
       methodBuffer: 'Buffer (рекомендуется)',
       methodMake: 'Make.com',
       instagram: 'Instagram',
+      linkedin: 'LinkedIn',
       bufferApiKey: 'API-ключ Buffer',
       bufferApiKeyHint:
         'Создайте бесплатный аккаунт Buffer, подключите каналы, затем создайте ключ: publish.buffer.com → Settings → API. Важно: срок действия ключа — максимум 1 год.',
@@ -567,6 +572,7 @@ const ru: Translations = {
       bufferBoard: 'Доска Pinterest',
       bufferInstagramChannel: 'Канал Instagram',
       bufferThreadsChannel: 'Канал Threads',
+      bufferLinkedinChannel: 'Канал LinkedIn',
       noChannelForService:
         'Канал этого типа не подключён в Buffer. Подключите его на buffer.com и загрузите каналы заново.',
       bufferKeyRequired: 'Укажите API-ключ Buffer',

@@ -21,13 +21,14 @@ describe('Social', () => {
     expect(screen.getByText('This step is optional')).toBeInTheDocument();
   });
 
-  it('has Pinterest, Instagram and Threads toggles', () => {
+  it('has Pinterest, Instagram, Threads and LinkedIn toggles', () => {
     render(<Social onComplete={vi.fn()} onBack={vi.fn()} />);
 
     expect(screen.getByText('Pinterest')).toBeInTheDocument();
     expect(screen.getByText('Instagram')).toBeInTheDocument();
     expect(screen.getByText('Threads')).toBeInTheDocument();
-    expect(screen.getAllByRole('switch')).toHaveLength(3);
+    expect(screen.getByText('LinkedIn')).toBeInTheDocument();
+    expect(screen.getAllByRole('switch')).toHaveLength(4);
   });
 
   it('defaults to Buffer method and shows API key field', async () => {

@@ -95,11 +95,13 @@ function buildEnvVars(state: SetupState): Record<string, string> {
     PINTEREST_ENABLED: String(state.social?.pinterest_enabled ?? false),
     THREADS_ENABLED: String(state.social?.threads_enabled ?? false),
     INSTAGRAM_ENABLED: String(state.social?.instagram_enabled ?? false),
+    LINKEDIN_ENABLED: String(state.social?.linkedin_enabled ?? false),
     BUFFER_API_KEY: state.social?.buffer_api_key ?? '',
     BUFFER_PINTEREST_CHANNEL_ID: state.social?.buffer_pinterest_channel_id ?? '',
     BUFFER_PINTEREST_BOARD_ID: state.social?.buffer_pinterest_board_id ?? '',
     BUFFER_INSTAGRAM_CHANNEL_ID: state.social?.buffer_instagram_channel_id ?? '',
     BUFFER_THREADS_CHANNEL_ID: state.social?.buffer_threads_channel_id ?? '',
+    BUFFER_LINKEDIN_CHANNEL_ID: state.social?.buffer_linkedin_channel_id ?? '',
 
     INDEXNOW_KEY: process.env.INDEXNOW_KEY || crypto.randomUUID().replace(/-/g, ''),
 
@@ -354,6 +356,7 @@ async function executeDeployStep(
         bufferPinterestBoardId: state.social?.buffer_pinterest_board_id,
         bufferInstagramChannelId: state.social?.buffer_instagram_channel_id,
         bufferThreadsChannelId: state.social?.buffer_threads_channel_id,
+        bufferLinkedinChannelId: state.social?.buffer_linkedin_channel_id,
         defaultLink: state.blog?.default_link,
         defaultLinkName: state.blog?.default_link_name,
         nocodbBaseId: ctx.nocoKeys?.projectId,

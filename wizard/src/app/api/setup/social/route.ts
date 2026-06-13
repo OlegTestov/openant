@@ -11,15 +11,18 @@ export const socialSchema = z
     pinterest_enabled: z.boolean(),
     threads_enabled: z.boolean(),
     instagram_enabled: z.boolean().optional().default(false),
+    linkedin_enabled: z.boolean().optional().default(false),
     board: z.string().optional().or(z.literal('')),
     buffer_api_key: z.string().optional().or(z.literal('')),
     buffer_pinterest_channel_id: z.string().optional().or(z.literal('')),
     buffer_pinterest_board_id: z.string().optional().or(z.literal('')),
     buffer_instagram_channel_id: z.string().optional().or(z.literal('')),
     buffer_threads_channel_id: z.string().optional().or(z.literal('')),
+    buffer_linkedin_channel_id: z.string().optional().or(z.literal('')),
   })
   .superRefine((v, ctx) => {
-    const anyEnabled = v.pinterest_enabled || v.threads_enabled || v.instagram_enabled;
+    const anyEnabled =
+      v.pinterest_enabled || v.threads_enabled || v.instagram_enabled || v.linkedin_enabled;
     if (!anyEnabled) return;
 
     if (v.buffer_api_key) {
@@ -44,12 +47,19 @@ export const socialSchema = z
           message: 'Threads channel is required',
         });
       }
+      if (v.linkedin_enabled && !v.buffer_linkedin_channel_id) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['buffer_linkedin_channel_id'],
+          message: 'LinkedIn channel is required',
+        });
+      }
     } else {
-      if (v.instagram_enabled) {
+      if (v.instagram_enabled || v.linkedin_enabled) {
         ctx.addIssue({
           code: 'custom',
           path: ['buffer_api_key'],
-          message: 'Instagram publishing requires Buffer',
+          message: 'Instagram and LinkedIn publishing require Buffer',
         });
       }
       if (!v.make_webhook_url) {
@@ -79,7 +89,10 @@ export const POST = withAuth(
       body.buffer_api_key = state.social.buffer_api_key;
     }
     const anyEnabled =
-      body.pinterest_enabled || body.threads_enabled || Boolean(body.instagram_enabled);
+      body.pinterest_enabled ||
+      body.threads_enabled ||
+      Boolean(body.instagram_enabled) ||
+      Boolean(body.linkedin_enabled);
     const useBuffer = Boolean(body.buffer_api_key) && anyEnabled;
 
     if (useBuffer) {
@@ -119,6 +132,7 @@ export const POST = withAuth(
       pinterest_enabled: body.pinterest_enabled,
       threads_enabled: body.threads_enabled,
       instagram_enabled: body.instagram_enabled,
+      linkedin_enabled: body.linkedin_enabled,
       board: useBuffer ? undefined : body.board || undefined,
       buffer_api_key: useBuffer ? body.buffer_api_key : undefined,
       // Channel ids are kept only for enabled networks — the n8n workflow
@@ -137,6 +151,10 @@ export const POST = withAuth(
           : undefined,
       buffer_threads_channel_id:
         useBuffer && body.threads_enabled ? body.buffer_threads_channel_id || undefined : undefined,
+      buffer_linkedin_channel_id:
+        useBuffer && body.linkedin_enabled
+          ? body.buffer_linkedin_channel_id || undefined
+          : undefined,
     };
     state.steps.social = { completed: true };
     state.currentStep = 'review';

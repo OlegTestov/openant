@@ -57,12 +57,14 @@ const setupStateSchema = z.object({
       pinterest_enabled: z.boolean(),
       threads_enabled: z.boolean(),
       instagram_enabled: z.boolean().optional(),
+      linkedin_enabled: z.boolean().optional(),
       board: z.string().optional(),
       buffer_api_key: z.string().optional(),
       buffer_pinterest_channel_id: z.string().optional(),
       buffer_pinterest_board_id: z.string().optional(),
       buffer_instagram_channel_id: z.string().optional(),
       buffer_threads_channel_id: z.string().optional(),
+      buffer_linkedin_channel_id: z.string().optional(),
     })
     .optional(),
 });
