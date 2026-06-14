@@ -22,6 +22,7 @@ interface ReviewConfig {
   social?: {
     make_webhook_url?: string;
     buffer_api_key?: string;
+    inro_api_key?: string;
     pinterest_enabled: boolean;
     threads_enabled: boolean;
     instagram_enabled?: boolean;
@@ -272,6 +273,7 @@ export default function Review({ onComplete, onBack, onGoToStep }: StepProps) {
                 {config.social.instagram_enabled ? ' · Instagram' : ''}
                 {config.social.threads_enabled ? ' · Threads' : ''}
                 {config.social.linkedin_enabled ? ' · LinkedIn' : ''}
+                {config.social.inro_api_key ? ` · ${t.steps.review.inroDm}` : ''}
               </p>
             ) : (
               <p className="text-muted-foreground text-sm">{t.steps.review.notConfigured}</p>

@@ -59,12 +59,13 @@ describe('createNocoDBAdapter', () => {
       mockFetch.mockResolvedValueOnce(mockResponse({ list: [] }));
       // Step 6: Create Articles table
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'table-id-1' }));
-      // Step 7: Create Articles columns (Board, Status, PinURL, Error, RetryCount)
+      // Step 7: Create Articles columns (Board, Status, PinURL, Error, RetryCount, InroScenarioId)
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-1' }));
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-2' }));
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-3' }));
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-4' }));
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-5' }));
+      mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-6' }));
       // Step 8: Insert sample row
       mockFetch.mockResolvedValueOnce(mockResponse({ Id: 1 }));
       // Step 9: Create Prompts table
@@ -161,14 +162,68 @@ describe('createNocoDBAdapter', () => {
       expect(optionTitles).toContain('error');
     });
 
+    it('creates InroScenarioId column for Inro comment→DM idempotency', async () => {
+      mockSetupSequence();
+      const adapter = createNocoDBAdapter();
+
+      await adapter.setup(config);
+
+      // Call 11 = InroScenarioId column (Board=6, Status=7, PinURL=8, Error=9, RetryCount=10)
+      const [url, opts] = mockFetch.mock.calls[11];
+      expect(url).toBe('http://nocodb:8080/api/v2/meta/tables/table-id-1/columns/');
+      const body = JSON.parse(opts.body as string);
+      expect(body.title).toBe('InroScenarioId');
+      expect(body.uidt).toBe('SingleLineText');
+    });
+
+    it('migrates existing Articles table by adding the InroScenarioId column', async () => {
+      // Signup
+      mockFetch.mockResolvedValueOnce(mockResponse({ token: 'signup-token' }));
+      // Signin
+      mockFetch.mockResolvedValueOnce(mockResponse({ token: 'auth-token-123' }));
+      // List bases — finds existing
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({ list: [{ id: 'base-id-1', title: 'openant' }] }),
+      );
+      // List tables — finds both existing
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({
+          list: [
+            { id: 'table-id-1', title: 'Articles' },
+            { id: 'prompts-table-1', title: 'Prompts' },
+          ],
+        }),
+      );
+      // List columns — ArticleURL + RetryCount exist, InroScenarioId missing
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({ list: [{ title: 'ArticleURL' }, { title: 'RetryCount' }] }),
+      );
+      // Add InroScenarioId column (migration)
+      mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-inroscenarioid' }));
+      // List API tokens — finds existing "openant" token
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({ list: [{ token: 'existing-api-token', description: 'openant' }] }),
+      );
+
+      const adapter = createNocoDBAdapter();
+      await adapter.setup(config);
+
+      const migrationCall = mockFetch.mock.calls[5];
+      expect(migrationCall[0]).toBe('http://nocodb:8080/api/v2/meta/tables/table-id-1/columns/');
+      expect(migrationCall[1].method).toBe('POST');
+      const migBody = JSON.parse(migrationCall[1].body as string);
+      expect(migBody.title).toBe('InroScenarioId');
+      expect(migBody.uidt).toBe('SingleLineText');
+    });
+
     it('creates Prompts table with correct columns', async () => {
       mockSetupSequence();
       const adapter = createNocoDBAdapter();
 
       await adapter.setup(config);
 
-      // Call 12 = create Prompts table (after 5 Articles cols + sample row)
-      const [url, opts] = mockFetch.mock.calls[12];
+      // Call 13 = create Prompts table (after 6 Articles cols + sample row)
+      const [url, opts] = mockFetch.mock.calls[13];
       expect(url).toBe('http://nocodb:8080/api/v2/meta/bases/base-id-1/tables/');
       expect(opts.method).toBe('POST');
       const body = JSON.parse(opts.body as string);
@@ -187,8 +242,8 @@ describe('createNocoDBAdapter', () => {
 
       await adapter.setup(config);
 
-      // Call 19 = insert default prompts (after 5 Articles cols + sample + Prompts table + 6 Prompts cols)
-      const [url, opts] = mockFetch.mock.calls[19];
+      // Call 20 = insert default prompts (after 6 Articles cols + sample + Prompts table + 6 Prompts cols)
+      const [url, opts] = mockFetch.mock.calls[20];
       expect(url).toBe('http://nocodb:8080/api/v2/tables/prompts-table-1/records');
       expect(opts.method).toBe('POST');
       const body = JSON.parse(opts.body as string);
@@ -261,10 +316,12 @@ describe('createNocoDBAdapter', () => {
           ],
         }),
       );
-      // List columns for migration check — ArticleURL exists, RetryCount missing
+      // List columns for migration check — ArticleURL exists, RetryCount + InroScenarioId missing
       mockFetch.mockResolvedValueOnce(mockResponse({ list: [{ title: 'ArticleURL' }] }));
       // Add RetryCount column (migration)
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-retrycount' }));
+      // Add InroScenarioId column (migration)
+      mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-inroscenarioid' }));
       // List API tokens — finds existing "openant" token
       mockFetch.mockResolvedValueOnce(
         mockResponse({ list: [{ token: 'existing-api-token', description: 'openant' }] }),
@@ -298,12 +355,13 @@ describe('createNocoDBAdapter', () => {
       mockFetch.mockResolvedValueOnce(mockResponse({ list: [] }));
       // Create Articles table
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'table-id-1' }));
-      // Create Articles columns (Board, Status, PinURL, Error, RetryCount)
+      // Create Articles columns (Board, Status, PinURL, Error, RetryCount, InroScenarioId)
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-1' }));
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-2' }));
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-3' }));
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-4' }));
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-5' }));
+      mockFetch.mockResolvedValueOnce(mockResponse({ id: 'col-6' }));
       // Insert sample row
       mockFetch.mockResolvedValueOnce(mockResponse({ Id: 1 }));
       // Create Prompts table

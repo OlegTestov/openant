@@ -368,4 +368,61 @@ describe('socialSchema', () => {
       }),
     ).toThrow();
   });
+
+  it('accepts valid Inro fields with Buffer Instagram', () => {
+    expect(() =>
+      socialSchema.parse({
+        make_webhook_url: '',
+        pinterest_enabled: false,
+        threads_enabled: false,
+        instagram_enabled: true,
+        buffer_api_key: '1/key',
+        buffer_instagram_channel_id: 'ch-ig',
+        inro_api_key: 'inro-secret',
+        inro_keyword: 'ХОЧУ',
+        inro_tag_prefix: 'oa',
+      }),
+    ).not.toThrow();
+  });
+
+  it('accepts empty Inro fields', () => {
+    expect(() =>
+      socialSchema.parse({
+        make_webhook_url: '',
+        pinterest_enabled: false,
+        threads_enabled: false,
+        inro_api_key: '',
+        inro_keyword: '',
+        inro_tag_prefix: '',
+      }),
+    ).not.toThrow();
+  });
+
+  it('rejects Inro tag prefix containing #', () => {
+    expect(() =>
+      socialSchema.parse({
+        make_webhook_url: '',
+        pinterest_enabled: false,
+        threads_enabled: false,
+        instagram_enabled: true,
+        buffer_api_key: '1/key',
+        buffer_instagram_channel_id: 'ch-ig',
+        inro_tag_prefix: '#oa',
+      }),
+    ).toThrow();
+  });
+
+  it('rejects Inro tag prefix containing spaces', () => {
+    expect(() =>
+      socialSchema.parse({
+        make_webhook_url: '',
+        pinterest_enabled: false,
+        threads_enabled: false,
+        instagram_enabled: true,
+        buffer_api_key: '1/key',
+        buffer_instagram_channel_id: 'ch-ig',
+        inro_tag_prefix: 'open ant',
+      }),
+    ).toThrow();
+  });
 });

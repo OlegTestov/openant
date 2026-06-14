@@ -467,6 +467,69 @@ describe('createN8nAdapter', () => {
       expect(publishNode.parameters.jsCode).not.toContain('{{BUFFER_');
     });
 
+    it('substitutes INRO markers in Publish Pin code node when params provided', async () => {
+      const templateWithInro = {
+        ...template,
+        nodes: [
+          ...template.nodes,
+          {
+            type: 'n8n-nodes-base.code',
+            name: 'Publish Pin',
+            parameters: {
+              jsCode:
+                "const ik = '{{INRO_API_KEY}}'; const kw = '{{INRO_KEYWORD}}'; const tp = '{{INRO_TAG_PREFIX}}';",
+            },
+          },
+        ],
+      };
+
+      mockListWorkflows();
+      mockFetch.mockResolvedValueOnce(mockResponse({ id: 'wf-1' }));
+      const adapter = createN8nAdapter();
+
+      await adapter.importWorkflow(templateWithInro, {
+        ...params,
+        inroApiKey: 'inro-secret',
+        inroKeyword: 'ХОЧУ',
+        inroTagPrefix: 'oa',
+      });
+
+      const body = JSON.parse(mockFetch.mock.calls[1][1].body as string);
+      const publishNode = body.nodes.find((n: { name: string }) => n.name === 'Publish Pin');
+      expect(publishNode.parameters.jsCode).toContain("'inro-secret'");
+      expect(publishNode.parameters.jsCode).toContain("'ХОЧУ'");
+      expect(publishNode.parameters.jsCode).toContain("'oa'");
+      expect(publishNode.parameters.jsCode).not.toContain('{{INRO_');
+    });
+
+    it('substitutes empty strings for INRO markers when params absent', async () => {
+      const templateWithInro = {
+        ...template,
+        nodes: [
+          ...template.nodes,
+          {
+            type: 'n8n-nodes-base.code',
+            name: 'Publish Pin',
+            parameters: {
+              jsCode:
+                "const ik = '{{INRO_API_KEY}}'; const kw = '{{INRO_KEYWORD}}'; const tp = '{{INRO_TAG_PREFIX}}';",
+            },
+          },
+        ],
+      };
+
+      mockListWorkflows();
+      mockFetch.mockResolvedValueOnce(mockResponse({ id: 'wf-1' }));
+      const adapter = createN8nAdapter();
+
+      await adapter.importWorkflow(templateWithInro, params);
+
+      const body = JSON.parse(mockFetch.mock.calls[1][1].body as string);
+      const publishNode = body.nodes.find((n: { name: string }) => n.name === 'Publish Pin');
+      expect(publishNode.parameters.jsCode).toBe("const ik = ''; const kw = ''; const tp = '';");
+      expect(publishNode.parameters.jsCode).not.toContain('{{INRO_');
+    });
+
     it('substitutes credentialIds in node.credentials', async () => {
       mockListWorkflows();
       mockFetch.mockResolvedValueOnce(mockResponse({ id: 'wf-1' }));

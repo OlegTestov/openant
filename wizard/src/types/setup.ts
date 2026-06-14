@@ -46,6 +46,9 @@ export interface SetupState {
     buffer_instagram_channel_id?: string;
     buffer_threads_channel_id?: string;
     buffer_linkedin_channel_id?: string;
+    inro_api_key?: string;
+    inro_keyword?: string;
+    inro_tag_prefix?: string;
   };
 }
 

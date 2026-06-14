@@ -125,6 +125,15 @@ export interface Translations {
       bufferChannelsRequired: string;
       instagramNeedsBuffer: string;
       selectPlaceholder: string;
+      inroSection: string;
+      inroSectionHint: string;
+      inroApiKey: string;
+      inroApiKeyHint: string;
+      inroKeyword: string;
+      inroKeywordHint: string;
+      inroTagPrefix: string;
+      inroTagPrefixHint: string;
+      inroTagPrefixInvalid: string;
     };
     review: {
       title: string;
@@ -141,6 +150,7 @@ export interface Translations {
       webhook: string;
       noWebhook: string;
       buffer: string;
+      inroDm: string;
       applyConfiguration: string;
       preflight: string;
       preflightServices: string;
@@ -351,6 +361,19 @@ const en: Translations = {
       bufferChannelsRequired: 'Load channels and select one for each enabled network',
       instagramNeedsBuffer: 'Instagram publishing is only available via Buffer',
       selectPlaceholder: 'Select…',
+      inroSection: 'Instagram comment → DM (Inro)',
+      inroSectionHint:
+        'Optional: when someone comments a keyword on the Instagram post, Inro auto-replies and sends the article link in a DM. Requires an Inro account connected to the same Instagram.',
+      inroApiKey: 'Inro API key',
+      inroApiKeyHint:
+        'Create it at inro.social → Settings → API. Leave empty to disable comment-to-DM.',
+      inroKeyword: 'Trigger keyword',
+      inroKeywordHint: 'The word followers comment to get the link in DM (e.g. WANT).',
+      inroTagPrefix: 'Tag prefix',
+      inroTagPrefixHint:
+        'Used to build a unique per-post hashtag (latin letters and digits only, no spaces or #).',
+      inroTagPrefixInvalid:
+        'Tag prefix may contain only latin letters and digits (no spaces, # or symbols)',
     },
     review: {
       title: 'Review Configuration',
@@ -367,6 +390,7 @@ const en: Translations = {
       webhook: 'Webhook',
       noWebhook: 'No webhook',
       buffer: 'Buffer',
+      inroDm: 'Inro DM',
       applyConfiguration: 'Apply Configuration',
       preflight: 'Pre-flight checks',
       preflightServices: 'Services',
@@ -579,6 +603,20 @@ const ru: Translations = {
       bufferChannelsRequired: 'Загрузите каналы и выберите канал для каждой включённой сети',
       instagramNeedsBuffer: 'Публикация в Instagram доступна только через Buffer',
       selectPlaceholder: 'Выберите…',
+      inroSection: 'Instagram комментарий → личка (Inro)',
+      inroSectionHint:
+        'Опционально: когда кто-то пишет ключевое слово в комментариях к посту Instagram, Inro автоматически отвечает и присылает ссылку на статью в личку. Нужен аккаунт Inro, подключённый к тому же Instagram.',
+      inroApiKey: 'API-ключ Inro',
+      inroApiKeyHint:
+        'Создайте его на inro.social → Settings → API. Оставьте пустым, чтобы отключить комментарий→личку.',
+      inroKeyword: 'Ключевое слово',
+      inroKeywordHint:
+        'Слово, которое подписчики пишут в комментариях, чтобы получить ссылку в личку (например, ХОЧУ).',
+      inroTagPrefix: 'Префикс тега',
+      inroTagPrefixHint:
+        'Используется для уникального хэштега под каждый пост (только латинские буквы и цифры, без пробелов и #).',
+      inroTagPrefixInvalid:
+        'Префикс тега может содержать только латинские буквы и цифры (без пробелов, # и символов)',
     },
     review: {
       title: 'Проверка конфигурации',
@@ -595,6 +633,7 @@ const ru: Translations = {
       webhook: 'Вебхук',
       noWebhook: 'Нет вебхука',
       buffer: 'Buffer',
+      inroDm: 'Inro DM',
       applyConfiguration: 'Применить конфигурацию',
       preflight: 'Предварительные проверки',
       preflightServices: 'Сервисы',

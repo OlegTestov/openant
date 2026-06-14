@@ -5,7 +5,10 @@
       "name": "Schedule Trigger",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [250, 300],
+      "position": [
+        250,
+        300
+      ],
       "parameters": {
         "rule": {
           "interval": [
@@ -21,7 +24,10 @@
       "name": "Get Next Queued",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [450, 300],
+      "position": [
+        450,
+        300
+      ],
       "parameters": {
         "method": "GET",
         "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
@@ -56,7 +62,10 @@
       "name": "Has Records?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [650, 300],
+      "position": [
+        650,
+        300
+      ],
       "parameters": {
         "conditions": {
           "number": [
@@ -79,7 +88,10 @@
       "name": "Update Status: generating",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [850, 250],
+      "position": [
+        850,
+        250
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
@@ -114,7 +126,10 @@
       "name": "Get Prompts",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1050, 250],
+      "position": [
+        1050,
+        250
+      ],
       "onError": "continueErrorOutput",
       "parameters": {
         "method": "GET",
@@ -142,7 +157,10 @@
       "name": "Prepare Prompts",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1250, 250],
+      "position": [
+        1250,
+        250
+      ],
       "onError": "continueErrorOutput",
       "parameters": {
         "jsCode": "const prompts = $('Get Prompts').first().json.list[0];\nconst article = $('Get Next Queued').first().json.list[0];\nconst link = article.Link || '{{DEFAULT_LINK}}';\nconst linkName = '{{DEFAULT_LINK_NAME}}';\nconst linkInfo = link ? ('\\nLink to include: ' + link + (linkName ? ' (' + linkName + ')' : '')) : '';\nconst today = new Date().toISOString().split('T')[0];\n\nreturn [{ json: {\n  titleSystem: prompts.ArticleTitle || '',\n  titleUser: 'Topic: ' + (article.Topic || '') + '\\nDescription: ' + (article.Description || '') + '\\nCurrent date: ' + today,\n  textSystem: prompts.ArticleText || '',\n  textUser: 'Topic: ' + (article.Topic || '') + '\\nDescription: ' + (article.Description || '') + linkInfo + '\\nCurrent date: ' + today,\n  imageSystem: prompts.ArticleImage || '',\n  imageUser: 'Topic: ' + (article.Topic || '') + '\\nDescription: ' + (article.Description || ''),\n  metaSeoSystem: prompts.ArticleMetaSEO || '',\n}}];"
@@ -152,7 +170,10 @@
       "name": "Generate Title",
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 1.4,
-      "position": [1450, 250],
+      "position": [
+        1450,
+        250
+      ],
       "onError": "continueErrorOutput",
       "retryOnFail": true,
       "maxTries": 3,
@@ -189,7 +210,10 @@
       "name": "Generate Article",
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 1.4,
-      "position": [1650, 250],
+      "position": [
+        1650,
+        250
+      ],
       "onError": "continueErrorOutput",
       "retryOnFail": true,
       "maxTries": 3,
@@ -226,7 +250,10 @@
       "name": "Generate & Upload Image",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1850, 250],
+      "position": [
+        1850,
+        250
+      ],
       "parameters": {
         "jsCode": "const crypto = require('crypto');\nconst https = require('https');\nconst http = require('http');\nconst { URL } = require('url');\n\nfunction httpPost(urlStr, headers, body) {\n  return new Promise((resolve, reject) => {\n    const u = new URL(urlStr);\n    const mod = u.protocol === 'https:' ? https : http;\n    const opts = { method: 'POST', hostname: u.hostname, port: u.port || (u.protocol === 'https:' ? 443 : 80), path: u.pathname + u.search, headers };\n    const req = mod.request(opts, (res) => {\n      const chunks = [];\n      res.on('data', (c) => chunks.push(c));\n      res.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString() }));\n    });\n    req.on('error', reject);\n    req.setTimeout(120000, () => { req.destroy(); reject(new Error('Timeout')); });\n    if (body) req.write(body);\n    req.end();\n  });\n}\n\nconst imageSystemPrompt = $('Prepare Prompts').first().json.imageSystem || '';\nconst imagePromptBase = $('Prepare Prompts').first().json.imageUser || '';\nconst title = $('Generate Title').first().json.message.content.trim();\nconst imagePrompt = imagePromptBase + '\\n\\nArticle title: ' + title;\nlet featureImageUrl = '';\ntry {\n  const apiUrl = '{{LLM_API_URL}}';\n  const apiKey = '{{LLM_API_KEY}}';\n  const imageModel = '{{LLM_IMAGE_MODEL}}';\n  if (!apiUrl || !apiKey || !imageModel) throw new Error('Missing LLM image config');\n  const llmBody = JSON.stringify({ model: imageModel, messages: [{ role: 'system', content: imageSystemPrompt }, { role: 'user', content: imagePrompt }], modalities: ['text', 'image'], image_config: { image_size: '1K', aspect_ratio: '1:1' } });\n  const llmRes = await httpPost(apiUrl + '/chat/completions', {\n    'Content-Type': 'application/json',\n    'Authorization': 'Bearer ' + apiKey,\n    'Content-Length': Buffer.byteLength(llmBody),\n  }, llmBody);\n  if (llmRes.status !== 200) throw new Error('LLM API: ' + llmRes.status);\n  const llmData = JSON.parse(llmRes.body);\n  llmRes.body = null;\n  let base64Data = '';\n  let mimeType = 'image/png';\n  const msg = llmData.choices?.[0]?.message;\n  const images = msg?.images;\n  if (Array.isArray(images) && images.length > 0) {\n    const imgObj = images[0];\n    const imgUrl = typeof imgObj.image_url === 'object' ? imgObj.image_url.url : (typeof imgObj.image_url === 'string' ? imgObj.image_url : '');\n    if (imgUrl) {\n      const m = imgUrl.match(/^data:(image\\/[a-z]+);base64,(.+)/s);\n      if (m) { mimeType = m[1]; base64Data = m[2]; }\n    }\n  }\n  if (!base64Data) {\n    const content = msg?.content;\n    if (Array.isArray(content)) {\n      for (const part of content) {\n        if (part.type === 'image_url' && part.image_url?.url) {\n          const m = part.image_url.url.match(/^data:(image\\/[a-z]+);base64,(.+)/s);\n          if (m) { mimeType = m[1]; base64Data = m[2]; break; }\n        }\n      }\n    } else if (typeof content === 'string') {\n      const m = content.match(/data:(image\\/[a-z]+);base64,([A-Za-z0-9+\\/=]+)/);\n      if (m) { mimeType = m[1]; base64Data = m[2]; }\n    }\n  }\n  if (!base64Data) throw new Error('No image data in LLM response');\n  const ghostKey = '{{GHOST_ADMIN_API_KEY}}';\n  const [kid, secret] = ghostKey.split(':');\n  const hdr = Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT',kid})).toString('base64url');\n  const now = Math.floor(Date.now()/1000);\n  const pay = Buffer.from(JSON.stringify({iat:now,exp:now+300,aud:'/admin/'})).toString('base64url');\n  const hmac = crypto.createHmac('sha256', Buffer.from(secret, 'hex'));\n  hmac.update(hdr + '.' + pay);\n  const jwt = hdr + '.' + pay + '.' + hmac.digest('base64url');\n  const imageBuffer = Buffer.from(base64Data, 'base64');\n  base64Data = '';\n  const ext = mimeType === 'image/jpeg' ? 'jpg' : 'png';\n  const boundary = '----n8n' + Date.now();\n  const formBody = Buffer.concat([\n    Buffer.from('--' + boundary + '\\r\\nContent-Disposition: form-data; name=\"file\"; filename=\"article.' + ext + '\"\\r\\nContent-Type: ' + mimeType + '\\r\\n\\r\\n'),\n    imageBuffer,\n    Buffer.from('\\r\\n--' + boundary + '\\r\\nContent-Disposition: form-data; name=\"purpose\"\\r\\nContent-Type: text/plain\\r\\n\\r\\nimage\\r\\n--' + boundary + '--\\r\\n'),\n  ]);\n  const ghostRes = await httpPost('{{GHOST_API_URL}}/ghost/api/admin/images/upload/', {\n    'Authorization': 'Ghost ' + jwt,\n    'Content-Type': 'multipart/form-data; boundary=' + boundary,\n    'Content-Length': formBody.length,\n  }, formBody);\n  if (ghostRes.status === 201 || ghostRes.status === 200) {\n    const gd = JSON.parse(ghostRes.body);\n    featureImageUrl = gd.images?.[0]?.url || '';\n  } else { throw new Error('Ghost upload: ' + ghostRes.status); }\n} catch (e) {\n  console.log('Image generation skipped:', e.message);\n}\nreturn [{ json: { featureImageUrl } }];"
       }
@@ -235,7 +262,10 @@
       "name": "Update Status: publishing",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2050, 250],
+      "position": [
+        2050,
+        250
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
@@ -266,7 +296,10 @@
       "name": "Generate Meta",
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 1.4,
-      "position": [2150, 250],
+      "position": [
+        2150,
+        250
+      ],
       "onError": "continueErrorOutput",
       "retryOnFail": true,
       "maxTries": 2,
@@ -303,7 +336,10 @@
       "name": "Build Ghost JWT",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2350, 250],
+      "position": [
+        2350,
+        250
+      ],
       "onError": "continueErrorOutput",
       "parameters": {
         "jsCode": "const crypto = require('crypto');\nconst key = '{{GHOST_ADMIN_API_KEY}}';\nconst [id, secret] = key.split(':');\nconst header = Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT',kid:id})).toString('base64url');\nconst now = Math.floor(Date.now()/1000);\nconst payload = Buffer.from(JSON.stringify({iat:now,exp:now+300,aud:'/admin/'})).toString('base64url');\nconst hmac = crypto.createHmac('sha256', Buffer.from(secret, 'hex'));\nhmac.update(`${header}.${payload}`);\nconst sig = hmac.digest('base64url');\nconst jwt = `${header}.${payload}.${sig}`;\nconst articleTitle = $('Generate Title').first().json.message.content.trim();\nlet articleHtml = $('Generate Article').first().json.message.content;\narticleHtml = articleHtml.replace(/^```html?\\n?/i, '').replace(/\\n?```\\s*$/, '').trim();\n// Extract FAQ pairs BEFORE wrap-loose-text (wrapping inserts empty <p> between h3 and p)\nconst faqRegex = /<h3[^>]*>(.*?)<\\/h3>\\s*<p[^>]*>(.*?)<\\/p>/gs;\nconst faqs = [];\nlet faqMatch;\nwhile ((faqMatch = faqRegex.exec(articleHtml)) !== null) {\n  const q = faqMatch[1].replace(/<[^>]*>/g, '').trim();\n  const a = faqMatch[2].replace(/<[^>]*>/g, '').trim();\n  if (q && a) faqs.push({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } });\n}\nlet faqSchemaTag = '';\nif (faqs.length > 0) {\n  faqSchemaTag = '<script type=\"application/ld+json\">' + JSON.stringify({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faqs }) + '</script>';\n}\n// Wrap loose text (not inside block tags) in <p> tags\narticleHtml = articleHtml.replace(/(<\\/(h[1-6]|ul|ol|blockquote|div|table|pre|hr)>)\\s*([^<]+?)\\s*(?=<(h[1-6]|ul|ol|blockquote|div|table|pre|hr|p|$))/gi, (m, closeTag, t1, text, t2) => text.trim() ? closeTag + '\\n<p>' + text.trim() + '</p>\\n' : m);\n// Wrap leading bare text before the first block tag\narticleHtml = articleHtml.replace(/^([^<]+?)(?=<(h[1-6]|ul|ol|blockquote|div|table|pre|hr|p))/, (m, text) => text.trim() ? '<p>' + text.trim() + '</p>\\n' : m);\n// Parse meta from LLM response (may not exist if Generate Meta failed)\nlet metaTitle = articleTitle;\nlet metaDescription = '';\nlet tags = [];\ntry {\n  const metaNode = $('Generate Meta');\n  if (metaNode && metaNode.first() && metaNode.first().json && metaNode.first().json.message) {\n    const metaRaw = metaNode.first().json.message.content.trim();\n    const cleaned = metaRaw.replace(/^```json?\\n?/i, '').replace(/\\n?```\\s*$/, '');\n    const metaJson = JSON.parse(cleaned);\n    if (metaJson.meta_title) metaTitle = metaJson.meta_title.substring(0, 60);\n    if (metaJson.meta_description) metaDescription = metaJson.meta_description.substring(0, 155);\n    if (Array.isArray(metaJson.tags)) {\n      tags = metaJson.tags.filter(t => typeof t === 'string' && t.trim()).map(t => t.trim().substring(0, 191)).slice(0, 10);\n    }\n  }\n} catch(e) { /* fallback to article title */ }\nconst topic = $('Get Next Queued').first().json.list[0].Topic || '';\nconst featureImageUrl = $('Generate & Upload Image').first().json.featureImageUrl || '';\nreturn [{ json: { jwt, articleTitle, articleHtml, featureImageUrl, metaTitle, metaDescription, topic, tags, faqSchemaTag } }];"
@@ -313,7 +349,10 @@
       "name": "POST to Ghost",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2450, 250],
+      "position": [
+        2450,
+        250
+      ],
       "onError": "continueErrorOutput",
       "retryOnFail": true,
       "maxTries": 3,
@@ -346,7 +385,10 @@
       "name": "Update Status: error",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1650, 500],
+      "position": [
+        1650,
+        500
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
@@ -377,7 +419,10 @@
       "name": "Update Status: published",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2650, 250],
+      "position": [
+        2650,
+        250
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
@@ -412,7 +457,10 @@
       "name": "Check Pinterest",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [2850, 250],
+      "position": [
+        2850,
+        250
+      ],
       "parameters": {
         "conditions": {
           "string": [
@@ -428,7 +476,10 @@
       "name": "Update Status: completed (no pin)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [3050, 450],
+      "position": [
+        3050,
+        450
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
@@ -459,7 +510,10 @@
       "name": "Prepare Pin Prompts",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3050, 200],
+      "position": [
+        3050,
+        200
+      ],
       "onError": "continueErrorOutput",
       "parameters": {
         "jsCode": "const prompts = $('Get Prompts').first().json.list[0];\nconst article = $('Get Next Queued').first().json.list[0];\nconst title = $('Generate Title').first().json.message.content.trim();\nconst ghostUrl = '{{GHOST_URL}}/' + ($('POST to Ghost').first().json.posts[0].slug || '') + '/';\nconst board = article.Board || '{{PINTEREST_BOARD}}';\nconst today = new Date().toISOString().split('T')[0];\n\nreturn [{ json: {\n  pinNameSystem: prompts.PinName || '',\n  pinNameUser: 'Topic: ' + (article.Topic || '') + '\\nDescription: ' + (article.Description || '') + '\\nArticle title: ' + title + '\\nCurrent date: ' + today,\n  pinTextSystem: prompts.PinText || '',\n  pinTextUser: 'Topic: ' + (article.Topic || '') + '\\nDescription: ' + (article.Description || '') + '\\nArticle title: ' + title + '\\nArticle URL: ' + ghostUrl + '\\nCurrent date: ' + today,\n  pinImageSystem: prompts.PinImage || '',\n  pinImageUser: 'Topic: ' + (article.Topic || '') + '\\nDescription: ' + (article.Description || '') + '\\nArticle title: ' + title,\n  ghostUrl: ghostUrl,\n  board: board,\n}}];"
@@ -469,7 +523,10 @@
       "name": "Generate Pin Title",
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 1.4,
-      "position": [3250, 200],
+      "position": [
+        3250,
+        200
+      ],
       "onError": "continueErrorOutput",
       "retryOnFail": true,
       "maxTries": 3,
@@ -506,7 +563,10 @@
       "name": "Generate Pin Text",
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 1.4,
-      "position": [3450, 200],
+      "position": [
+        3450,
+        200
+      ],
       "onError": "continueErrorOutput",
       "retryOnFail": true,
       "maxTries": 3,
@@ -543,7 +603,10 @@
       "name": "Generate & Upload Pin Image",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3650, 200],
+      "position": [
+        3650,
+        200
+      ],
       "onError": "continueErrorOutput",
       "parameters": {
         "jsCode": "const crypto = require('crypto');\nconst https = require('https');\nconst http = require('http');\nconst { URL } = require('url');\n\nfunction httpPost(urlStr, headers, body) {\n  return new Promise((resolve, reject) => {\n    const u = new URL(urlStr);\n    const mod = u.protocol === 'https:' ? https : http;\n    const opts = { method: 'POST', hostname: u.hostname, port: u.port || (u.protocol === 'https:' ? 443 : 80), path: u.pathname + u.search, headers };\n    const req = mod.request(opts, (res) => {\n      const chunks = [];\n      res.on('data', (c) => chunks.push(c));\n      res.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString() }));\n    });\n    req.on('error', reject);\n    req.setTimeout(120000, () => { req.destroy(); reject(new Error('Timeout')); });\n    if (body) req.write(body);\n    req.end();\n  });\n}\n\nconst pinImageSystem = $('Pin Prompt Data').first().json.pinImageSystem || '';\nconst pinImageUser = $('Pin Prompt Data').first().json.pinImageUser || '';\nconst pinTitle = $('Generate Pin Title').first().json.message.content.trim();\nconst imagePrompt = pinImageUser + '\\n\\nPin title: ' + pinTitle;\nlet pinImageUrl = '';\ntry {\n  const apiUrl = '{{LLM_API_URL}}';\n  const apiKey = '{{LLM_API_KEY}}';\n  const imageModel = '{{LLM_IMAGE_MODEL}}';\n  if (!apiUrl || !apiKey || !imageModel) throw new Error('Missing LLM image config');\n  const llmBody = JSON.stringify({ model: imageModel, messages: [{ role: 'system', content: pinImageSystem }, { role: 'user', content: imagePrompt }], modalities: ['text', 'image'], image_config: { image_size: '1K', aspect_ratio: '4:5' } });\n  const llmRes = await httpPost(apiUrl + '/chat/completions', {\n    'Content-Type': 'application/json',\n    'Authorization': 'Bearer ' + apiKey,\n    'Content-Length': Buffer.byteLength(llmBody),\n  }, llmBody);\n  if (llmRes.status !== 200) throw new Error('LLM API: ' + llmRes.status);\n  const llmData = JSON.parse(llmRes.body);\n  llmRes.body = null;\n  let base64Data = '';\n  let mimeType = 'image/png';\n  const msg = llmData.choices?.[0]?.message;\n  const images = msg?.images;\n  if (Array.isArray(images) && images.length > 0) {\n    const imgObj = images[0];\n    const imgUrl = typeof imgObj.image_url === 'object' ? imgObj.image_url.url : (typeof imgObj.image_url === 'string' ? imgObj.image_url : '');\n    if (imgUrl) {\n      const m = imgUrl.match(/^data:(image\\/[a-z]+);base64,(.+)/s);\n      if (m) { mimeType = m[1]; base64Data = m[2]; }\n    }\n  }\n  if (!base64Data) {\n    const content = msg?.content;\n    if (Array.isArray(content)) {\n      for (const part of content) {\n        if (part.type === 'image_url' && part.image_url?.url) {\n          const m = part.image_url.url.match(/^data:(image\\/[a-z]+);base64,(.+)/s);\n          if (m) { mimeType = m[1]; base64Data = m[2]; break; }\n        }\n      }\n    } else if (typeof content === 'string') {\n      const m = content.match(/data:(image\\/[a-z]+);base64,([A-Za-z0-9+\\/=]+)/);\n      if (m) { mimeType = m[1]; base64Data = m[2]; }\n    }\n  }\n  if (!base64Data) throw new Error('No image data in LLM response');\n  const ghostKey = '{{GHOST_ADMIN_API_KEY}}';\n  const [kid, secret] = ghostKey.split(':');\n  const hdr = Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT',kid})).toString('base64url');\n  const now = Math.floor(Date.now()/1000);\n  const pay = Buffer.from(JSON.stringify({iat:now,exp:now+300,aud:'/admin/'})).toString('base64url');\n  const hmac = crypto.createHmac('sha256', Buffer.from(secret, 'hex'));\n  hmac.update(hdr + '.' + pay);\n  const jwt = hdr + '.' + pay + '.' + hmac.digest('base64url');\n  const imageBuffer = Buffer.from(base64Data, 'base64');\n  base64Data = '';\n  const ext = mimeType === 'image/jpeg' ? 'jpg' : 'png';\n  const boundary = '----n8n' + Date.now();\n  const formBody = Buffer.concat([\n    Buffer.from('--' + boundary + '\\r\\nContent-Disposition: form-data; name=\"file\"; filename=\"pin.' + ext + '\"\\r\\nContent-Type: ' + mimeType + '\\r\\n\\r\\n'),\n    imageBuffer,\n    Buffer.from('\\r\\n--' + boundary + '\\r\\nContent-Disposition: form-data; name=\"purpose\"\\r\\nContent-Type: text/plain\\r\\n\\r\\nimage\\r\\n--' + boundary + '--\\r\\n'),\n  ]);\n  const ghostRes = await httpPost('{{GHOST_API_URL}}/ghost/api/admin/images/upload/', {\n    'Authorization': 'Ghost ' + jwt,\n    'Content-Type': 'multipart/form-data; boundary=' + boundary,\n    'Content-Length': formBody.length,\n  }, formBody);\n  if (ghostRes.status === 201 || ghostRes.status === 200) {\n    const gd = JSON.parse(ghostRes.body);\n    pinImageUrl = gd.images?.[0]?.url || '';\n  } else { throw new Error('Ghost upload: ' + ghostRes.status); }\n} catch (e) {\n  console.log('Pin image generation skipped:', e.message);\n}\nreturn [{ json: { pinImageUrl } }];"
@@ -553,27 +616,36 @@
       "name": "Publish Pin",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3850, 200],
+      "position": [
+        3850,
+        200
+      ],
       "onError": "continueErrorOutput",
       "parameters": {
-        "jsCode": "const https = require('https');\nconst http = require('http');\nconst { URL } = require('url');\n\nfunction httpPost(urlStr, headers, body, timeoutMs) {\n  return new Promise((resolve, reject) => {\n    const u = new URL(urlStr);\n    const mod = u.protocol === 'https:' ? https : http;\n    const opts = { method: 'POST', hostname: u.hostname, port: u.port || (u.protocol === 'https:' ? 443 : 80), path: u.pathname + u.search, headers };\n    const req = mod.request(opts, (res) => {\n      const chunks = [];\n      res.on('data', (c) => chunks.push(c));\n      res.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString() }));\n    });\n    req.on('error', reject);\n    req.setTimeout(timeoutMs || 60000, () => { req.destroy(); reject(new Error('Timeout')); });\n    if (body) req.write(body);\n    req.end();\n  });\n}\n\nconst bufferKey = '{{BUFFER_API_KEY}}';\nconst pinChannelId = '{{BUFFER_PINTEREST_CHANNEL_ID}}';\nconst pinBoardId = '{{BUFFER_PINTEREST_BOARD_ID}}';\nconst igChannelId = '{{BUFFER_INSTAGRAM_CHANNEL_ID}}';\nconst threadsChannelId = '{{BUFFER_THREADS_CHANNEL_ID}}';\nconst linkedinChannelId = '{{BUFFER_LINKEDIN_CHANNEL_ID}}';\nconst makeUrl = '{{MAKE_WEBHOOK_URL}}';\n\nconst board = $('Pin Prompt Data').first().json.board;\nconst ghostUrl = $('Pin Prompt Data').first().json.ghostUrl;\nconst title = $('Generate Pin Title').first().json.message.content.trim();\nconst description = $('Generate Pin Text').first().json.message.content.trim();\nconst imageUrl = $input.first().json.pinImageUrl || '';\n\nconst useBuffer = Boolean(\n  bufferKey && (pinChannelId || igChannelId || threadsChannelId || linkedinChannelId),\n);\n\nif (!useBuffer && !makeUrl) {\n  return [{ json: { pin_url: '' } }];\n}\n\nif (!useBuffer) {\n  // Make.com webhook (legacy path); Make creates the pin synchronously, allow 120s\n  const payload = JSON.stringify({ board, title, description, url: ghostUrl, imageUrl });\n  const res = await httpPost(makeUrl, { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }, payload, 120000);\n  if (res.status < 200 || res.status >= 300) throw new Error('Make webhook: HTTP ' + res.status);\n  let pinUrl = '';\n  try { pinUrl = JSON.parse(res.body)?.pin_url || ''; } catch (e) { /* non-JSON response */ }\n  return [{ json: { pin_url: pinUrl } }];\n}\n\n// Buffer API path (https://developers.buffer.com)\nif (!imageUrl) throw new Error('No pin image available for Buffer publishing');\n\nasync function gql(query, variables) {\n  const body = JSON.stringify({ query, variables });\n  const res = await httpPost('https://api.buffer.com', {\n    'Content-Type': 'application/json',\n    'Authorization': 'Bearer ' + bufferKey,\n    'Content-Length': Buffer.byteLength(body),\n  }, body);\n  if (res.status !== 200) throw new Error('Buffer API: HTTP ' + res.status);\n  const data = JSON.parse(res.body);\n  if (data.errors && data.errors.length) throw new Error('Buffer API: ' + data.errors[0].message);\n  return data.data;\n}\n\nconst CREATE_POST = 'mutation CreatePost($input: CreatePostInput!) { createPost(input: $input) { __typename ... on PostActionSuccess { post { id } } ... on MutationError { message } } }';\n\nasync function createPost(input) {\n  const data = await gql(CREATE_POST, { input });\n  const result = data.createPost;\n  if (!result || result.__typename === 'MutationError') {\n    throw new Error(result?.message || 'unknown createPost error');\n  }\n  return result.post.id;\n}\n\n// Partial-failure rule: throw (-> pin retry via RetryCount) only when nothing\n// was published; a succeeded post must not be duplicated by a retry.\nconst errors = [];\nlet successCount = 0;\nasync function tryPost(label, input) {\n  try {\n    const id = await createPost(input);\n    successCount++;\n    return id;\n  } catch (e) {\n    errors.push(label + ': ' + e.message);\n    return '';\n  }\n}\n\n// Caption with the article link appended, shared by Instagram, Threads and\n// LinkedIn (Pinterest carries the link in metadata.url instead).\nconst captionWithLink = description + (ghostUrl ? '\\n\\n' + ghostUrl : '');\nlet pinPostId = '';\n\nif (pinChannelId) {\n  pinPostId = await tryPost('pinterest', {\n    channelId: pinChannelId,\n    text: description,\n    schedulingType: 'automatic',\n    mode: 'shareNow',\n    assets: [{ image: { url: imageUrl } }],\n    metadata: { pinterest: { title: title.slice(0, 100), url: ghostUrl, boardServiceId: pinBoardId } },\n  });\n}\n\nif (igChannelId) {\n  await tryPost('instagram', {\n    channelId: igChannelId,\n    text: captionWithLink,\n    schedulingType: 'automatic',\n    mode: 'shareNow',\n    assets: [{ image: { url: imageUrl } }],\n    metadata: { instagram: { type: 'post', shouldShareToFeed: true } },\n  });\n}\n\nif (threadsChannelId) {\n  await tryPost('threads', {\n    channelId: threadsChannelId,\n    text: captionWithLink,\n    schedulingType: 'automatic',\n    mode: 'shareNow',\n    assets: [{ image: { url: imageUrl } }],\n  });\n}\n\nif (linkedinChannelId) {\n  await tryPost('linkedin', {\n    channelId: linkedinChannelId,\n    text: captionWithLink,\n    schedulingType: 'automatic',\n    mode: 'shareNow',\n    assets: [{ image: { url: imageUrl } }],\n  });\n}\n\nif (successCount === 0) throw new Error('Buffer publishing failed: ' + errors.join('; '));\nif (errors.length) console.log('Buffer partial failure:', errors.join('; '));\n\n// shareNow publishes asynchronously - poll briefly for the Pinterest permalink.\n// Posts are already created at this point, so no failure here may throw:\n// an error output would trigger a retry and duplicate the posts.\nlet pinUrl = '';\nif (pinPostId) {\n  try {\n    const GET_POST = 'query GetPost($input: PostInput!) { post(input: $input) { status externalLink } }';\n    for (let i = 0; i < 4 && !pinUrl; i++) {\n      await new Promise((r) => setTimeout(r, 5000));\n      const d = await gql(GET_POST, { input: { id: pinPostId } });\n      if (d.post && d.post.status === 'error') { errors.push('pinterest: publish failed after create'); break; }\n      if (d.post && d.post.externalLink) pinUrl = d.post.externalLink;\n    }\n  } catch (e) {\n    console.log('Pin URL poll failed:', e.message);\n  }\n}\n\nreturn [{ json: { pin_url: pinUrl, buffer_pin_post_id: pinPostId, promo_errors: errors.join('; ') } }];"
+        "jsCode": "const https = require('https');\nconst http = require('http');\nconst { URL } = require('url');\n\nfunction httpReq(method, urlStr, headers, body, timeoutMs) {\n  return new Promise((resolve, reject) => {\n    const u = new URL(urlStr);\n    const mod = u.protocol === 'https:' ? https : http;\n    const opts = { method, hostname: u.hostname, port: u.port || (u.protocol === 'https:' ? 443 : 80), path: u.pathname + u.search, headers };\n    const req = mod.request(opts, (res) => {\n      const chunks = [];\n      res.on('data', (c) => chunks.push(c));\n      res.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString() }));\n    });\n    req.on('error', reject);\n    req.setTimeout(timeoutMs || 60000, () => { req.destroy(); reject(new Error('Timeout')); });\n    if (body) req.write(body);\n    req.end();\n  });\n}\nfunction httpPost(urlStr, headers, body, timeoutMs) {\n  return httpReq('POST', urlStr, headers, body, timeoutMs);\n}\n\n// Treat an unsubstituted/blank marker as empty (never let a literal {{...}} leak\n// into config or a caption), and trim user-provided values.\nfunction clean(v) {\n  return typeof v === 'string' && v.indexOf('{{') === -1 ? v.trim() : '';\n}\n\nconst bufferKey = clean('{{BUFFER_API_KEY}}');\nconst pinChannelId = clean('{{BUFFER_PINTEREST_CHANNEL_ID}}');\nconst pinBoardId = clean('{{BUFFER_PINTEREST_BOARD_ID}}');\nconst igChannelId = clean('{{BUFFER_INSTAGRAM_CHANNEL_ID}}');\nconst threadsChannelId = clean('{{BUFFER_THREADS_CHANNEL_ID}}');\nconst linkedinChannelId = clean('{{BUFFER_LINKEDIN_CHANNEL_ID}}');\nconst makeUrl = clean('{{MAKE_WEBHOOK_URL}}');\nconst inroKey = clean('{{INRO_API_KEY}}');\nconst inroKeyword = clean('{{INRO_KEYWORD}}');\nconst inroTagPrefix = clean('{{INRO_TAG_PREFIX}}') || 'oa';\nconst nocodbTableId = clean('{{NOCODB_TABLE_ID}}');\nconst nocodbToken = clean('{{NOCODB_AUTH_TOKEN}}');\n\nconst article = $('Get Next Queued').first().json.list[0];\nconst rowId = String(article.Id || '');\nconst existingScenarioId = String(article.InroScenarioId || '');\n\nconst board = $('Pin Prompt Data').first().json.board;\nconst ghostUrl = $('Pin Prompt Data').first().json.ghostUrl;\nconst title = $('Generate Pin Title').first().json.message.content.trim();\nconst description = $('Generate Pin Text').first().json.message.content.trim();\nconst imageUrl = $input.first().json.pinImageUrl || '';\n\nconst useBuffer = Boolean(\n  bufferKey && (pinChannelId || igChannelId || threadsChannelId || linkedinChannelId),\n);\n\nif (!useBuffer && !makeUrl) {\n  return [{ json: { pin_url: '' } }];\n}\n\nif (!useBuffer) {\n  // Make.com webhook (legacy path); Make creates the pin synchronously, allow 120s\n  const payload = JSON.stringify({ board, title, description, url: ghostUrl, imageUrl });\n  const res = await httpPost(makeUrl, { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }, payload, 120000);\n  if (res.status < 200 || res.status >= 300) throw new Error('Make webhook: HTTP ' + res.status);\n  let pinUrl = '';\n  try { pinUrl = JSON.parse(res.body)?.pin_url || ''; } catch (e) { /* non-JSON response */ }\n  return [{ json: { pin_url: pinUrl } }];\n}\n\n// Buffer API path (https://developers.buffer.com)\nif (!imageUrl) throw new Error('No pin image available for Buffer publishing');\n\nasync function gql(query, variables) {\n  const body = JSON.stringify({ query, variables });\n  const res = await httpPost('https://api.buffer.com', {\n    'Content-Type': 'application/json',\n    'Authorization': 'Bearer ' + bufferKey,\n    'Content-Length': Buffer.byteLength(body),\n  }, body);\n  if (res.status !== 200) throw new Error('Buffer API: HTTP ' + res.status);\n  const data = JSON.parse(res.body);\n  if (data.errors && data.errors.length) throw new Error('Buffer API: ' + data.errors[0].message);\n  return data.data;\n}\n\nconst CREATE_POST = 'mutation CreatePost($input: CreatePostInput!) { createPost(input: $input) { __typename ... on PostActionSuccess { post { id } } ... on MutationError { message } } }';\n\nasync function createPost(input) {\n  const data = await gql(CREATE_POST, { input });\n  const result = data.createPost;\n  if (!result || result.__typename === 'MutationError') {\n    throw new Error(result?.message || 'unknown createPost error');\n  }\n  return result.post.id;\n}\n\n// Partial-failure rule: throw (-> pin retry via RetryCount) only when nothing\n// was published; a succeeded post must not be duplicated by a retry.\nconst errors = [];\nlet successCount = 0;\nasync function tryPost(label, input) {\n  try {\n    const id = await createPost(input);\n    successCount++;\n    return id;\n  } catch (e) {\n    errors.push(label + ': ' + e.message);\n    return '';\n  }\n}\n\n// Persist the Inro scenario id to NocoDB immediately so a later Buffer failure +\n// RetryCount re-run will see it and NOT create a duplicate scenario.\nasync function persistScenarioId(id) {\n  if (!nocodbTableId || !nocodbToken) return;\n  try {\n    const pbody = JSON.stringify({ Id: isNaN(Number(rowId)) ? rowId : Number(rowId), InroScenarioId: String(id) });\n    await httpReq('PATCH', 'http://nocodb:8080/api/v2/tables/' + nocodbTableId + '/records',\n      { 'Content-Type': 'application/json', 'xc-token': nocodbToken, 'Content-Length': Buffer.byteLength(pbody) }, pbody, 15000);\n  } catch (e) {\n    console.log('persist InroScenarioId failed:', e.message);\n  }\n}\n\n// --- Inro comment-to-DM: create the scenario BEFORE publishing the IG post so\n// we never advertise a CTA that has no working automation behind it. ---\nconst inroEnabled = Boolean(inroKey && inroKeyword && rowId && igChannelId);\n// Collision-proof, deterministic per-post token: <brand>+<rowId>+\"k\". Inro\n// matches caption_keywords by SUBSTRING, so the trailing \"k\" stops one row's\n// token being a prefix-substring of another (e.g. ...175k is not inside ...1750k).\nconst token = inroEnabled ? inroTagPrefix + rowId + 'k' : '';\nlet inroScenarioId = existingScenarioId;\nlet inroOk = inroEnabled && Boolean(existingScenarioId); // already linked on a prior run\n\nif (inroEnabled && !existingScenarioId) {\n  try {\n    const kw = Array.from(new Set([inroKeyword, inroKeyword.toLowerCase(), inroKeyword.charAt(0) + inroKeyword.slice(1).toLowerCase()]));\n    const scenario = {\n      scenario_type: 'comment_to_dm',\n      active: true,\n      title: 'OA DM ' + rowId,\n      triggers: [{ trigger_type: 'comment', options: { comment_options: {\n        post_type: 'caption_keywords',\n        caption_keywords: [token],\n        comment_type: 'comment_keywords',\n        comment_keywords: kw,\n      } } }],\n      actions: [\n        { action_type: 'comment', action_key: 'comment_reply', options: { comment_limiting: true, comment_variants: ['Отправил ссылку в личку! 📩', 'Проверь личку 🙂'] } },\n        { action_type: 'button_template', action_key: 'question', parent_key: 'comment_reply', content: 'Прислать ссылку на статью в блоге?', options: { buttons: [{ title: 'Получить ссылку', payload: 'option_0' }] } },\n        { action_type: 'conversion_link', action_key: 'send_link', parent_key: 'question', parent_branch: 'option_0', options: { expire_unit: 'hours', expire_duration: 24 }, conversion_link: { url: ghostUrl, title: 'Читать статью', subtitle: '', button_title: 'Читать статью' } },\n      ],\n    };\n    const body = JSON.stringify(scenario);\n    const res = await httpPost('https://api.inro.social/api/v1/scenarios', {\n      'Content-Type': 'application/json',\n      'Authorization': 'Bearer ' + inroKey,\n      'Accept': 'application/json',\n      'Content-Length': Buffer.byteLength(body),\n    }, body, 30000);\n    if (res.status < 200 || res.status >= 300) throw new Error('Inro HTTP ' + res.status + ': ' + res.body.slice(0, 150));\n    inroScenarioId = String(JSON.parse(res.body).scenario.id);\n    inroOk = true;\n    await persistScenarioId(inroScenarioId); // guard against duplicate on retry\n  } catch (e) {\n    errors.push('inro: ' + e.message);\n    inroOk = false;\n  }\n}\n\n// Caption with the article link appended, used by Threads and LinkedIn (links\n// are clickable there). Pinterest carries the link in metadata.url instead.\nconst captionWithLink = description + (ghostUrl ? '\\n\\n' + ghostUrl : '');\n// Instagram: caption links are NOT clickable. With Inro on and the scenario\n// ready, drop the raw URL and add the comment-to-DM CTA + matching token. If\n// Inro is off, keep the legacy caption; if the scenario failed, post the plain\n// description (no CTA) so we never advertise a dead CTA. IG caption limit ~2200.\nconst IG_MAX = 2150;\nconst cta = 'Напиши ' + inroKeyword + ' в комментах, пришлю статью/гайд в личку 📩';\nlet igCaption;\nif (inroEnabled && inroOk) {\n  const suffix = '\\n\\n' + cta + '\\n#' + token;\n  let desc = description;\n  if ((desc + suffix).length > IG_MAX) desc = desc.slice(0, Math.max(0, IG_MAX - suffix.length - 1)).trim() + '…';\n  igCaption = desc + suffix;\n} else if (inroEnabled) {\n  igCaption = description.slice(0, IG_MAX);\n} else {\n  igCaption = captionWithLink.slice(0, IG_MAX);\n}\n\nlet pinPostId = '';\n\nif (pinChannelId) {\n  pinPostId = await tryPost('pinterest', {\n    channelId: pinChannelId,\n    text: description,\n    schedulingType: 'automatic',\n    mode: 'shareNow',\n    assets: [{ image: { url: imageUrl } }],\n    metadata: { pinterest: { title: title.slice(0, 100), url: ghostUrl, boardServiceId: pinBoardId } },\n  });\n}\n\nif (igChannelId) {\n  await tryPost('instagram', {\n    channelId: igChannelId,\n    text: igCaption,\n    schedulingType: 'automatic',\n    mode: 'shareNow',\n    assets: [{ image: { url: imageUrl } }],\n    metadata: { instagram: { type: 'post', shouldShareToFeed: true } },\n  });\n}\n\nif (threadsChannelId) {\n  await tryPost('threads', {\n    channelId: threadsChannelId,\n    text: captionWithLink,\n    schedulingType: 'automatic',\n    mode: 'shareNow',\n    assets: [{ image: { url: imageUrl } }],\n  });\n}\n\nif (linkedinChannelId) {\n  await tryPost('linkedin', {\n    channelId: linkedinChannelId,\n    text: captionWithLink,\n    schedulingType: 'automatic',\n    mode: 'shareNow',\n    assets: [{ image: { url: imageUrl } }],\n  });\n}\n\nif (successCount === 0) throw new Error('Buffer publishing failed: ' + errors.join('; '));\nif (errors.length) console.log('Buffer partial failure:', errors.join('; '));\n\n// shareNow publishes asynchronously - poll briefly for the Pinterest permalink.\n// Posts are already created at this point, so no failure here may throw.\nlet pinUrl = '';\nif (pinPostId) {\n  try {\n    const GET_POST = 'query GetPost($input: PostInput!) { post(input: $input) { status externalLink } }';\n    for (let i = 0; i < 4 && !pinUrl; i++) {\n      await new Promise((r) => setTimeout(r, 5000));\n      const d = await gql(GET_POST, { input: { id: pinPostId } });\n      if (d.post && d.post.status === 'error') { errors.push('pinterest: publish failed after create'); break; }\n      if (d.post && d.post.externalLink) pinUrl = d.post.externalLink;\n    }\n  } catch (e) {\n    console.log('Pin URL poll failed:', e.message);\n  }\n}\n\nreturn [{ json: {\n  pin_url: pinUrl,\n  buffer_pin_post_id: pinPostId,\n  promo_errors: errors.join('; '),\n  inro_scenario_id: inroScenarioId,\n} }];\n"
       }
     },
     {
       "name": "Save Pin URL",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [4050, 200],
+      "position": [
+        4050,
+        200
+      ],
       "onError": "continueErrorOutput",
       "parameters": {
-        "jsCode": "const response = $input.first().json;\nconst pinUrl = response?.pin_url || '';\nconst promoErrors = response?.promo_errors || '';\nreturn [{ json: { pinUrl, promoErrors } }];"
+        "jsCode": "const response = $input.first().json;\nconst pinUrl = response?.pin_url || '';\nconst promoErrors = response?.promo_errors || '';\nconst inroScenarioId = response?.inro_scenario_id || '';\nreturn [{ json: { pinUrl, promoErrors, inroScenarioId } }];"
       }
     },
     {
       "name": "Update Status: completed",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [4250, 200],
+      "position": [
+        4250,
+        200
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
@@ -595,6 +667,10 @@
             {
               "name": "Error",
               "value": "={{ $('Save Pin URL').first().json.promoErrors || '' }}"
+            },
+            {
+              "name": "InroScenarioId",
+              "value": "={{ $('Save Pin URL').first().json.inroScenarioId || '' }}"
             }
           ]
         },
@@ -612,7 +688,10 @@
       "name": "Update Status: error (pin)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [3450, 500],
+      "position": [
+        3450,
+        500
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
@@ -647,7 +726,10 @@
       "name": "Is Pin Only?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [750, 300],
+      "position": [
+        750,
+        300
+      ],
       "parameters": {
         "conditions": {
           "string": [
@@ -663,7 +745,10 @@
       "name": "Is Pin Retry?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [950, 400],
+      "position": [
+        950,
+        400
+      ],
       "parameters": {
         "conditions": {
           "string": [
@@ -685,7 +770,10 @@
       "name": "Update Status: promoting",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [950, -100],
+      "position": [
+        950,
+        -100
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records",
@@ -724,7 +812,10 @@
       "name": "Get Prompts (retry)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1150, -100],
+      "position": [
+        1150,
+        -100
+      ],
       "onError": "continueErrorOutput",
       "parameters": {
         "method": "GET",
@@ -752,7 +843,10 @@
       "name": "Check Pinterest (retry)",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [1350, -100],
+      "position": [
+        1350,
+        -100
+      ],
       "parameters": {
         "conditions": {
           "string": [
@@ -768,7 +862,10 @@
       "name": "Prepare Pin Retry",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1550, -100],
+      "position": [
+        1550,
+        -100
+      ],
       "onError": "continueErrorOutput",
       "parameters": {
         "jsCode": "const crypto = require('crypto');\nconst https = require('https');\nconst http = require('http');\nconst { URL } = require('url');\n\nfunction httpReq(urlStr, method, headers, body) {\n  return new Promise((resolve, reject) => {\n    const u = new URL(urlStr);\n    const mod = u.protocol === 'https:' ? https : http;\n    const opts = { method, hostname: u.hostname, port: u.port || (u.protocol === 'https:' ? 443 : 80), path: u.pathname + u.search, headers };\n    const req = mod.request(opts, (res) => {\n      const chunks = [];\n      res.on('data', (c) => chunks.push(c));\n      res.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString() }));\n    });\n    req.on('error', reject);\n    req.setTimeout(30000, () => { req.destroy(); reject(new Error('Timeout')); });\n    if (body) req.write(body);\n    req.end();\n  });\n}\n\nconst prompts = $('Get Prompts (retry)').first().json.list[0];\nconst article = $('Get Next Queued').first().json.list[0];\n\n// Resolve \"latest\" to actual Ghost article URL\nif (article.ArticleURL && article.ArticleURL.toLowerCase() === 'latest') {\n  const key = '{{GHOST_ADMIN_API_KEY}}';\n  const [kid, secret] = key.split(':');\n  const header = Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT',kid})).toString('base64url');\n  const now = Math.floor(Date.now()/1000);\n  const payload = Buffer.from(JSON.stringify({iat:now,exp:now+300,aud:'/admin/'})).toString('base64url');\n  const hmac = crypto.createHmac('sha256', Buffer.from(secret, 'hex'));\n  hmac.update(header + '.' + payload);\n  const sig = hmac.digest('base64url');\n  const jwt = header + '.' + payload + '.' + sig;\n\n  const ghostRes = await httpReq(\n    '{{GHOST_API_URL}}/ghost/api/admin/posts/?limit=1&order=published_at%20desc&filter=status:published&fields=slug,url',\n    'GET', { 'Authorization': 'Ghost ' + jwt }\n  );\n  if (ghostRes.status !== 200) throw new Error('Ghost API error: ' + ghostRes.status);\n  const ghostData = JSON.parse(ghostRes.body);\n  if (!ghostData.posts || ghostData.posts.length === 0) {\n    throw new Error('No published articles found \\u2014 cannot resolve \"latest\"');\n  }\n  article.ArticleURL = ghostData.posts[0].url;\n\n  // Update NocoDB so user sees which article was used\n  const patchBody = JSON.stringify({ Id: article.Id, ArticleURL: article.ArticleURL });\n  await httpReq(\n    'http://nocodb:8080/api/v2/tables/{{NOCODB_TABLE_ID}}/records',\n    'PATCH',\n    { 'Content-Type': 'application/json', 'xc-token': '{{NOCODB_AUTH_TOKEN}}', 'Content-Length': Buffer.byteLength(patchBody) },\n    patchBody\n  );\n}\n\nconst title = article.Topic || '';\nconst ghostUrl = article.ArticleURL || '';\nconst board = article.Board || '{{PINTEREST_BOARD}}';\nconst today = new Date().toISOString().split('T')[0];\n\nreturn [{ json: {\n  pinNameSystem: prompts.PinName || '',\n  pinNameUser: 'Topic: ' + title + '\\nDescription: ' + (article.Description || '') + '\\nCurrent date: ' + today,\n  pinTextSystem: prompts.PinText || '',\n  pinTextUser: 'Topic: ' + title + '\\nDescription: ' + (article.Description || '') + '\\nArticle URL: ' + ghostUrl + '\\nCurrent date: ' + today,\n  pinImageSystem: prompts.PinImage || '',\n  pinImageUser: 'Topic: ' + title + '\\nDescription: ' + (article.Description || ''),\n  ghostUrl: ghostUrl,\n  board: board,\n}}];"
@@ -778,7 +875,10 @@
       "name": "Pin Prompt Data",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2950, 200],
+      "position": [
+        2950,
+        200
+      ],
       "parameters": {
         "jsCode": "return $input.all();"
       }
@@ -787,7 +887,10 @@
       "name": "Notify: Published",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2850, 550],
+      "position": [
+        2850,
+        550
+      ],
       "onError": "continueRegularOutput",
       "parameters": {
         "jsCode": "const https = require('https');\nconst http = require('http');\n\nfunction httpReq(urlStr, method, headers, body) {\n  return new Promise((resolve, reject) => {\n    const u = new URL(urlStr);\n    const mod = u.protocol === 'https:' ? https : http;\n    const opts = { method, hostname: u.hostname, port: u.port || (u.protocol === 'https:' ? 443 : 80), path: u.pathname + u.search, headers };\n    const req = mod.request(opts, (res) => {\n      const chunks = [];\n      res.on('data', (c) => chunks.push(c));\n      res.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString() }));\n    });\n    req.on('error', reject);\n    req.setTimeout(15000, () => { req.destroy(); reject(new Error('Timeout')); });\n    if (body) req.write(body);\n    req.end();\n  });\n}\n\ntry {\n  const botToken = '{{TELEGRAM_BOT_TOKEN}}';\n  if (!botToken) return [];\n  let chatId = '';\n  {\n    const res = await httpReq('http://nocodb:8080/api/v2/tables/{{NOCODB_PROMPTS_TABLE_ID}}/records?limit=1&fields=TelegramChatId', 'GET', { 'xc-token': '{{NOCODB_AUTH_TOKEN}}', 'Content-Type': 'application/json' });\n    if (res.status === 200) { chatId = JSON.parse(res.body).list?.[0]?.TelegramChatId || ''; }\n  }\n  if (!chatId) return [];\n  const article = $('Get Next Queued').first().json.list[0];\n  const ghostSlug = $('POST to Ghost').first().json.posts?.[0]?.slug || '';\n  const ghostUrl = ghostSlug ? '{{GHOST_URL}}/' + ghostSlug + '/' : '';\n  const text = '\\u2705 Article published\\n\\nTopic: ' + (article.Topic || '') + '\\nDescription: ' + (article.Description || '') + '\\nLink: ' + (article.Link || '') + '\\nURL: ' + ghostUrl + '\\nStatus: published';\n  const body = JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' });\n  await httpReq('https://api.telegram.org/bot' + botToken + '/sendMessage', 'POST', { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }, body);\n} catch (e) { console.log('Telegram notification skipped:', e.message); }\nreturn [];"
@@ -797,7 +900,10 @@
       "name": "Notify: Error",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1850, 600],
+      "position": [
+        1850,
+        600
+      ],
       "onError": "continueRegularOutput",
       "parameters": {
         "jsCode": "const https = require('https');\nconst http = require('http');\n\nfunction httpReq(urlStr, method, headers, body) {\n  return new Promise((resolve, reject) => {\n    const u = new URL(urlStr);\n    const mod = u.protocol === 'https:' ? https : http;\n    const opts = { method, hostname: u.hostname, port: u.port || (u.protocol === 'https:' ? 443 : 80), path: u.pathname + u.search, headers };\n    const req = mod.request(opts, (res) => {\n      const chunks = [];\n      res.on('data', (c) => chunks.push(c));\n      res.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString() }));\n    });\n    req.on('error', reject);\n    req.setTimeout(15000, () => { req.destroy(); reject(new Error('Timeout')); });\n    if (body) req.write(body);\n    req.end();\n  });\n}\n\ntry {\n  const botToken = '{{TELEGRAM_BOT_TOKEN}}';\n  if (!botToken) return [];\n  let chatId = '';\n  {\n    const res = await httpReq('http://nocodb:8080/api/v2/tables/{{NOCODB_PROMPTS_TABLE_ID}}/records?limit=1&fields=TelegramChatId', 'GET', { 'xc-token': '{{NOCODB_AUTH_TOKEN}}', 'Content-Type': 'application/json' });\n    if (res.status === 200) { chatId = JSON.parse(res.body).list?.[0]?.TelegramChatId || ''; }\n  }\n  if (!chatId) return [];\n  const article = $('Get Next Queued').first().json.list[0];\n  const text = '\\u274c Article error\\n\\nTopic: ' + (article.Topic || '') + '\\nDescription: ' + (article.Description || '') + '\\nLink: ' + (article.Link || '') + '\\nStatus: error\\nError: ' + (article.Error || 'Unknown error');\n  const body = JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' });\n  await httpReq('https://api.telegram.org/bot' + botToken + '/sendMessage', 'POST', { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }, body);\n} catch (e) { console.log('Telegram notification skipped:', e.message); }\nreturn [];"
@@ -807,7 +913,10 @@
       "name": "Ping Search Engines",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2850, 700],
+      "position": [
+        2850,
+        700
+      ],
       "onError": "continueRegularOutput",
       "parameters": {
         "jsCode": "const https = require('https');\n\nfunction httpReq(urlStr, method, headers, body) {\n  return new Promise((resolve, reject) => {\n    const u = new URL(urlStr);\n    const opts = { method, hostname: u.hostname, port: 443, path: u.pathname + u.search, headers };\n    const req = https.request(opts, (res) => {\n      const chunks = [];\n      res.on('data', (c) => chunks.push(c));\n      res.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString() }));\n    });\n    req.on('error', reject);\n    req.setTimeout(15000, () => { req.destroy(); reject(new Error('Timeout')); });\n    if (body) req.write(body);\n    req.end();\n  });\n}\n\n// 1. IndexNow — instant indexing for Bing, Yandex, Seznam, Naver\ntry {\n  const key = '{{INDEXNOW_KEY}}';\n  if (key) {\n    const slug = $('POST to Ghost').first().json.posts?.[0]?.slug || '';\n    if (slug) {\n      const articleUrl = '{{GHOST_URL}}/' + slug + '/';\n      const host = new URL('{{GHOST_URL}}').host;\n      const body = JSON.stringify({\n        host, key,\n        keyLocation: '{{GHOST_URL}}/' + key + '.txt',\n        urlList: [articleUrl, '{{GHOST_URL}}/sitemap.xml']\n      });\n      await httpReq('https://api.indexnow.org/IndexNow', 'POST',\n        { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }, body);\n    }\n  }\n} catch (e) { /* silent — must not block article flow */ }\n\n// 2. WebSub/PubSubHubbub — notify Google's hub to crawl RSS feed\ntry {\n  const rssUrl = '{{GHOST_URL}}/rss/';\n  const body = 'hub.mode=publish&hub.url=' + encodeURIComponent(rssUrl);\n  await httpReq('https://pubsubhubbub.appspot.com/', 'POST',\n    { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(body) }, body);\n} catch (e) { /* silent */ }\n\nreturn [];"

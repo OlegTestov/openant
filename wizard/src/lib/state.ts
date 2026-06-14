@@ -65,6 +65,9 @@ const setupStateSchema = z.object({
       buffer_instagram_channel_id: z.string().optional(),
       buffer_threads_channel_id: z.string().optional(),
       buffer_linkedin_channel_id: z.string().optional(),
+      inro_api_key: z.string().optional(),
+      inro_keyword: z.string().optional(),
+      inro_tag_prefix: z.string().optional(),
     })
     .optional(),
 });

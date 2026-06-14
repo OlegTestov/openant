@@ -37,6 +37,9 @@ export default function Social({ onComplete, onBack, initialData }: StepProps) {
         buffer_instagram_channel_id?: string;
         buffer_threads_channel_id?: string;
         buffer_linkedin_channel_id?: string;
+        inro_api_key?: string;
+        inro_keyword?: string;
+        inro_tag_prefix?: string;
       }
     | undefined;
   const [method, setMethod] = useState<PublishMethod>(
@@ -59,6 +62,9 @@ export default function Social({ onComplete, onBack, initialData }: StepProps) {
   const [linkedinChannelId, setLinkedinChannelId] = useState(
     initial?.buffer_linkedin_channel_id ?? '',
   );
+  const [inroKey, setInroKey] = useState(initial?.inro_api_key ?? '');
+  const [inroKeyword, setInroKeyword] = useState(initial?.inro_keyword ?? '');
+  const [inroTagPrefix, setInroTagPrefix] = useState(initial?.inro_tag_prefix ?? '');
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingChannels, setIsLoadingChannels] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -147,6 +153,10 @@ export default function Social({ onComplete, onBack, initialData }: StepProps) {
         setError(t.steps.social.bufferChannelsRequired);
         return;
       }
+      if (instagram && inroTagPrefix.trim() && !/^[A-Za-z0-9]+$/.test(inroTagPrefix.trim())) {
+        setError(t.steps.social.inroTagPrefixInvalid);
+        return;
+      }
     }
 
     setIsLoading(true);
@@ -166,6 +176,9 @@ export default function Social({ onComplete, onBack, initialData }: StepProps) {
       buffer_instagram_channel_id: useBuffer && instagram ? igChannelId : '',
       buffer_threads_channel_id: useBuffer && threads ? threadsChannelId : '',
       buffer_linkedin_channel_id: useBuffer && linkedin ? linkedinChannelId : '',
+      inro_api_key: useBuffer && instagram ? inroKey.trim() : '',
+      inro_keyword: useBuffer && instagram ? inroKeyword.trim() : '',
+      inro_tag_prefix: useBuffer && instagram ? inroTagPrefix.trim() : '',
     };
 
     try {
@@ -196,7 +209,11 @@ export default function Social({ onComplete, onBack, initialData }: StepProps) {
       }
 
       // Same as the LLM step: never keep the raw key in client-side step data
-      onComplete({ ...body, buffer_api_key: body.buffer_api_key ? '***' : '' });
+      onComplete({
+        ...body,
+        buffer_api_key: body.buffer_api_key ? '***' : '',
+        inro_api_key: body.inro_api_key ? '***' : '',
+      });
     } catch {
       setError(t.common.failedToSave);
     } finally {
@@ -389,6 +406,59 @@ export default function Social({ onComplete, onBack, initialData }: StepProps) {
                     igChannelId,
                     setIgChannelId,
                   )}
+
+                {instagram && (
+                  <div className="space-y-3 rounded-lg border p-3">
+                    <div>
+                      <p className="text-sm font-medium">{t.steps.social.inroSection}</p>
+                      <p className="text-muted-foreground mt-1 text-xs">
+                        {t.steps.social.inroSectionHint}
+                      </p>
+                    </div>
+                    <div>
+                      <Label htmlFor="inro-api-key">{t.steps.social.inroApiKey}</Label>
+                      <Input
+                        id="inro-api-key"
+                        className="mt-1"
+                        value={inroKey}
+                        onChange={(e) => setInroKey(e.target.value)}
+                        placeholder="inro_..."
+                        aria-describedby="inro-key-hint"
+                      />
+                      <p id="inro-key-hint" className="text-muted-foreground mt-1 text-xs">
+                        {t.steps.social.inroApiKeyHint}
+                      </p>
+                    </div>
+                    <div>
+                      <Label htmlFor="inro-keyword">{t.steps.social.inroKeyword}</Label>
+                      <Input
+                        id="inro-keyword"
+                        className="mt-1"
+                        value={inroKeyword}
+                        onChange={(e) => setInroKeyword(e.target.value)}
+                        placeholder="ХОЧУ"
+                        aria-describedby="inro-keyword-hint"
+                      />
+                      <p id="inro-keyword-hint" className="text-muted-foreground mt-1 text-xs">
+                        {t.steps.social.inroKeywordHint}
+                      </p>
+                    </div>
+                    <div>
+                      <Label htmlFor="inro-tag-prefix">{t.steps.social.inroTagPrefix}</Label>
+                      <Input
+                        id="inro-tag-prefix"
+                        className="mt-1"
+                        value={inroTagPrefix}
+                        onChange={(e) => setInroTagPrefix(e.target.value)}
+                        placeholder="oa"
+                        aria-describedby="inro-tag-prefix-hint"
+                      />
+                      <p id="inro-tag-prefix-hint" className="text-muted-foreground mt-1 text-xs">
+                        {t.steps.social.inroTagPrefixHint}
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {threads &&
                   renderChannelSelect(

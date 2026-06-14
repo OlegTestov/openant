@@ -19,8 +19,22 @@ export const socialSchema = z
     buffer_instagram_channel_id: z.string().optional().or(z.literal('')),
     buffer_threads_channel_id: z.string().optional().or(z.literal('')),
     buffer_linkedin_channel_id: z.string().optional().or(z.literal('')),
+    inro_api_key: z.string().optional().or(z.literal('')),
+    inro_keyword: z.string().optional().or(z.literal('')),
+    inro_tag_prefix: z.string().optional().or(z.literal('')),
   })
   .superRefine((v, ctx) => {
+    // Inro tag prefix is appended to a caption hashtag and a caption_keywords
+    // token (#<prefix><rowId>k) — only latin letters/digits are safe there.
+    const tagPrefix = v.inro_tag_prefix?.trim() ?? '';
+    if (tagPrefix && !/^[A-Za-z0-9]+$/.test(tagPrefix)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['inro_tag_prefix'],
+        message: 'Tag prefix may contain only latin letters and digits (no spaces, # or symbols)',
+      });
+    }
+
     const anyEnabled =
       v.pinterest_enabled || v.threads_enabled || v.instagram_enabled || v.linkedin_enabled;
     if (!anyEnabled) return;
@@ -88,6 +102,17 @@ export const POST = withAuth(
     if (body.buffer_api_key === '***' && state.social?.buffer_api_key) {
       body.buffer_api_key = state.social.buffer_api_key;
     }
+    if (body.inro_api_key === '***' && state.social?.inro_api_key) {
+      body.inro_api_key = state.social.inro_api_key;
+    }
+
+    // Inro (comment→DM) values are free text — normalize before validation/use.
+    const inroApiKey = body.inro_api_key?.trim() || '';
+    const inroTagPrefix = body.inro_tag_prefix?.trim() || '';
+    // When a key is provided the workflow needs a non-empty trigger keyword;
+    // default it to the canonical CTA word rather than rejecting the form.
+    const inroKeyword = inroApiKey ? body.inro_keyword?.trim() || 'ХОЧУ' : '';
+
     const anyEnabled =
       body.pinterest_enabled ||
       body.threads_enabled ||
@@ -155,6 +180,13 @@ export const POST = withAuth(
         useBuffer && body.linkedin_enabled
           ? body.buffer_linkedin_channel_id || undefined
           : undefined,
+      // Inro comment→DM only applies to Instagram via Buffer and is persisted as
+      // a coherent set keyed on the API key; clear stale values whenever Buffer
+      // is unused, Instagram is disabled, or no Inro key is provided.
+      inro_api_key: useBuffer && body.instagram_enabled && inroApiKey ? inroApiKey : undefined,
+      inro_keyword: useBuffer && body.instagram_enabled && inroApiKey ? inroKeyword : undefined,
+      inro_tag_prefix:
+        useBuffer && body.instagram_enabled && inroApiKey ? inroTagPrefix || undefined : undefined,
     };
     state.steps.social = { completed: true };
     state.currentStep = 'review';

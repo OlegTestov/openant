@@ -613,6 +613,132 @@ describe('POST /api/setup/social', () => {
       }),
     );
   });
+
+  it('persists Inro fields (and defaults keyword) for Buffer Instagram', async () => {
+    const { fetchBufferChannels } = await import('@/lib/buffer');
+    vi.mocked(fetchBufferChannels).mockResolvedValueOnce(BUFFER_CHANNELS);
+    const { writeState } = await import('@/lib/state');
+    const { POST } = await import('../social/route');
+    const res = await POST(
+      createRequest({
+        make_webhook_url: '',
+        pinterest_enabled: false,
+        threads_enabled: false,
+        instagram_enabled: true,
+        buffer_api_key: '1/key',
+        buffer_instagram_channel_id: 'ch-ig',
+        inro_api_key: 'inro-secret',
+        inro_tag_prefix: 'oa',
+        // keyword omitted on purpose — route defaults it to ХОЧУ
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(writeState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        social: expect.objectContaining({
+          inro_api_key: 'inro-secret',
+          inro_keyword: 'ХОЧУ',
+          inro_tag_prefix: 'oa',
+        }),
+      }),
+    );
+  });
+
+  it('resolves masked *** Inro key to the stored key', async () => {
+    mockState.social = {
+      pinterest_enabled: false,
+      threads_enabled: false,
+      instagram_enabled: true,
+      buffer_api_key: '1/stored-key',
+      buffer_instagram_channel_id: 'ch-ig',
+      inro_api_key: 'inro-stored',
+      inro_keyword: 'ХОЧУ',
+    };
+    const { fetchBufferChannels } = await import('@/lib/buffer');
+    vi.mocked(fetchBufferChannels).mockResolvedValueOnce(BUFFER_CHANNELS);
+    const { writeState } = await import('@/lib/state');
+    const { POST } = await import('../social/route');
+    const res = await POST(
+      createRequest({
+        make_webhook_url: '',
+        pinterest_enabled: false,
+        threads_enabled: false,
+        instagram_enabled: true,
+        buffer_api_key: '***',
+        buffer_instagram_channel_id: 'ch-ig',
+        inro_api_key: '***',
+        inro_keyword: 'ХОЧУ',
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(writeState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        social: expect.objectContaining({ inro_api_key: 'inro-stored' }),
+      }),
+    );
+  });
+
+  it('clears Inro fields when Instagram is disabled', async () => {
+    const { fetchBufferChannels } = await import('@/lib/buffer');
+    vi.mocked(fetchBufferChannels).mockResolvedValueOnce(BUFFER_CHANNELS);
+    const { writeState } = await import('@/lib/state');
+    const { POST } = await import('../social/route');
+    const res = await POST(
+      createRequest({
+        make_webhook_url: '',
+        pinterest_enabled: true,
+        threads_enabled: false,
+        instagram_enabled: false,
+        buffer_api_key: '1/key',
+        buffer_pinterest_channel_id: 'ch-pin',
+        buffer_pinterest_board_id: 'b1',
+        // stale Inro values must not be persisted when IG is off
+        inro_api_key: 'inro-secret',
+        inro_keyword: 'ХОЧУ',
+        inro_tag_prefix: 'oa',
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(writeState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        social: expect.objectContaining({
+          inro_api_key: undefined,
+          inro_keyword: undefined,
+          inro_tag_prefix: undefined,
+        }),
+      }),
+    );
+  });
+
+  it('clears Inro fields when Buffer is unused (Make path)', async () => {
+    const { writeState } = await import('@/lib/state');
+    const { POST } = await import('../social/route');
+    const res = await POST(
+      createRequest({
+        make_webhook_url: 'https://hook.make.com/abc',
+        pinterest_enabled: true,
+        threads_enabled: false,
+        instagram_enabled: false,
+        board: 'My Pins',
+        inro_api_key: 'inro-secret',
+        inro_tag_prefix: 'oa',
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(writeState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        social: expect.objectContaining({
+          inro_api_key: undefined,
+          inro_keyword: undefined,
+          inro_tag_prefix: undefined,
+        }),
+      }),
+    );
+  });
 });
 
 describe('GET /api/setup/status', () => {
@@ -635,5 +761,31 @@ describe('GET /api/setup/status', () => {
     expect(res.status).toBe(200);
     expect(body.data.social.buffer_api_key).toBe('***');
     expect(body.data.social.buffer_pinterest_channel_id).toBe('ch-pin');
+  });
+
+  it('masks the Inro API key', async () => {
+    mockState.social = {
+      pinterest_enabled: false,
+      threads_enabled: false,
+      instagram_enabled: true,
+      buffer_api_key: '1/secret-key',
+      buffer_instagram_channel_id: 'ch-ig',
+      inro_api_key: 'inro-secret',
+      inro_keyword: 'ХОЧУ',
+      inro_tag_prefix: 'oa',
+    };
+    const { GET } = await import('../status/route');
+    const res = await GET(
+      new Request('http://localhost/api/setup/status', {
+        headers: { Authorization: `Bearer ${MOCK_TOKEN}` },
+      }),
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.data.social.inro_api_key).toBe('***');
+    expect(body.data.social.buffer_api_key).toBe('***');
+    expect(body.data.social.inro_keyword).toBe('ХОЧУ');
+    expect(body.data.social.inro_tag_prefix).toBe('oa');
   });
 });

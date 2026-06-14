@@ -326,6 +326,9 @@ export function createN8nAdapter(): AutomationAdapter {
           /\{\{BUFFER_LINKEDIN_CHANNEL_ID\}\}/g,
           jsonSafe(params.bufferLinkedinChannelId ?? ''),
         )
+        .replace(/\{\{INRO_API_KEY\}\}/g, jsonSafe(params.inroApiKey ?? ''))
+        .replace(/\{\{INRO_KEYWORD\}\}/g, jsonSafe(params.inroKeyword ?? ''))
+        .replace(/\{\{INRO_TAG_PREFIX\}\}/g, jsonSafe(params.inroTagPrefix ?? ''))
         .replace(/\{\{DEFAULT_LINK\}\}/g, jsonSafe(params.defaultLink ?? ''))
         .replace(/\{\{DEFAULT_LINK_NAME\}\}/g, jsonSafe(params.defaultLinkName ?? ''))
         .replace(/\{\{TELEGRAM_BOT_TOKEN\}\}/g, jsonSafe(params.telegramBotToken ?? ''))

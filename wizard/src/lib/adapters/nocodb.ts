@@ -118,6 +118,7 @@ async function createArticlesTable(
     { title: 'PinURL', uidt: 'URL' },
     { title: 'Error', uidt: 'LongText' },
     { title: 'RetryCount', uidt: 'Number', cdf: '1' },
+    { title: 'InroScenarioId', uidt: 'SingleLineText' },
   ];
 
   for (const col of additionalColumns) {
@@ -703,6 +704,17 @@ export function createNocoDBAdapter(): TableAdapter {
               {
                 method: 'POST',
                 body: JSON.stringify({ title: 'RetryCount', uidt: 'Number', cdf: '1' }),
+              },
+              'xc-auth',
+            );
+          }
+          if (!cols.some((c) => c.title === 'InroScenarioId')) {
+            await nocoFetch(
+              `${baseUrl}/api/v2/meta/tables/${tableId}/columns/`,
+              authToken,
+              {
+                method: 'POST',
+                body: JSON.stringify({ title: 'InroScenarioId', uidt: 'SingleLineText' }),
               },
               'xc-auth',
             );

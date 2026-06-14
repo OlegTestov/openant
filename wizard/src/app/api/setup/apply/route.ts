@@ -102,6 +102,9 @@ function buildEnvVars(state: SetupState): Record<string, string> {
     BUFFER_INSTAGRAM_CHANNEL_ID: state.social?.buffer_instagram_channel_id ?? '',
     BUFFER_THREADS_CHANNEL_ID: state.social?.buffer_threads_channel_id ?? '',
     BUFFER_LINKEDIN_CHANNEL_ID: state.social?.buffer_linkedin_channel_id ?? '',
+    INRO_API_KEY: state.social?.inro_api_key ?? '',
+    INRO_KEYWORD: state.social?.inro_keyword ?? '',
+    INRO_TAG_PREFIX: state.social?.inro_tag_prefix ?? '',
 
     INDEXNOW_KEY: process.env.INDEXNOW_KEY || crypto.randomUUID().replace(/-/g, ''),
 
@@ -357,6 +360,9 @@ async function executeDeployStep(
         bufferInstagramChannelId: state.social?.buffer_instagram_channel_id,
         bufferThreadsChannelId: state.social?.buffer_threads_channel_id,
         bufferLinkedinChannelId: state.social?.buffer_linkedin_channel_id,
+        inroApiKey: state.social?.inro_api_key,
+        inroKeyword: state.social?.inro_keyword,
+        inroTagPrefix: state.social?.inro_tag_prefix,
         defaultLink: state.blog?.default_link,
         defaultLinkName: state.blog?.default_link_name,
         nocodbBaseId: ctx.nocoKeys?.projectId,

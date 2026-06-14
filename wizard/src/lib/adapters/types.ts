@@ -157,6 +157,9 @@ export interface WorkflowParams {
   bufferInstagramChannelId?: string;
   bufferThreadsChannelId?: string;
   bufferLinkedinChannelId?: string;
+  inroApiKey?: string;
+  inroKeyword?: string;
+  inroTagPrefix?: string;
   defaultLink?: string;
   defaultLinkName?: string;
   nocodbBaseId?: string;
