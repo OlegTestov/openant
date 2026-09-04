@@ -11,8 +11,8 @@ export const LLM_PRESETS: readonly LLMPreset[] = [
     id: 'openrouter',
     label: 'OpenRouter',
     apiUrl: 'https://openrouter.ai/api/v1',
-    defaultModel: 'google/gemini-3-flash-preview',
-    defaultImageModel: 'google/gemini-3.1-flash-image-preview',
+    defaultModel: 'google/gemini-3.8-flash',
+    defaultImageModel: 'google/gemini-3.1-flash-image',
   },
   {
     id: 'openai',

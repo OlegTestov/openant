@@ -1,6 +1,6 @@
 # openant — Architecture Overview
 
-> Last updated: 2026-06-14
+> Last updated: 2026-09-04
 
 ---
 
@@ -486,12 +486,12 @@ Linear sequence: each step has UI component + API route + Zod schema.
 
 All providers are OpenAI-compatible (no adapter needed):
 
-| Provider   | Default model                   | Default image model                     |
-| ---------- | ------------------------------- | --------------------------------------- |
-| OpenRouter | `google/gemini-3-flash-preview` | `google/gemini-3.1-flash-image-preview` |
-| OpenAI     | `gpt-4o-mini`                   | `gpt-4o-mini`                           |
-| DeepSeek   | `deepseek-chat`                 | `deepseek-chat`                         |
-| Custom     | (user-provided)                 | (user-provided)                         |
+| Provider   | Default model             | Default image model             |
+| ---------- | ------------------------- | ------------------------------- |
+| OpenRouter | `google/gemini-3.8-flash` | `google/gemini-3.1-flash-image` |
+| OpenAI     | `gpt-4o-mini`             | `gpt-4o-mini`                   |
+| DeepSeek   | `deepseek-chat`           | `deepseek-chat`                 |
+| Custom     | (user-provided)           | (user-provided)                 |
 
 ---
 
